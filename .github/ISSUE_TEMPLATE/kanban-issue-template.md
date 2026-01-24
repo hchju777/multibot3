@@ -1,3 +1,11 @@
+---
+name: Kanban Issue
+about: Kanban Issue Template
+title: ""
+labels: []
+assignees: []
+---
+
 ### Overview 🔍
 <!-- Issue의 주요 내용에 대한 간략한 설명-->
 
