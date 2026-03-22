@@ -1,0 +1,38 @@
+version: 1
+
+map: ../../maps/warehouse_5x4.yaml
+params: ../../params/default.yaml
+
+robots:
+  - {id: R0,  start:  0, home:  0}
+  - {id: R1,  start:  1, home:  1}
+  - {id: R2,  start:  3, home:  3}
+  - {id: R3,  start:  4, home:  4}
+  - {id: R4,  start: 15, home: 15}
+  - {id: R5,  start: 16, home: 16}
+  - {id: R6,  start: 18, home: 18}
+  - {id: R7,  start: 19, home: 19}
+  - {id: R8,  start:  5, home:  5}
+  - {id: R9,  start:  9, home:  9}
+  - {id: R10, start: 10, home: 10}
+  - {id: R11, start: 14, home: 14}
+  - {id: R12, start:  2, home:  2}
+  - {id: R13, start: 17, home: 17}
+
+scenario:
+  replan_policy: replan_on_assignment
+  events:
+    - {id: e0,  type: assign_goal, robot: R0,  goal: 15, when: {type: at_start}}
+    - {id: e1,  type: assign_goal, robot: R1,  goal: 16, when: {type: at_start}}
+    - {id: e2,  type: assign_goal, robot: R2,  goal: 18, when: {type: at_start}}
+    - {id: e3,  type: assign_goal, robot: R3,  goal: 19, when: {type: at_start}}
+    - {id: e4,  type: assign_goal, robot: R4,  goal:  0, when: {type: at_start}}
+    - {id: e5,  type: assign_goal, robot: R5,  goal:  1, when: {type: at_start}}
+    - {id: e6,  type: assign_goal, robot: R6,  goal:  3, when: {type: at_start}}
+    - {id: e7,  type: assign_goal, robot: R7,  goal:  4, when: {type: at_start}}
+    - {id: e8,  type: assign_goal, robot: R8,  goal:  9, when: {type: at_start}}
+    - {id: e9,  type: assign_goal, robot: R9,  goal:  5, when: {type: at_start}}
+    - {id: e10, type: assign_goal, robot: R10, goal: 14, when: {type: at_start}}
+    - {id: e11, type: assign_goal, robot: R11, goal: 10, when: {type: at_start}}
+    - {id: e12, type: assign_goal, robot: R12, goal: 17, when: {type: at_start}}
+    - {id: e13, type: assign_goal, robot: R13, goal:  2, when: {type: at_start}}

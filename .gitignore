@@ -1,1 +1,4 @@
 .vscode
+context
+mapf/build/
+.env

@@ -1,0 +1,18 @@
+version: 1
+
+map: ../../maps/grid_4x4.yaml
+params: ../../params/default.yaml
+
+robots:
+  - {id: 0,  start:  0, goal: 12}
+  - {id: 1,  start:  1, goal: 13}
+  - {id: 2,  start:  2, goal: 14}
+  - {id: 3,  start:  3, goal: 15}
+  - {id: 4,  start: 12, goal:  0}
+  - {id: 5,  start: 13, goal:  1}
+  - {id: 6,  start: 14, goal:  2}
+  - {id: 7,  start: 15, goal:  3}
+  - {id: 8,  start:  4, goal:  7}
+  - {id: 9,  start:  7, goal:  4}
+  - {id: 10, start:  8, goal: 11}
+  - {id: 11, start: 11, goal:  8}
