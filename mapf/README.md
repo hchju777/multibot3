@@ -5,6 +5,7 @@ This document is the practical execution guide for the `mapf` module.
 For deeper design and research context, see:
 - [`RESEARCH.md`](RESEARCH.md)
 - [`../concept/MAPF_LAYER.md`](../concept/MAPF_LAYER.md)
+- [`../concept/SADG_LAYER.md`](../concept/SADG_LAYER.md)
 
 Scenario YAML schema:
 - [`schema/lifelong-scenario.schema.json`](schema/lifelong-scenario.schema.json)

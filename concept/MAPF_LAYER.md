@@ -531,6 +531,8 @@ safe hold
 
 ## 9. SADG Layer와의 인터페이스
 
+SADG 내부 구조와 실행 상태 모델의 상세 설계는 별도 문서 [`SADG_LAYER.md`](SADG_LAYER.md)를 따른다.
+
 ### 9.1 MAPF Output -> SADG Input
 
 MAPF는 각 로봇에 대해 다음 형식의 path를 반환한다.

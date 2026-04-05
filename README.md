@@ -14,6 +14,10 @@ Execution guide:
 Research and design notes:
 - [mapf/RESEARCH.md](mapf/RESEARCH.md)
 
+Concept docs:
+- [concept/MAPF_LAYER.md](concept/MAPF_LAYER.md)
+- [concept/SADG_LAYER.md](concept/SADG_LAYER.md)
+
 Build from the repository root:
 
 ```bash
