@@ -25,6 +25,27 @@
 
 namespace {
 
+const char* planning_status_name(PlanningStatus status)
+{
+    switch (status) {
+    case PlanningStatus::SOLVED:
+        return "SOLVED";
+    case PlanningStatus::TIMEOUT_WITH_SOLUTION:
+        return "TIMEOUT_WITH_SOLUTION";
+    case PlanningStatus::TIMEOUT_NO_SOLUTION:
+        return "TIMEOUT_NO_SOLUTION";
+    case PlanningStatus::UNSAT:
+        return "UNSAT";
+    case PlanningStatus::INVALID_MAP:
+        return "INVALID_MAP";
+    case PlanningStatus::INVALID_REQUEST:
+        return "INVALID_REQUEST";
+    case PlanningStatus::SAFE_STOP_REQUIRED:
+        return "SAFE_STOP_REQUIRED";
+    }
+    return "UNKNOWN";
+}
+
 void write_lifelong_json(const std::string& path,
                          const LifelongScenario& scenario,
                          const PreparedMap& prepared,
@@ -42,6 +63,12 @@ void write_lifelong_json(const std::string& path,
     f << "  \"map_path\": \"" << scenario.map_path << "\",\n";
     f << "  \"params_path\": \"" << scenario.params_path << "\",\n";
     f << "  \"uses_virtual_lock\": " << (prepared.uses_virtual_lock() ? "true" : "false") << ",\n";
+    f << "  \"safe_stop_required\": " << (run.safe_stop_required ? "true" : "false") << ",\n";
+    if (run.safe_stop_required) {
+        f << "  \"stop_reason\": \"" << run.stop_reason << "\",\n";
+    } else {
+        f << "  \"stop_reason\": null,\n";
+    }
 
     f << "  \"planning_graph\": {\n";
     f << "    \"vertices\": [\n";
@@ -95,6 +122,9 @@ void write_lifelong_json(const std::string& path,
         f << "    {\n";
         f << "      \"index\": " << episode.index << ",\n";
         f << "      \"mode\": \"" << (episode.request.mode == PlanMode::INITIAL ? "INITIAL" : "REPLAN") << "\",\n";
+        f << "      \"used_global_replan\": "
+          << (episode.used_global_replan ? "true" : "false") << ",\n";
+        f << "      \"status\": \"" << planning_status_name(episode.result.status) << "\",\n";
         f << "      \"cost\": " << episode.result.cost << ",\n";
         f << "      \"makespan\": " << episode.result.makespan << ",\n";
         f << "      \"executed_until_timestep\": " << episode.executed_until_timestep << ",\n";
@@ -229,12 +259,7 @@ int main(int argc, char* argv[])
         PreparedMap prepared =
             PreparedMap::from_graph(map_loader.release_graph(), params.preprocessing);
 
-        if (!prepared.planning_graph().is_biconnected()) {
-            spdlog::error("planning graph is not biconnected after preprocessing");
-            return 1;
-        }
-
-        LifelongPlanner planner(std::move(prepared), params);
+        MapfPlanner planner(std::move(prepared), params);
         const ScenarioRunResult run = planner.run(scenario);
 
         spdlog::info("Scenario: {}", scenario.path);
@@ -248,8 +273,9 @@ int main(int argc, char* argv[])
         for (const auto& episode : run.episodes) {
             spdlog::info("=== Episode {} ===", episode.index);
             spdlog::info("activated events: {}", format_event_ids(episode.activated_event_ids));
-            spdlog::info("mode={}, cost={}, makespan={}, executed_until_t={}",
+            spdlog::info("mode={}, status={}, cost={}, makespan={}, executed_until_t={}",
                          episode.request.mode == PlanMode::INITIAL ? "INITIAL" : "REPLAN",
+                         planning_status_name(episode.result.status),
                          episode.result.cost,
                          episode.result.makespan,
                          episode.executed_until_timestep);

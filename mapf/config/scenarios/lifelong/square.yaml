@@ -1,4 +1,4 @@
-version: 1
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
 
 map: ../../maps/square.yaml
 params: ../../params/default.yaml

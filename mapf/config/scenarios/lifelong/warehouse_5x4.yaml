@@ -1,4 +1,4 @@
-version: 1
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
 
 map: ../../maps/warehouse_5x4.yaml
 params: ../../params/default.yaml
@@ -36,3 +36,15 @@ scenario:
     - {id: e11, type: assign_goal, robot: R11, goal: 10, when: {type: at_start}}
     - {id: e12, type: assign_goal, robot: R12, goal: 17, when: {type: at_start}}
     - {id: e13, type: assign_goal, robot: R13, goal:  2, when: {type: at_start}}
+    - {id: e14, type: assign_goal, robot: R5,  goal:  6, when: {type: after_initial}}
+    - {id: e15, type: assign_goal, robot: R5,  goal:  1, when: {type: on_robot_idle, robot: R5}, after: e14}
+    - {id: e16, type: assign_goal, robot: R9,  goal:  6, when: {type: on_robot_idle, robot: R9}, after: e15}
+    - {id: e17, type: assign_goal, robot: R12, goal: 12, when: {type: on_robot_idle, robot: R12}, after: e16}
+    - {id: e18, type: assign_goal, robot: R12, goal: 17, when: {type: on_robot_idle, robot: R12}, after: e17}
+    - {id: e19, type: assign_goal, robot: R13, goal:  7, when: {type: on_robot_idle, robot: R13}, after: e18}
+    - {id: e20, type: assign_goal, robot: R13, goal:  2, when: {type: on_robot_idle, robot: R13}, after: e19}
+    - {id: e21, type: assign_goal, robot: R11, goal: 11, when: {type: on_robot_idle, robot: R11}, after: e20}
+    - {id: e22, type: assign_goal, robot: R11, goal: 10, when: {type: on_robot_idle, robot: R11}, after: e21}
+    - {id: e23, type: assign_goal, robot: R1,  goal: 11, when: {type: on_robot_idle, robot: R1}, after: e22}
+    - {id: e24, type: assign_goal, robot: R2,  goal:  8, when: {type: on_robot_idle, robot: R2}, after: e23}
+    - {id: e25, type: assign_goal, robot: R10, goal: 13, when: {type: on_robot_idle, robot: R10}, after: e24}

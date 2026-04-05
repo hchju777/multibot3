@@ -2,19 +2,21 @@
 
 #include <string>
 
+enum class ObjectiveType {
+    SOC,
+    MAKESPAN,
+};
+
 // ============================================================
 //  PlannerParams  —  §7.3 파라미터
 // ============================================================
 struct PlannerParams {
+    ObjectiveType objective          = ObjectiveType::SOC;
     double initial_quality_threshold = 1.2;   // optimal 대비 X배
     int    initial_timeout_ms        = 5000;  // 최초 계획 hard limit
     int    replan_timeout_ms         = 500;   // 재계획 hard limit
+    int    parallel_search_workers   = 1;     // 동일 planner 병렬 restart 수
     int    seed                      = 42;    // RNG seed
-    bool   initial_async_fallback          = true;   // INITIAL 모드에서 fallback 병렬 race
-    int    initial_async_fallback_delay_ms = 50;    // 이 시간 뒤 fallback thread 시작
-    int    initial_primary_grace_ms        = 100;   // fallback 준비 후 primary 추가 탐색 시간
-    bool   replan_async_fallback           = true;   // REPLAN 모드에서 fallback 병렬 race
-    int    replan_async_fallback_delay_ms  = 0;      // REPLAN fallback thread 시작 지연
 };
 
 // ============================================================

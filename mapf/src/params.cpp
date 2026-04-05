@@ -3,6 +3,17 @@
 #include <yaml-cpp/yaml.h>
 #include <stdexcept>
 
+namespace {
+
+ObjectiveType parse_objective(const std::string& value)
+{
+    if (value == "soc") return ObjectiveType::SOC;
+    if (value == "makespan") return ObjectiveType::MAKESPAN;
+    throw std::runtime_error("Invalid planner objective: '" + value + "'");
+}
+
+}  // namespace
+
 // 헬퍼: 노드에서 값 읽기. 없으면 기본값 유지.
 template<typename T>
 static void read_opt(const YAML::Node& node, const char* key, T& out)
@@ -24,27 +35,14 @@ Params Params::load(const std::string& path)
 
     // ── planner ──────────────────────────────────────────────
     if (const YAML::Node& pl = root["planner"]) {
+        if (pl["objective"]) {
+            p.planner.objective = parse_objective(pl["objective"].as<std::string>());
+        }
         read_opt(pl, "initial_quality_threshold", p.planner.initial_quality_threshold);
         read_opt(pl, "initial_timeout_ms",        p.planner.initial_timeout_ms);
         read_opt(pl, "replan_timeout_ms",         p.planner.replan_timeout_ms);
+        read_opt(pl, "parallel_search_workers",   p.planner.parallel_search_workers);
         read_opt(pl, "seed",                      p.planner.seed);
-
-        // backward-compatible aliases
-        bool async_fallback_alias = p.planner.initial_async_fallback;
-        int async_fallback_delay_alias = p.planner.initial_async_fallback_delay_ms;
-        read_opt(pl, "async_fallback",          async_fallback_alias);
-        read_opt(pl, "async_fallback_delay_ms", async_fallback_delay_alias);
-
-        p.planner.initial_async_fallback = async_fallback_alias;
-        p.planner.replan_async_fallback = async_fallback_alias;
-        p.planner.initial_async_fallback_delay_ms = async_fallback_delay_alias;
-        p.planner.replan_async_fallback_delay_ms = async_fallback_delay_alias;
-
-        read_opt(pl, "initial_async_fallback",          p.planner.initial_async_fallback);
-        read_opt(pl, "initial_async_fallback_delay_ms", p.planner.initial_async_fallback_delay_ms);
-        read_opt(pl, "initial_primary_grace_ms",        p.planner.initial_primary_grace_ms);
-        read_opt(pl, "replan_async_fallback",           p.planner.replan_async_fallback);
-        read_opt(pl, "replan_async_fallback_delay_ms",  p.planner.replan_async_fallback_delay_ms);
     }
 
     // ── preprocessing ─────────────────────────────────────────

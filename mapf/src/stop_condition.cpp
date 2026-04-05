@@ -37,7 +37,7 @@ void StopCondition::notify_solution(int cost)
 bool StopCondition::should_stop(int current_cost) const
 {
     if (!first_solution_found) return false;
-    if (is_timeout())          return true;
+    if (should_abort())        return true;
 
     if (mode == PlanMode::REPLAN) {
         return true;  // 첫 solution 발견 즉시
@@ -55,6 +55,21 @@ bool StopCondition::should_stop(int current_cost) const
 bool StopCondition::is_timeout() const
 {
     return elapsed_ms() >= static_cast<double>(timeout_ms());
+}
+
+void StopCondition::bind_abort_flag(std::shared_ptr<std::atomic_bool> abort_flag)
+{
+    abort_flag_ = std::move(abort_flag);
+}
+
+bool StopCondition::is_aborted() const
+{
+    return abort_flag_ != nullptr && abort_flag_->load();
+}
+
+bool StopCondition::should_abort() const
+{
+    return is_timeout() || is_aborted();
 }
 
 // ============================================================

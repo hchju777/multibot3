@@ -1,4 +1,4 @@
-version: 1
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
 
 map: ../../maps/corridor.yaml
 params: ../../params/default.yaml
@@ -26,3 +26,17 @@ scenario:
       goal: 0
       when:
         type: at_start
+    - id: e2
+      type: assign_goal
+      robot: R0
+      goal: 0
+      when:
+        type: on_robot_idle
+        robot: R0
+    - id: e3
+      type: assign_goal
+      robot: R1
+      goal: 7
+      when:
+        type: on_robot_idle
+        robot: R1

@@ -5,12 +5,12 @@
 #include "collision.hpp"
 #include "params.hpp"
 #include "pibt.hpp"
+#include "reservation_table.hpp"
 #include "stop_condition.hpp"
 #include "solution.hpp"
 
 #include <vector>
 #include <unordered_map>
-#include <stack>
 #include <queue>
 #include <random>
 #include <memory>
@@ -62,6 +62,22 @@ struct HNode {
         : C(C), g_val(g), h_val(h), parent(parent) {}
 };
 
+struct OpenEntry {
+    HNode* node = nullptr;
+    int g_snapshot = 0;
+    int h_snapshot = 0;
+    int f_snapshot = 0;
+};
+
+struct OpenEntryCompare {
+    bool operator()(const OpenEntry& a, const OpenEntry& b) const
+    {
+        if (a.f_snapshot != b.f_snapshot) return a.f_snapshot > b.f_snapshot;
+        if (a.h_snapshot != b.h_snapshot) return a.h_snapshot > b.h_snapshot;
+        return a.g_snapshot > b.g_snapshot;
+    }
+};
+
 // Config 해시 (unordered_map 키로 사용)
 struct ConfigHash {
     std::size_t operator()(const Config& C) const {
@@ -92,7 +108,8 @@ public:
             const DistTable& D,
             StopCondition& stop,
             std::mt19937& rng,
-            PlannerParams params = PlannerParams{});
+            PlannerParams params = PlannerParams{},
+            const ReservationTable* reservations = nullptr);
 
     ~Planner();
 
@@ -104,10 +121,7 @@ private:
         int hl_expansions = 0;
         int pibt_calls = 0;
         int goal_validations = 0;
-        int fallback_planned_agents = 0;
-        int fallback_expanded_nodes = 0;
         double pibt_ms = 0.0;
-        double fallback_ms = 0.0;
     };
 
     const Instance&  ins;
@@ -115,6 +129,7 @@ private:
     StopCondition&   stop;
     std::mt19937&    rng;
     PlannerParams    params;
+    const ReservationTable* reservations;
 
     CollisionChecker collision;
     PIBT             pibt;
@@ -122,8 +137,10 @@ private:
     // 방문한 configuration → HNode 메모이제이션
     std::unordered_map<Config, HNode*, ConfigHash> visited;
 
-    // OPEN stack
-    std::stack<HNode*> open;
+    // OPEN best-first queue
+    std::priority_queue<OpenEntry,
+                        std::vector<OpenEntry>,
+                        OpenEntryCompare> open;
 
     // 메모리 관리용 노드 목록
     std::vector<HNode*> all_hnodes;
@@ -172,9 +189,4 @@ private:
     // -------------------------------------------------------
     int sum_of_costs(const Solution& sol) const;
 
-    // -------------------------------------------------------
-    //  solve_prioritized_fallback
-    //  LaCAM★ 이 해를 찾지 못했을 때 사용하는 reservation-table fallback.
-    // -------------------------------------------------------
-    Solution solve_prioritized_fallback();
 };

@@ -1,4 +1,4 @@
-version: 1
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
 
 map: ../../maps/corridor.yaml
 params: ../../params/default.yaml
@@ -24,3 +24,6 @@ scenario:
     - {id: e1, type: assign_goal, robot: R1, goal: 0, when: {type: at_start}}
     - {id: e2, type: assign_goal, robot: R2, goal: 5, when: {type: at_start}}
     - {id: e3, type: assign_goal, robot: R3, goal: 2, when: {type: at_start}}
+    - {id: e4, type: assign_goal, robot: R1, goal: 1, when: {type: after_initial}}
+    - {id: e5, type: assign_goal, robot: R2, goal: 11, when: {type: after_initial}}
+    - {id: e6, type: assign_goal, robot: R3, goal: 8, when: {type: after_initial}}

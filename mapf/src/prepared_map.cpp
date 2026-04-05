@@ -45,6 +45,12 @@ PreparedMap PreparedMap::from_graph(Graph graph,
         throw std::runtime_error("PreparedMap requires a non-empty graph");
     }
 
+    auto validate_biconnected = [](const Graph& planning_graph) {
+        if (!planning_graph.is_biconnected()) {
+            throw std::runtime_error("planning graph is not biconnected after preprocessing");
+        }
+    };
+
     if (!params.virtual_lock) {
         std::vector<int> original_to_planning(n);
         std::vector<std::vector<int>> planning_to_original(n);
@@ -53,6 +59,7 @@ PreparedMap PreparedMap::from_graph(Graph graph,
             planning_to_original[i].push_back(i);
         }
         Graph planning_graph = clone_graph(graph);
+        validate_biconnected(planning_graph);
         return PreparedMap(std::move(graph),
                            std::move(planning_graph),
                            std::move(original_to_planning),
@@ -64,6 +71,7 @@ PreparedMap PreparedMap::from_graph(Graph graph,
     if (result.original_to_planning_vertex.size() != static_cast<std::size_t>(n)) {
         throw std::runtime_error("graph preprocessor did not return complete vertex mapping");
     }
+    validate_biconnected(result.graph);
 
     return PreparedMap(std::move(graph),
                        std::move(result.graph),

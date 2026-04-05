@@ -48,6 +48,24 @@ PIBT::PIBT(const Graph& G,
     }
 }
 
+void PIBT::record_failure(PIBTFailure* failure,
+                          PIBTFailureKind kind,
+                          int primary_agent,
+                          int secondary_agent,
+                          int from_vertex,
+                          int to_vertex,
+                          int timestep) const
+{
+    if (failure == nullptr || failure->kind != PIBTFailureKind::NONE) return;
+
+    failure->kind = kind;
+    failure->primary_agent = primary_agent;
+    failure->secondary_agent = secondary_agent;
+    failure->from_vertex = from_vertex;
+    failure->to_vertex = to_vertex;
+    failure->timestep = timestep;
+}
+
 // ============================================================
 //  set_new_config
 //
@@ -64,10 +82,13 @@ PIBT::PIBT(const Graph& G,
 bool PIBT::set_new_config(const Config& C_now,
                           Config& C_next,
                           const std::vector<Constraint>& constraints,
-                          int timestep)
+                          int timestep,
+                          const ReservationTable* reservations,
+                          PIBTFailure* failure)
 {
     const int n = static_cast<int>(C_now.size());
     assert(n > 0);
+    if (failure != nullptr) *failure = PIBTFailure{};
 
     C_next.assign(n, nullptr);
 
@@ -87,7 +108,29 @@ bool PIBT::set_new_config(const Config& C_now,
         assert(c.who >= 0 && c.who < n);
         assert(c.where != nullptr);
 
-        if (occupied_next[c.where->id] != -1) return false;
+        if (occupied_next[c.where->id] != -1) {
+            record_failure(failure,
+                           PIBTFailureKind::CONSTRAINT_CONFLICT,
+                           c.who,
+                           occupied_next[c.where->id],
+                           C_now[c.who]->id,
+                           c.where->id,
+                           timestep);
+            return false;
+        }
+        if (reservations != nullptr &&
+            !reservations->is_move_allowed(C_now[c.who]->id, c.where->id, timestep)) {
+            record_failure(failure,
+                           reservations->is_vertex_reserved(c.where->id, timestep)
+                               ? PIBTFailureKind::RESERVATION_VERTEX
+                               : PIBTFailureKind::RESERVATION_MOVE,
+                           c.who,
+                           -1,
+                           C_now[c.who]->id,
+                           c.where->id,
+                           timestep);
+            return false;
+        }
 
         C_next[c.who]              = c.where;
         occupied_next[c.where->id] = c.who;
@@ -104,16 +147,47 @@ bool PIBT::set_new_config(const Config& C_now,
 
     for (int agent : order) {
         if (C_next[agent] != nullptr) continue;
-        funcPIBT(agent, C_now, C_next, timestep);
+        funcPIBT(agent, C_now, C_next, timestep, reservations, failure);
     }
 
     for (int agent = 0; agent < n; ++agent) {
-        if (C_next[agent] == nullptr) return false;
+        if (C_next[agent] == nullptr) {
+            record_failure(failure,
+                           PIBTFailureKind::WAIT_BLOCKED,
+                           agent,
+                           -1,
+                           C_now[agent]->id,
+                           C_now[agent]->id,
+                           timestep);
+            return false;
+        }
     }
 
     // --- 3. 최종 검증 (① vertex, ② swap) ---
-    if (CollisionChecker::has_vertex_collision(C_next))       return false;
-    if (CollisionChecker::has_swap_collision(C_now, C_next))  return false;
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            if (C_next[i] == C_next[j]) {
+                record_failure(failure,
+                               PIBTFailureKind::VERTEX_CONFLICT,
+                               i,
+                               j,
+                               C_now[i]->id,
+                               C_next[i]->id,
+                               timestep);
+                return false;
+            }
+            if (C_now[i] == C_next[j] && C_now[j] == C_next[i]) {
+                record_failure(failure,
+                               PIBTFailureKind::SWAP_CONFLICT,
+                               i,
+                               j,
+                               C_now[i]->id,
+                               C_next[i]->id,
+                               timestep);
+                return false;
+            }
+        }
+    }
 
     return true;
 }
@@ -146,6 +220,8 @@ bool PIBT::funcPIBT(int agent_id,
                     const Config& C_now,
                     Config& C_next,
                     int timestep,
+                    const ReservationTable* reservations,
+                    PIBTFailure* failure,
                     int caller_id)
 {
     (void)caller_id;
@@ -166,8 +242,29 @@ bool PIBT::funcPIBT(int agent_id,
     for (Vertex* v : candidates) {
         const int vid = v->id;
 
+        if (reservations != nullptr &&
+            !reservations->is_move_allowed(curr->id, vid, timestep)) {
+            record_failure(failure,
+                           reservations->is_vertex_reserved(vid, timestep)
+                               ? PIBTFailureKind::RESERVATION_VERTEX
+                               : PIBTFailureKind::RESERVATION_MOVE,
+                           agent_id,
+                           -1,
+                           curr->id,
+                           vid,
+                           timestep);
+            continue;
+        }
+
         // ③ non-passing collision 검사
         if (!collision.is_non_passing_free(curr->id, vid, timestep)) {
+            record_failure(failure,
+                           PIBTFailureKind::NON_PASSING,
+                           agent_id,
+                           -1,
+                           curr->id,
+                           vid,
+                           timestep);
             continue;
         }
 
@@ -195,7 +292,7 @@ bool PIBT::funcPIBT(int agent_id,
         if (in_stack[blocker]) continue;
 
         // priority inheritance: blocker 를 먼저 이동시킨다
-        funcPIBT(blocker, C_now, C_next, timestep, agent_id);
+        funcPIBT(blocker, C_now, C_next, timestep, reservations, failure, agent_id);
 
         if (occupied_next[vid] == -1) {
             place(v);
@@ -207,10 +304,34 @@ bool PIBT::funcPIBT(int agent_id,
     // 모든 후보 실패 → 현재 위치를 유지한다.
     // 이미 다른 에이전트가 현재 위치를 선점했더라도 C_next 에는 기록해
     // 상위 레벨이 vertex conflict 로 분기할 수 있게 한다.
-    if (occupied_next[curr->id] == -1 || occupied_next[curr->id] == agent_id) {
+    const bool wait_allowed =
+        reservations == nullptr ||
+        reservations->is_move_allowed(curr->id, curr->id, timestep);
+
+    if ((occupied_next[curr->id] == -1 || occupied_next[curr->id] == agent_id) &&
+        wait_allowed) {
         place(curr);
     } else {
         C_next[agent_id] = curr;
+        if (!wait_allowed && reservations != nullptr) {
+            record_failure(failure,
+                           reservations->is_vertex_reserved(curr->id, timestep)
+                               ? PIBTFailureKind::RESERVATION_VERTEX
+                               : PIBTFailureKind::RESERVATION_MOVE,
+                           agent_id,
+                           -1,
+                           curr->id,
+                           curr->id,
+                           timestep);
+        } else {
+            record_failure(failure,
+                           PIBTFailureKind::WAIT_BLOCKED,
+                           agent_id,
+                           occupied_next[curr->id],
+                           curr->id,
+                           curr->id,
+                           timestep);
+        }
     }
     in_stack[agent_id] = false;
     return false;

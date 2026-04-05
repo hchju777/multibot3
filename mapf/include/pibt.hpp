@@ -3,6 +3,7 @@
 #include "graph.hpp"
 #include "dist_table.hpp"
 #include "collision.hpp"
+#include "reservation_table.hpp"
 #include <vector>
 #include <random>
 
@@ -14,6 +15,26 @@
 struct Constraint {
     int     who;       // 대상 에이전트 id
     Vertex* where;     // 강제 위치
+};
+
+enum class PIBTFailureKind {
+    NONE,
+    CONSTRAINT_CONFLICT,
+    RESERVATION_VERTEX,
+    RESERVATION_MOVE,
+    NON_PASSING,
+    VERTEX_CONFLICT,
+    SWAP_CONFLICT,
+    WAIT_BLOCKED,
+};
+
+struct PIBTFailure {
+    PIBTFailureKind kind = PIBTFailureKind::NONE;
+    int primary_agent = -1;
+    int secondary_agent = -1;
+    int from_vertex = -1;
+    int to_vertex = -1;
+    int timestep = 0;
 };
 
 // ============================================================
@@ -45,7 +66,9 @@ public:
     bool set_new_config(const Config& C_now,
                         Config& C_next,
                         const std::vector<Constraint>& constraints,
-                        int timestep);
+                        int timestep,
+                        const ReservationTable* reservations = nullptr,
+                        PIBTFailure* failure = nullptr);
 
 private:
     const Graph&      G;
@@ -79,5 +102,15 @@ private:
                   const Config& C_now,
                   Config& C_next,
                   int timestep,
+                  const ReservationTable* reservations,
+                  PIBTFailure* failure,
                   int caller_id = -1);  // 재귀 호출 시 호출자 id
+
+    void record_failure(PIBTFailure* failure,
+                        PIBTFailureKind kind,
+                        int primary_agent,
+                        int secondary_agent,
+                        int from_vertex,
+                        int to_vertex,
+                        int timestep) const;
 };

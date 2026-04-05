@@ -22,7 +22,6 @@ set(MAPF_SOURCES
     src/stop_condition.cpp
     src/solution.cpp
     src/planner.cpp
-    src/config_loader.cpp
     src/graph_preprocessor.cpp
     src/params.cpp
     src/logger.cpp
@@ -30,18 +29,16 @@ set(MAPF_SOURCES
     src/map_loader.cpp
     src/prepared_map.cpp
     src/goal_distance_cache.cpp
+    src/reservation_table.cpp
     src/scenario_loader.cpp
     src/lifelong_planner.cpp
+    src/mapf_runtime.cpp
 )
 
 # ── 라이브러리 (다른 모듈 / ROS2 에서 링크용) ───────────────
 add_library(mapf_lib STATIC ${MAPF_SOURCES})
 target_include_directories(mapf_lib PUBLIC include)
 target_link_libraries(mapf_lib PUBLIC yaml-cpp spdlog::spdlog)
-
-# ── 간단한 smoke-test 실행파일 ───────────────────────────────
-add_executable(mapf_test test/smoke_test.cpp)
-target_link_libraries(mapf_test PRIVATE mapf_lib)
 
 add_executable(mapf_lifelong_test test/lifelong_smoke_test.cpp)
 target_link_libraries(mapf_lifelong_test PRIVATE mapf_lib)

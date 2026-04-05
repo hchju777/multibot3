@@ -1,16 +1,20 @@
 #include "collision.hpp"
-#include "config_loader.hpp"
 #include "dist_table.hpp"
 #include "graph.hpp"
+#include "lifelong_planner.hpp"
 #include "params.hpp"
 #include "planner.hpp"
+#include "reservation_table.hpp"
+#include "prepared_map.hpp"
 #include "solution.hpp"
 #include "solution_validation.hpp"
 #include "stop_condition.hpp"
 #include "test_harness.hpp"
 
+#include <atomic>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -62,17 +66,6 @@ std::filesystem::path write_temp_yaml(const std::string& stem,
 {
     const std::filesystem::path path =
         std::filesystem::temp_directory_path() / (stem + ".yaml");
-    std::ofstream out(path);
-    out << contents;
-    out.close();
-    return path;
-}
-
-std::filesystem::path write_temp_yaml_in_dir(const std::filesystem::path& dir,
-                                             const std::string& name,
-                                             const std::string& contents)
-{
-    const std::filesystem::path path = dir / name;
     std::ofstream out(path);
     out << contents;
     out.close();
@@ -148,82 +141,155 @@ int main()
              MAPF_EXPECT_FALSE(ctx, validate_physical_solution(ins, sol, &error));
              MAPF_EXPECT_CONTAINS(ctx, error, "invalid edge");
          }},
-        {"params_legacy_async_alias_populates_both_modes", [](mapf_test::TestContext& ctx) {
+        {"prepared_map_rejects_non_biconnected_graph", [](mapf_test::TestContext& ctx) {
+             bool threw = false;
+             std::string error;
+             try {
+                 (void)PreparedMap::from_graph(make_line_graph(4), PreprocessingParams{false});
+             } catch (const std::exception& e) {
+                 threw = true;
+                 error = e.what();
+             }
+
+             MAPF_EXPECT_TRUE(ctx, threw);
+             MAPF_EXPECT_CONTAINS(ctx, error, "biconnected");
+         }},
+        {"prepared_map_accepts_biconnected_graph", [](mapf_test::TestContext& ctx) {
+             PreparedMap prepared =
+                 PreparedMap::from_graph(make_cycle_graph(4), PreprocessingParams{true});
+
+             MAPF_EXPECT_TRUE(ctx, prepared.planning_graph().is_biconnected());
+             MAPF_EXPECT_FALSE(ctx, prepared.uses_virtual_lock());
+             MAPF_EXPECT_EQ(ctx, prepared.remap_vertex(0), 0);
+         }},
+        {"reservation_table_blocks_frozen_paths_and_holds", [](mapf_test::TestContext& ctx) {
+             FrozenPlanSet frozen;
+             frozen.plan_suffixes.push_back(
+                 FrozenRobotPlan{"r0", AgentPlan{{0, 0}, {1, 1}, {2, 2}}, true});
+             frozen.holds.push_back(HoldReservation{"r1", 4, 0, 3});
+
+             ReservationTable reservations;
+             reservations.reserve_all(frozen);
+
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(1, 1));
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(2, 7));
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(4, 3));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(1, 0, 1));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(1, 0, 2));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(4, 3, 1));
+         }},
+        {"reservation_table_validates_conflicting_solution", [](mapf_test::TestContext& ctx) {
+             ReservationTable reservations;
+             reservations.reserve_plan(
+                 FrozenRobotPlan{"r0", AgentPlan{{0, 0}, {1, 1}}, true});
+
+             std::string error;
+             MAPF_EXPECT_FALSE(ctx,
+                               reservations.validate_plan(AgentPlan{{1, 0}, {0, 1}},
+                                                          &error));
+             MAPF_EXPECT_CONTAINS(ctx, error, "move");
+         }},
+        {"reservation_table_applies_base_timestep_offset", [](mapf_test::TestContext& ctx) {
+             ReservationTable reservations;
+             reservations.reserve_plan(
+                 FrozenRobotPlan{"r0", AgentPlan{{3, 8}, {4, 9}, {5, 10}}, true},
+                 9);
+             reservations.reserve_hold(HoldReservation{"r1", 7, 9, 6}, 9);
+
+             MAPF_EXPECT_FALSE(ctx, reservations.is_vertex_reserved(3, 0));
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(4, 0));
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(5, 4));
+             MAPF_EXPECT_TRUE(ctx, reservations.is_vertex_reserved(7, 0));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(5, 4, 0));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(5, 4, 1));
+             MAPF_EXPECT_FALSE(ctx, reservations.is_move_allowed(7, 6, 1));
+         }},
+        {"params_loads_core_fields", [](mapf_test::TestContext& ctx) {
              const auto path = write_temp_yaml(
-                 "mapf_params_legacy_alias",
+                 "mapf_params_core_fields",
                  "planner:\n"
-                 "  async_fallback: false\n"
-                 "  async_fallback_delay_ms: 75\n");
+                 "  objective: makespan\n"
+                 "  initial_quality_threshold: 1.5\n"
+                 "  initial_timeout_ms: 777\n"
+                 "  replan_timeout_ms: 88\n"
+                 "  parallel_search_workers: 3\n"
+                 "  seed: 9\n"
+                 "preprocessing:\n"
+                 "  virtual_lock: false\n");
 
              const Params params = Params::load(path.string());
-             MAPF_EXPECT_FALSE(ctx, params.planner.initial_async_fallback);
-             MAPF_EXPECT_FALSE(ctx, params.planner.replan_async_fallback);
-             MAPF_EXPECT_EQ(ctx, params.planner.initial_async_fallback_delay_ms, 75);
-             MAPF_EXPECT_EQ(ctx, params.planner.replan_async_fallback_delay_ms, 75);
+             MAPF_EXPECT_EQ(ctx, static_cast<int>(params.planner.objective),
+                            static_cast<int>(ObjectiveType::MAKESPAN));
+             MAPF_EXPECT_EQ(ctx, params.planner.initial_quality_threshold, 1.5);
+             MAPF_EXPECT_EQ(ctx, params.planner.initial_timeout_ms, 777);
+             MAPF_EXPECT_EQ(ctx, params.planner.replan_timeout_ms, 88);
+             MAPF_EXPECT_EQ(ctx, params.planner.parallel_search_workers, 3);
+             MAPF_EXPECT_EQ(ctx, params.planner.seed, 9);
+             MAPF_EXPECT_FALSE(ctx, params.preprocessing.virtual_lock);
          }},
-        {"params_mode_specific_keys_override_alias", [](mapf_test::TestContext& ctx) {
-             const auto path = write_temp_yaml(
-                 "mapf_params_mode_override",
-                 "planner:\n"
-                 "  async_fallback: false\n"
-                 "  async_fallback_delay_ms: 75\n"
-                 "  initial_async_fallback: true\n"
-                 "  initial_async_fallback_delay_ms: 40\n"
-                 "  initial_primary_grace_ms: 90\n"
-                 "  replan_async_fallback_delay_ms: 5\n");
-
-             const Params params = Params::load(path.string());
-             MAPF_EXPECT_TRUE(ctx, params.planner.initial_async_fallback);
-             MAPF_EXPECT_FALSE(ctx, params.planner.replan_async_fallback);
-             MAPF_EXPECT_EQ(ctx, params.planner.initial_async_fallback_delay_ms, 40);
-             MAPF_EXPECT_EQ(ctx, params.planner.replan_async_fallback_delay_ms, 5);
-             MAPF_EXPECT_EQ(ctx, params.planner.initial_primary_grace_ms, 90);
-         }},
-        {"config_loader_supports_single_shot_scenario_relative_paths",
+        {"lifelong_planner_plan_initial_api_solves_snapshot_assignments",
          [](mapf_test::TestContext& ctx) {
-             const std::filesystem::path dir =
-                 std::filesystem::temp_directory_path() / "mapf_single_shot_loader_test";
-             std::filesystem::create_directories(dir / "maps");
-             std::filesystem::create_directories(dir / "params");
-             std::filesystem::create_directories(dir / "scenarios");
+             Params params = Params::defaults();
+             params.preprocessing.virtual_lock = false;
+             params.planner.parallel_search_workers = 1;
+             params.planner.initial_timeout_ms = 100;
+             params.planner.seed = 0;
 
-             write_temp_yaml_in_dir(
-                 dir / "maps",
-                 "square.yaml",
-                 "graph:\n"
-                 "  vertices:\n"
-                 "    - {id: 0, x: 0.0, y: 1.0}\n"
-                 "    - {id: 1, x: 1.0, y: 1.0}\n"
-                 "    - {id: 2, x: 0.0, y: 0.0}\n"
-                 "    - {id: 3, x: 1.0, y: 0.0}\n"
-                 "  edges:\n"
-                 "    - [0, 1]\n"
-                 "    - [1, 3]\n"
-                 "    - [3, 2]\n"
-                 "    - [2, 0]\n");
-             write_temp_yaml_in_dir(
-                 dir / "params",
-                 "default.yaml",
-                 "planner:\n"
-                 "  seed: 7\n");
-             const std::filesystem::path scenario_path = write_temp_yaml_in_dir(
-                 dir / "scenarios",
-                 "square.yaml",
-                 "version: 1\n"
-                 "map: ../maps/square.yaml\n"
-                 "params: ../params/default.yaml\n"
-                 "robots:\n"
-                 "  - {id: 0, start: 0, goal: 3}\n"
-                 "  - {id: 1, start: 3, goal: 0}\n");
+             MapfPlanner planner(
+                 PreparedMap::from_graph(make_cycle_graph(4), params.preprocessing),
+                 params);
 
-             ConfigLoader loader(scenario_path.string());
-             Instance ins = loader.make_instance();
+             InitialPlanRequest req;
+             req.snapshot.current_time = 0;
+             req.snapshot.robots = {
+                 RobotRuntimeState{"r0", 0, std::nullopt, std::nullopt, std::nullopt, false},
+                 RobotRuntimeState{"r1", 2, std::nullopt, std::nullopt, std::nullopt, false},
+             };
+             req.assignments = {
+                 GoalAssignment{"g0", "r0", 1},
+                 GoalAssignment{"g1", "r1", 3},
+             };
 
-             MAPF_EXPECT_EQ(ctx, loader.graph().num_vertices(), 4);
-             MAPF_EXPECT_EQ(ctx, ins.num_agents(), 2);
-             MAPF_EXPECT_CONTAINS(ctx, loader.map_path(), "maps/square.yaml");
-             MAPF_EXPECT_TRUE(ctx, loader.params_path().has_value());
-             MAPF_EXPECT_CONTAINS(ctx, *loader.params_path(), "params/default.yaml");
+             const PlanResult result = planner.plan_initial(req);
+             MAPF_EXPECT_TRUE(ctx, result.solved);
+             MAPF_EXPECT_TRUE(ctx, result.valid);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution.size(), static_cast<std::size_t>(2));
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[0].front().first, 0);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[0].back().first, 1);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[1].front().first, 2);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[1].back().first, 3);
+         }},
+        {"lifelong_planner_replan_affected_api_returns_partial_solution",
+         [](mapf_test::TestContext& ctx) {
+             Params params = Params::defaults();
+             params.preprocessing.virtual_lock = false;
+             params.planner.parallel_search_workers = 1;
+             params.planner.replan_timeout_ms = 100;
+             params.planner.seed = 0;
+
+             MapfPlanner planner(
+                 PreparedMap::from_graph(make_cycle_graph(4), params.preprocessing),
+                 params);
+
+             AffectedReplanRequest req;
+             req.snapshot.current_time = 5;
+             req.snapshot.robots = {
+                 RobotRuntimeState{"r0", 0, std::nullopt, std::optional<int>(3), std::nullopt, false},
+                 RobotRuntimeState{"r1", 2, std::nullopt, std::nullopt, std::nullopt, false},
+             };
+             req.assignments = {
+                 GoalAssignment{"g0", "r0", 1},
+             };
+             req.affected_robot_indices = {0};
+             req.frozen.holds.push_back(
+                 HoldReservation{"r1", 2, 5, std::nullopt});
+
+             const PlanResult result = planner.replan_affected(req);
+             MAPF_EXPECT_TRUE(ctx, result.solved);
+             MAPF_EXPECT_TRUE(ctx, result.valid);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution.size(), static_cast<std::size_t>(1));
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[0].front().first, 0);
+             MAPF_EXPECT_EQ(ctx, result.planning_solution[0].back().first, 1);
          }},
         {"stop_condition_respects_mode_semantics", [](mapf_test::TestContext& ctx) {
              StopCondition initial(PlanMode::INITIAL);
@@ -237,6 +303,161 @@ int main()
              StopCondition replan(PlanMode::REPLAN);
              replan.notify_solution(99);
              MAPF_EXPECT_TRUE(ctx, replan.should_stop(99));
+
+             auto abort_flag = std::make_shared<std::atomic_bool>(true);
+             StopCondition aborted(PlanMode::REPLAN);
+             aborted.bind_abort_flag(abort_flag);
+             MAPF_EXPECT_TRUE(ctx, aborted.should_abort());
+             MAPF_EXPECT_FALSE(ctx, aborted.is_timeout());
+         }},
+        {"lifelong_runtime_escalates_failed_affected_replan_to_global",
+         [](mapf_test::TestContext& ctx) {
+             Params params = Params::defaults();
+             params.preprocessing.virtual_lock = false;
+             params.planner.parallel_search_workers = 1;
+             params.planner.initial_timeout_ms = 100;
+             params.planner.replan_timeout_ms = 0;
+             params.planner.seed = 0;
+
+             LifelongScenario scenario;
+             scenario.robots = {
+                 RobotSpec{"r0", 0, std::nullopt},
+                 RobotSpec{"r1", 2, std::nullopt},
+             };
+             scenario.events = {
+                 ScenarioEvent{
+                     "e0",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r0",
+                     1,
+                     ScenarioTrigger{ScenarioTriggerType::AT_START, std::nullopt},
+                     {},
+                 },
+                 ScenarioEvent{
+                     "e1",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r1",
+                     3,
+                     ScenarioTrigger{ScenarioTriggerType::AFTER_INITIAL, std::nullopt},
+                     {},
+                 },
+             };
+
+             MapfPlanner planner(
+                 PreparedMap::from_graph(make_cycle_graph(4), params.preprocessing),
+                 params);
+             const ScenarioRunResult result = planner.run(scenario);
+
+             MAPF_EXPECT_FALSE(ctx, result.safe_stop_required);
+             MAPF_EXPECT_EQ(ctx, result.episodes.size(), static_cast<std::size_t>(2));
+             MAPF_EXPECT_FALSE(ctx, result.episodes.front().used_global_replan);
+             MAPF_EXPECT_TRUE(ctx, result.episodes.back().used_global_replan);
+             MAPF_EXPECT_TRUE(ctx, result.episodes.back().result.solved);
+             MAPF_EXPECT_TRUE(ctx, result.episodes.back().result.valid);
+             MAPF_EXPECT_EQ(ctx,
+                            result.episodes.back().request.robot_ids.size(),
+                            scenario.robots.size());
+         }},
+        {"lifelong_runtime_preserves_shifted_frozen_suffix_positions",
+         [](mapf_test::TestContext& ctx) {
+             Params params = Params::defaults();
+             params.preprocessing.virtual_lock = false;
+             params.planner.parallel_search_workers = 1;
+             params.planner.initial_timeout_ms = 100;
+             params.planner.replan_timeout_ms = 100;
+             params.planner.seed = 0;
+
+             LifelongScenario scenario;
+             scenario.robots = {
+                 RobotSpec{"r0", 0, std::nullopt},
+                 RobotSpec{"r1", 2, std::nullopt},
+             };
+             scenario.events = {
+                 ScenarioEvent{
+                     "e0",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r0",
+                     1,
+                     ScenarioTrigger{ScenarioTriggerType::AT_START, std::nullopt},
+                     {},
+                 },
+                 ScenarioEvent{
+                     "e1",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r1",
+                     3,
+                     ScenarioTrigger{ScenarioTriggerType::AFTER_INITIAL, std::nullopt},
+                     {},
+                 },
+                 ScenarioEvent{
+                     "e2",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r1",
+                     2,
+                     ScenarioTrigger{ScenarioTriggerType::ON_ROBOT_IDLE, std::nullopt},
+                     {"e1"},
+                 },
+             };
+
+             MapfPlanner planner(
+                 PreparedMap::from_graph(make_cycle_graph(4), params.preprocessing),
+                 params);
+             const ScenarioRunResult result = planner.run(scenario);
+
+             MAPF_EXPECT_FALSE(ctx, result.safe_stop_required);
+             MAPF_EXPECT_EQ(ctx, result.episodes.size(), static_cast<std::size_t>(3));
+             MAPF_EXPECT_EQ(ctx, result.final_robots.size(), static_cast<std::size_t>(2));
+             MAPF_EXPECT_EQ(ctx, result.final_robots[0].current_vertex, 1);
+             MAPF_EXPECT_EQ(ctx, result.final_robots[1].current_vertex, 2);
+         }},
+        {"lifelong_runtime_requests_safe_stop_when_global_replan_also_fails",
+         [](mapf_test::TestContext& ctx) {
+             Params params = Params::defaults();
+             params.preprocessing.virtual_lock = false;
+             params.planner.parallel_search_workers = 1;
+             params.planner.initial_timeout_ms = 100;
+             params.planner.replan_timeout_ms = 0;
+             params.planner.seed = 0;
+
+             LifelongScenario scenario;
+             scenario.robots = {
+                 RobotSpec{"r0", 0, std::nullopt},
+                 RobotSpec{"r1", 2, std::nullopt},
+             };
+             scenario.events = {
+                 ScenarioEvent{
+                     "e0",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r0",
+                     0,
+                     ScenarioTrigger{ScenarioTriggerType::AT_START, std::nullopt},
+                     {},
+                 },
+                 ScenarioEvent{
+                     "e1",
+                     ScenarioEventType::ASSIGN_GOAL,
+                     "r1",
+                     3,
+                     ScenarioTrigger{ScenarioTriggerType::AFTER_INITIAL, std::nullopt},
+                     {},
+                 },
+             };
+
+             MapfPlanner planner(
+                 PreparedMap::from_graph(make_cycle_graph(4), params.preprocessing),
+                 params);
+             const ScenarioRunResult result = planner.run(scenario);
+
+             MAPF_EXPECT_TRUE(ctx, result.safe_stop_required);
+             MAPF_EXPECT_CONTAINS(ctx, result.stop_reason, "global replan failed");
+             MAPF_EXPECT_FALSE(ctx, result.episodes.empty());
+             MAPF_EXPECT_TRUE(ctx, result.episodes.back().used_global_replan);
+             MAPF_EXPECT_EQ(ctx,
+                            static_cast<int>(result.episodes.back().result.status),
+                            static_cast<int>(PlanningStatus::SAFE_STOP_REQUIRED));
+             MAPF_EXPECT_FALSE(ctx, result.episodes.back().result.solved);
+             MAPF_EXPECT_TRUE(ctx, result.final_robots[0].held);
+             MAPF_EXPECT_TRUE(ctx, result.final_robots[1].held);
          }},
     };
 

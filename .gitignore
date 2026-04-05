@@ -2,3 +2,4 @@
 context
 mapf/build/
 .env
+.codex

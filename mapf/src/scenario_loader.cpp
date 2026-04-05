@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <set>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -34,6 +35,7 @@ ScenarioEventType parse_event_type(const std::string& value)
 ScenarioTriggerType parse_trigger_type(const std::string& value)
 {
     if (value == "at_start") return ScenarioTriggerType::AT_START;
+    if (value == "after_initial") return ScenarioTriggerType::AFTER_INITIAL;
     if (value == "on_robot_idle") return ScenarioTriggerType::ON_ROBOT_IDLE;
     throw std::runtime_error("YAML: unsupported trigger type '" + value + "'");
 }
@@ -141,6 +143,43 @@ ScenarioLoader::ScenarioLoader(const std::string& path)
             }
         }
 
+        if (event_node["after"]) {
+            const YAML::Node& after = event_node["after"];
+            std::set<std::string> unique_after;
+            if (after.IsScalar()) {
+                unique_after.insert(after.as<std::string>());
+            } else if (after.IsSequence()) {
+                for (const auto& dep : after) {
+                    if (!dep.IsScalar()) {
+                        throw std::runtime_error(
+                            "YAML: event.after entries must be scalars for event '" +
+                            event.id + "'");
+                    }
+                    unique_after.insert(dep.as<std::string>());
+                }
+            } else {
+                throw std::runtime_error(
+                    "YAML: event.after must be a scalar or sequence for event '" +
+                    event.id + "'");
+            }
+            event.after_event_ids.assign(unique_after.begin(), unique_after.end());
+        }
+
         scenario_.events.push_back(std::move(event));
+    }
+
+    for (const auto& event : scenario_.events) {
+        for (const auto& dep : event.after_event_ids) {
+            if (dep == event.id) {
+                throw std::runtime_error(
+                    "YAML: event.after must not reference itself for event '" +
+                    event.id + "'");
+            }
+            if (event_ids.count(dep) == 0) {
+                throw std::runtime_error(
+                    "YAML: event.after references unknown event '" + dep +
+                    "' for event '" + event.id + "'");
+            }
+        }
     }
 }

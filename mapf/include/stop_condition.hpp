@@ -1,7 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <limits>
+#include <memory>
 
 // ============================================================
 //  PlanMode
@@ -60,6 +62,11 @@ public:
     // 타임아웃 여부
     bool is_timeout() const;
 
+    // 외부에서 중단 신호를 넣을 수 있다. 병렬 restart 시 winner가 loser를 멈추는 용도.
+    void bind_abort_flag(std::shared_ptr<std::atomic_bool> abort_flag);
+    bool is_aborted() const;
+    bool should_abort() const;
+
     // 경과 시간 (ms)
     double elapsed_ms() const;
 
@@ -71,6 +78,7 @@ private:
     int  lower_bound;       // sum of individual BFS distances (이론적 하한)
     int  best_known_cost;   // 지금까지 발견된 최선 solution cost
     bool first_solution_found;
+    std::shared_ptr<std::atomic_bool> abort_flag_;
 
     int timeout_ms() const {
         return (mode == PlanMode::INITIAL)

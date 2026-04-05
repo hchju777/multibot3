@@ -2,24 +2,21 @@
 # concept/MAPF_LAYER.md §7.3 참조
 
 planner:
+  # ── 목적 함수 ──────────────────────────────────────────────
+  objective: soc
+
   # ── 최초 계획 (INITIAL mode) ───────────────────────────────
   initial_quality_threshold: 1.2
-  initial_timeout_ms: 5000
+  initial_timeout_ms: 30000
 
   # ── 재계획 (REPLAN mode) ──────────────────────────────────
   replan_timeout_ms: 500
 
+  # ── 병렬 restart 수 ───────────────────────────────────────
+  parallel_search_workers: 10
+
   # ── RNG seed ──────────────────────────────────────────────
   seed: 0
-
-  # ── INITIAL async fallback policy ─────────────────────────
-  initial_async_fallback: true
-  initial_async_fallback_delay_ms: 50
-  initial_primary_grace_ms: 100
-
-  # ── REPLAN async fallback policy ──────────────────────────
-  replan_async_fallback: true
-  replan_async_fallback_delay_ms: 0
 
 preprocessing:
   # 좁은 복도(bridge chain)를 virtual lock vertex로 collapse
