@@ -1,5 +1,6 @@
 .vscode
 context
 mapf/build/
+sadg/build/
 .env
 .codex
