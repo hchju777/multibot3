@@ -24,8 +24,17 @@ scenario:
     - {id: e5, type: assign_goal, robot: R5, goal: 2, when: {type: at_start}}
     - {id: e6, type: assign_goal, robot: R6, goal: 6, when: {type: at_start}}
     - {id: e7, type: assign_goal, robot: R7, goal: 3, when: {type: at_start}}
-    - {id: e8, type: assign_goal, robot: R3, goal: 10, when: {type: after_initial}}
-    - {id: e9, type: assign_goal, robot: R1, goal: 1, when: {type: on_robot_idle, robot: R1}, after: e8}
-    - {id: e10, type: assign_goal, robot: R0, goal: 11, when: {type: on_robot_idle, robot: R0}, after: e9}
-    - {id: e11, type: assign_goal, robot: R7, goal: 8, when: {type: on_robot_idle, robot: R7}, after: e10}
-    - {id: e12, type: assign_goal, robot: R2, goal: 9, when: {type: on_robot_idle, robot: R2}, after: e11}
+    - {id: e8,  type: assign_goal, robot: R3, goal: 10, when: {type: after_initial}}
+    - {id: e9,  type: assign_goal, robot: R2, goal: 8,  when: {type: after_initial}}
+
+    - {id: e10, type: assign_goal, robot: R1, goal: 1, when: {type: on_robot_idle, robot: R1}, after: e8}
+    - {id: e11, type: assign_goal, robot: R4, goal: 4, when: {type: on_robot_idle, robot: R4}, after: e9}
+
+    - {id: e12, type: assign_goal, robot: R5, goal: 0, when: {type: on_robot_idle, robot: R5}, after: e10}
+    - {id: e13, type: assign_goal, robot: R6, goal: 7, when: {type: on_robot_idle, robot: R6}, after: e11}
+
+    - {id: e14, type: assign_goal, robot: R7, goal: 2, when: {type: on_robot_idle, robot: R7}, after: e12}
+    - {id: e15, type: assign_goal, robot: R0, goal: 6, when: {type: on_robot_idle, robot: R0}, after: e13}
+
+    - {id: e16, type: assign_goal, robot: R2, goal: 3, when: {type: on_robot_idle, robot: R2}, after: e14}
+    - {id: e17, type: assign_goal, robot: R3, goal: 5, when: {type: on_robot_idle, robot: R3}, after: e15}
