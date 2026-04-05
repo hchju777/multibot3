@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
+
+map: ../../maps/corridor.yaml
+params: ../../params/default.yaml
+
+robots:
+  - id: R0
+    start: 0
+    home: 0
+  - id: R1
+    start: 7
+    home: 7
+  - id: R2
+    start: 2
+    home: 2
+  - id: R3
+    start: 5
+    home: 5
+  - id: R4
+    start: 1
+    home: 1
+  - id: R5
+    start: 4
+    home: 4
+
+scenario:
+  replan_policy: replan_on_assignment
+  events:
+    - {id: e0, type: assign_goal, robot: R0, goal: 7, when: {type: at_start}}
+    - {id: e1, type: assign_goal, robot: R1, goal: 0, when: {type: at_start}}
+    - {id: e2, type: assign_goal, robot: R2, goal: 5, when: {type: at_start}}
+    - {id: e3, type: assign_goal, robot: R3, goal: 2, when: {type: at_start}}
+    - {id: e4, type: assign_goal, robot: R4, goal: 4, when: {type: at_start}}
+    - {id: e5, type: assign_goal, robot: R5, goal: 1, when: {type: at_start}}
+    - {id: e6, type: assign_goal, robot: R5, goal: 10, when: {type: after_initial}}
+    - {id: e7, type: assign_goal, robot: R2, goal: 11, when: {type: after_initial}}
+    - {id: e8, type: assign_goal, robot: R3, goal: 8, when: {type: after_initial}}
+    - {id: e9, type: assign_goal, robot: R4, goal: 9, when: {type: after_initial}}

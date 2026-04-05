@@ -1,0 +1,23 @@
+# default.yaml  —  MAPF Layer 알고리즘 파라미터
+# concept/MAPF_LAYER.md §7.3 참조
+
+planner:
+  # ── 목적 함수 ──────────────────────────────────────────────
+  objective: soc
+
+  # ── 최초 계획 (INITIAL mode) ───────────────────────────────
+  initial_quality_threshold: 1.2
+  initial_timeout_ms: 30000
+
+  # ── 재계획 (REPLAN mode) ──────────────────────────────────
+  replan_timeout_ms: 500
+
+  # ── 병렬 restart 수 ───────────────────────────────────────
+  parallel_search_workers: 10
+
+  # ── RNG seed ──────────────────────────────────────────────
+  seed: 0
+
+preprocessing:
+  # 좁은 복도(bridge chain)를 virtual lock vertex로 collapse
+  virtual_lock: true

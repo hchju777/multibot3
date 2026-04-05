@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
+
+map: ../../maps/grid_4x4.yaml
+params: ../../params/default.yaml
+
+robots:
+  - {id: R0,  start:  0, home:  0}
+  - {id: R1,  start:  1, home:  1}
+  - {id: R2,  start:  2, home:  2}
+  - {id: R3,  start:  3, home:  3}
+  - {id: R4,  start: 12, home: 12}
+  - {id: R5,  start: 13, home: 13}
+  - {id: R6,  start: 14, home: 14}
+  - {id: R7,  start: 15, home: 15}
+  - {id: R8,  start:  4, home:  4}
+  - {id: R9,  start:  7, home:  7}
+  - {id: R10, start:  8, home:  8}
+  - {id: R11, start: 11, home: 11}
+
+scenario:
+  replan_policy: replan_on_assignment
+  events:
+    - {id: e0,  type: assign_goal, robot: R0,  goal: 12, when: {type: at_start}}
+    - {id: e1,  type: assign_goal, robot: R1,  goal: 13, when: {type: at_start}}
+    - {id: e2,  type: assign_goal, robot: R2,  goal: 14, when: {type: at_start}}
+    - {id: e3,  type: assign_goal, robot: R3,  goal: 15, when: {type: at_start}}
+    - {id: e4,  type: assign_goal, robot: R4,  goal:  0, when: {type: at_start}}
+    - {id: e5,  type: assign_goal, robot: R5,  goal:  1, when: {type: at_start}}
+    - {id: e6,  type: assign_goal, robot: R6,  goal:  2, when: {type: at_start}}
+    - {id: e7,  type: assign_goal, robot: R7,  goal:  3, when: {type: at_start}}
+    - {id: e8,  type: assign_goal, robot: R8,  goal:  7, when: {type: at_start}}
+    - {id: e9,  type: assign_goal, robot: R9,  goal:  4, when: {type: at_start}}
+    - {id: e10, type: assign_goal, robot: R10, goal: 11, when: {type: at_start}}
+    - {id: e11, type: assign_goal, robot: R11, goal:  8, when: {type: at_start}}
+    - {id: e12, type: assign_goal, robot: R5,  goal:  5, when: {type: after_initial}}
+    - {id: e13, type: assign_goal, robot: R5,  goal:  1, when: {type: on_robot_idle, robot: R5}, after: e12}
+    - {id: e14, type: assign_goal, robot: R9,  goal:  5, when: {type: on_robot_idle, robot: R9}, after: e13}
+    - {id: e15, type: assign_goal, robot: R6,  goal:  6, when: {type: on_robot_idle, robot: R6}, after: e14}
+    - {id: e16, type: assign_goal, robot: R6,  goal:  2, when: {type: on_robot_idle, robot: R6}, after: e15}
+    - {id: e17, type: assign_goal, robot: R8,  goal:  6, when: {type: on_robot_idle, robot: R8}, after: e16}
+    - {id: e18, type: assign_goal, robot: R11, goal:  9, when: {type: on_robot_idle, robot: R11}, after: e17}
+    - {id: e19, type: assign_goal, robot: R11, goal:  8, when: {type: on_robot_idle, robot: R11}, after: e18}
+    - {id: e20, type: assign_goal, robot: R1,  goal:  9, when: {type: on_robot_idle, robot: R1}, after: e19}
+    - {id: e21, type: assign_goal, robot: R10, goal: 10, when: {type: on_robot_idle, robot: R10}, after: e20}
+    - {id: e22, type: assign_goal, robot: R10, goal: 11, when: {type: on_robot_idle, robot: R10}, after: e21}
+    - {id: e23, type: assign_goal, robot: R2,  goal: 10, when: {type: on_robot_idle, robot: R2}, after: e22}

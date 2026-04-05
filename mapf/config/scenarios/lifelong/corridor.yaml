@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../../../schema/lifelong-scenario.schema.json
+
+map: ../../maps/corridor.yaml
+params: ../../params/default.yaml
+
+robots:
+  - id: R0
+    start: 0
+    home: 0
+  - id: R1
+    start: 7
+    home: 7
+
+scenario:
+  replan_policy: replan_on_assignment
+  events:
+    - id: e0
+      type: assign_goal
+      robot: R0
+      goal: 7
+      when:
+        type: at_start
+    - id: e1
+      type: assign_goal
+      robot: R1
+      goal: 0
+      when:
+        type: at_start
+    - id: e2
+      type: assign_goal
+      robot: R0
+      goal: 0
+      when:
+        type: on_robot_idle
+        robot: R0
+    - id: e3
+      type: assign_goal
+      robot: R1
+      goal: 7
+      when:
+        type: on_robot_idle
+        robot: R1
