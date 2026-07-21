@@ -194,25 +194,34 @@ ConvertResult seconds_to_time(double seconds, builtin_interfaces::msg::Time & ou
     return convert_fail(ConvertStatus::TIME_CONVERSION_GUARD);
   }
 
-  // 버림을 쓴다 — 반올림이면 왕복 시 값이 커질 수 있다.
-  const double whole_seconds = std::floor(seconds);
-  const double fractional = seconds - whole_seconds;
-  auto nanoseconds = static_cast<std::uint32_t>(std::floor(fractional * NANOSECONDS_PER_SECOND));
-
-  // 부동소수 오차로 경계를 넘는 경우를 정규화한다.
-  double carry_seconds = whole_seconds;
-  if (nanoseconds >= NANOSECOND_FIELD_LIMIT)
+  // ⚠ **가장 가까운 나노초 격자점으로 반올림**한다. 버림이 아니다.
+  //
+  // 버림이었을 때의 실측 결함([0a] 후속): 시뮬 시각이 정수 나노초로 누산되어도 도메인이 그것을
+  // `double` 초로 받는 순간 격자값이 아래로 어긋난다(예: 8 100 000 000 ns → `double` 8.1 →
+  // `floor(0.1 * 1e9)` = 99 999 999). 그 결과 `/clock` 이 `nanosec: 8099999999` 로 나가고,
+  // `floor((t - t0)/Δt_h)` 로 틱 번호를 만드는 수신자가 직전 틱을 재계산한다(계약 L-15 문언).
+  // 반올림하면 정수 나노초에서 출발한 값이 **정확히 그 값으로 되돌아온다**.
+  //
+  // "반올림이면 왕복 시 값이 커질 수 있다"는 우려는 남지만 상계가 0.5 ns 이며, 한 번 격자에
+  // 올라간 값은 다시 변환해도 움직이지 않는다(멱등). 격자 이탈이 만드는 틱 오독 쪽이 크다.
+  const double total_nanoseconds = std::round(seconds * NANOSECONDS_PER_SECOND);
+  if (!std::isfinite(total_nanoseconds) || total_nanoseconds < 0.0)
   {
-    nanoseconds -= NANOSECOND_FIELD_LIMIT;
-    carry_seconds += 1.0;
-    if (carry_seconds > MAX_REPRESENTABLE_SECONDS)
-    {
-      return convert_fail(ConvertStatus::TIME_CONVERSION_GUARD);
-    }
+    return convert_fail(ConvertStatus::TIME_CONVERSION_GUARD);
   }
 
-  out.sec = static_cast<std::int32_t>(carry_seconds);
-  out.nanosec = nanoseconds;
+  const auto total_ns = static_cast<std::int64_t>(total_nanoseconds);
+  const std::int64_t whole_seconds = total_ns / static_cast<std::int64_t>(NANOSECOND_FIELD_LIMIT);
+
+  // 반올림이 상한을 넘겨 올림한 경우를 여기서 잡는다(위 범위 검사만으로는 부족하다).
+  if (whole_seconds > static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()))
+  {
+    return convert_fail(ConvertStatus::TIME_CONVERSION_GUARD);
+  }
+
+  out.sec = static_cast<std::int32_t>(whole_seconds);
+  out.nanosec = static_cast<std::uint32_t>(
+    total_ns - whole_seconds * static_cast<std::int64_t>(NANOSECOND_FIELD_LIMIT));
   return convert_ok();
 }
 

@@ -107,6 +107,64 @@ inline bool same_window(const mrs::ExecutionWindow & lhs, const mrs::ExecutionWi
 }
 
 /**
+ * @brief 전 필드가 유효한 계획(로봇 2대, 각 방문 3개)을 만든다 (L-09 표준형).
+ *
+ * 도착 시각은 **순증가**다 — `RobotPath.msg` 가 요구하는 불변식이며, 이 픽스처가 그 정상 형태다.
+ *
+ * @return `std::vector<mrs::RobotPath>` — 변환이 성공해야 하는 기준 계획.
+ */
+inline std::vector<mrs::RobotPath> make_planned_paths()
+{
+  std::vector<mrs::RobotPath> paths;
+  for (std::uint16_t robot_id = 0; robot_id < 2U; ++robot_id)
+  {
+    mrs::RobotPath path;
+    path.robot_id = robot_id;
+    for (std::size_t k = 0; k < 3U; ++k)
+    {
+      mrs::TimedNodeVisit visit;
+      visit.node_id = mrs::UniformNodeId{static_cast<std::uint32_t>(10U * (robot_id + 1U) + k)};
+      // 1.5 s 간격. 로봇마다 0.25 s 어긋나게 두어 로봇별 값 뒤섞임도 왕복에서 드러나게 한다.
+      visit.arrival_time_s = 2.0 + 0.25 * static_cast<double>(robot_id) + 1.5 * static_cast<double>(k);
+      path.visits.push_back(visit);
+    }
+    paths.push_back(path);
+  }
+  return paths;
+}
+
+/**
+ * @brief 두 계획이 전 필드에서 같은지 비교한다 (왕복 항등 판정용).
+ * @param[in] lhs 좌변 계획. 자료형 `std::vector<mrs::RobotPath>`.
+ * @param[in] rhs 우변 계획. 자료형 `std::vector<mrs::RobotPath>`.
+ * @return `bool` — 로봇 수·순서·`robot_id`·방문열의 노드 id 와 도착 시각이 전부 같으면 true.
+ */
+inline bool same_planned_paths(
+  const std::vector<mrs::RobotPath> & lhs, const std::vector<mrs::RobotPath> & rhs)
+{
+  if (lhs.size() != rhs.size())
+  {
+    return false;
+  }
+  for (std::size_t i = 0; i < lhs.size(); ++i)
+  {
+    if (lhs[i].robot_id != rhs[i].robot_id || lhs[i].visits.size() != rhs[i].visits.size())
+    {
+      return false;
+    }
+    for (std::size_t k = 0; k < lhs[i].visits.size(); ++k)
+    {
+      if (lhs[i].visits[k].node_id != rhs[i].visits[k].node_id ||
+          lhs[i].visits[k].arrival_time_s != rhs[i].visits[k].arrival_time_s)
+      {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
  * @brief 전 필드가 유효한 로봇 관측을 만든다. `next_node` 는 센티넬(= "미상", 정상값)이다.
  * @return `mrs::RobotObservation` — 변환이 성공해야 하는 기준 관측.
  */

@@ -214,6 +214,23 @@ private:
   FakeSimConfig config_{};
   bool configured_{false};
   bool ready_{false};
+
+  /**
+   * @brief 시뮬 시각의 **정본은 정수 나노초**다. `double` 로 누산하지 않는다.
+   *
+   * `sim_time_s_ += dt` 로 누산하면 0.05 처럼 이진수로 정확히 표현되지 않는 스텝에서 오차가
+   * 쌓여 시각이 격자에서 미끄러진다. 그러면 `/clock` 을 소비하는
+   * `tick_seq = floor((t - t0)/Δt_h)` 가 격자 경계에서 **직전 틱 번호를 재계산**하고,
+   * 중복이 억제되면서 그 번호가 **영구 결번**이 된다.
+   * [0a] 실측에서 결번 20.8% 가 결정론적으로 재현됐고 근인이 정확히 이것이었다.
+   *
+   * ⚠ R-A2(Δt_h 가 스텝 dt 의 정수배)는 이 상황에서도 통과한다 — **필요조건일 뿐
+   * 충분조건이 아니다.** 격자 정합은 누산 방식으로 별도 보장해야 한다.
+   */
+  std::uint64_t sim_time_ns_{0};
+  /** @brief 스텝 길이의 정수 나노초 표현. `configure()` 에서 한 번 계산한다. */
+  std::uint64_t step_dt_ns_{0};
+  /** @brief `sim_time_ns_` 에서 유도한 초 단위 시각 — 외부 보고용 파생값이다. */
   double sim_time_s_{0.0};
   std::uint64_t seed_{0};
   std::mt19937_64 rng_{0};

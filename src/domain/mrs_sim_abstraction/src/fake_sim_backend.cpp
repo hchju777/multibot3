@@ -91,7 +91,15 @@ bool FakeSimBackend::configure(const FakeSimConfig & config) noexcept
     }
   }
 
+  // 스텝을 정수 나노초로 고정한다 — 이 값이 시각 격자의 정본이 된다.
+  const double step_ns_real = config.step_dt_s * 1.0e9;
+  if (!(step_ns_real >= 1.0) || step_ns_real > 9.0e18)
+  {
+    return false;
+  }
+
   config_ = config;
+  step_dt_ns_ = static_cast<std::uint64_t>(std::llround(step_ns_real));
   configured_ = true;
   ready_ = false;
   return true;
@@ -123,6 +131,7 @@ bool FakeSimBackend::reset(std::uint64_t seed) noexcept
 
   seed_ = seed;
   rng_.seed(seed);
+  sim_time_ns_ = 0;
   sim_time_s_ = 0.0;
   next_injection_id_ = 1;
   next_command_sequence_ = 0;
@@ -156,7 +165,9 @@ void FakeSimBackend::advance_one_step() noexcept
   // 판정한다 — 끝 시각으로 판정하면 정지 구간에 완전히 포함된 스텝에서도 로봇이 움직여
   // 한 스텝 일찍 재개된다(프로브가 잡은 off-by-one).
   const double step_start_s = sim_time_s_;
-  sim_time_s_ += config_.step_dt_s;
+  // 정수 나노초로 전진하고 초 단위는 파생한다 — double 누산은 격자에서 미끄러진다(멤버 주석 참조).
+  sim_time_ns_ += step_dt_ns_;
+  sim_time_s_ = static_cast<double>(sim_time_ns_) * 1.0e-9;
 
   // (1) 지연이 만료된 지령을 반영한다. 접수 순번 순으로 처리해 같은 시각의 지령도 결정론적이다.
   while (!pending_commands_.empty() && pending_commands_.front().apply_at_s <= sim_time_s_)

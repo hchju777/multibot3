@@ -200,3 +200,44 @@ TEST(PoseConvert, EmptyArrayIsValid)
   EXPECT_TRUE(mrs::convert::poses_from_msg({}, out).ok);
   EXPECT_TRUE(out.empty());
 }
+
+// ── 시각 변환의 나노초 격자 ─────────────────────────────────────────────────
+
+// 정수 나노초로 누산된 시뮬 시각이 `double` 초를 거쳐도 **격자를 벗어나지 않는다**.
+// 이것이 깨지면 `/clock` 이 `nanosec: 8099999999` 같은 값을 내보내고, `floor((t - t0)/Δt_h)` 로
+// 틱 번호를 만드는 수신자가 직전 틱을 재계산해 틱 결번이 생긴다(계약 L-15, [0a] §4-①).
+// 8.1 s·16.2 s 는 버림 구현에서 실제로 미끄러졌던 값이다(실측으로 고른 리터럴).
+TEST(TimeConvert, IntegerNanosecondGridSurvivesTheDoubleRoundTrip)
+{
+  for (std::int64_t step = 0; step <= 400; ++step)
+  {
+    const std::int64_t expected_ns = step * 50000000; // dt = 0.05 s 격자
+    const double seconds = static_cast<double>(expected_ns) * 1.0e-9;
+
+    builtin_interfaces::msg::Time wire;
+    ASSERT_TRUE(mrs::convert::seconds_to_time(seconds, wire).ok) << "step=" << step;
+
+    const std::int64_t actual_ns =
+      static_cast<std::int64_t>(wire.sec) * 1000000000 + static_cast<std::int64_t>(wire.nanosec);
+    EXPECT_EQ(actual_ns, expected_ns) << "step=" << step << " (격자 이탈)";
+  }
+}
+
+// 한 번 격자에 올라간 값은 다시 변환해도 움직이지 않는다(반올림의 멱등성).
+// 멱등이 아니면 계측 로그를 재생할 때마다 시각이 조금씩 흘러간다.
+TEST(TimeConvert, GridValuesAreIdempotentAcrossRepeatedConversions)
+{
+  builtin_interfaces::msg::Time wire;
+  ASSERT_TRUE(mrs::convert::seconds_to_time(8.1, wire).ok);
+  EXPECT_EQ(wire.sec, 8);
+  EXPECT_EQ(wire.nanosec, 100000000U);
+
+  for (int repeat = 0; repeat < 5; ++repeat)
+  {
+    double seconds = 0.0;
+    ASSERT_TRUE(mrs::convert::time_to_seconds(wire, seconds).ok);
+    ASSERT_TRUE(mrs::convert::seconds_to_time(seconds, wire).ok);
+    EXPECT_EQ(wire.sec, 8);
+    EXPECT_EQ(wire.nanosec, 100000000U);
+  }
+}

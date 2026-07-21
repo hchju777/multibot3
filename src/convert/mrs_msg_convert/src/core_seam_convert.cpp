@@ -8,7 +8,11 @@
  *
  * ## 구현된 함수 (본문 있음)
  * `to_msg(ExecutionWindow)` · `from_msg(ExecutionWindow)` · `make_escalation_report` ·
- * `reason_from_msg`. 나머지는 스텁이다.
+ * `reason_from_msg` · `to_msg(PlannedPaths)` · `from_msg(PlannedPaths)`. 나머지는 스텁이다.
+ *
+ * `PlannedPaths` 2종은 [0a] tracer bullet 실측이 `pp → /planned_paths → sadg →
+ * ExecutionWindow → l4` 경로를 **실제로 사용**한다는 사실이 드러난 뒤 추가됐다(0a 보고서 §4-②:
+ * 스텁 탓에 `ExecutionWindow` 실발행 0 건, 대표 측정 2건 측정 불가).
  *
  * ## 검사 순서
  * 계약 레지스트리 §0.2.1 의 표준 순서를 따른다:
@@ -78,6 +82,33 @@ namespace
   }
 
   return segment_count == 0U && valid_through_segment_index >= 0;
+}
+
+/**
+ * @brief 방문열의 도착 시각이 계약이 요구하는 단조증가인지 검사한다 (L-09, 발행·수신 공용).
+ *
+ * `RobotPath.msg` 가 "시각 단조증가"를 필드 주석으로 못박았다. 발행 측과 수신 측이 각자 판정하면
+ * 즉시 드리프트하므로 @ref is_revision_consistent 와 같은 이유로 이 파일 안에 하나만 둔다 —
+ * 한쪽만 검사하면 "발행은 되는데 수신자가 100% 폐기"하는 침묵 실패가 만들어진다.
+ *
+ * 등호를 허용하지 않는 이유: 같은 시각에 두 노드를 방문하면 L3 가 세그먼트 소요시간 0 을 얻고,
+ * 그 창을 받은 L4 는 정지선 사이 구간의 속도 상한을 정의할 수 없다.
+ *
+ * @param[in] visits 검사할 방문열. 자료형 `std::vector<mrs::TimedNodeVisit>`.
+ *            **빈 배열·원소 1개는 유효**하다(비었다는 사실 자체가 오류 신호는 아니다).
+ * @return `bool` — 인접 원소의 `arrival_time_s` 가 전부 순증가하면 true.
+ */
+[[nodiscard]] bool is_monotonic_visit_sequence(
+  const std::vector<mrs::TimedNodeVisit> & visits) noexcept
+{
+  for (std::size_t k = 1; k < visits.size(); ++k)
+  {
+    if (!(visits[k].arrival_time_s > visits[k - 1].arrival_time_s))
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace
@@ -356,26 +387,139 @@ ConvertResult to_msg(
   std::uint32_t plan_epoch, const mrs::ViewScope & scope, double stamp_s,
   mrs_interfaces::msg::PlannedPaths & out)
 {
-  (void)paths;
-  (void)is_partial;
-  (void)event_id;
-  (void)plan_epoch;
-  (void)scope;
-  (void)stamp_s;
-  (void)out;
-  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
-  return ConvertResult{};
+  // ① 뷰 종류(V1) — 계약 §0.1 정본표가 `TimedNodeVisit`/`RobotPath` 를 UNIFORM 으로 고정한다.
+  //    발행 함수가 상수로 채우지 않고 인자를 **검사**하는 이유: 이 메시지의 스코프는 평면 쌍이라
+  //    종류가 와이어에 실리지 않으므로, 호출자가 물리·골격 스코프를 넘겨도 수신자는 영영
+  //    알아채지 못한다. 여기가 그것을 잡는 유일한 지점이다.
+  if (scope.view_kind != ViewKind::UNIFORM)
+  {
+    return convert_fail(ConvertStatus::VIEW_KIND_MISMATCH);
+  }
+
+  // ② 스코프 자기 유효성 — roadmap_version 0 이 나가면 V3 를 지키는 수신자가 100% 폐기한다.
+  if (!is_usable_scope(scope))
+  {
+    return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
+  }
+
+  // ③ 필드 범위(노드 센티넬) → ④ 시각 가드 → ⑤ 단조증가.
+  //    ⚠ 단조증가는 성격상 필드 범위이지만 **시각 가드 뒤**에 온다 — 판정 대상인 도착 시각이
+  //    유효해야만 비교가 의미를 갖기 때문이다(NaN 은 어떤 비교에도 false 를 내어, 순서를
+  //    뒤집으면 "시계 고장"이 "잘못된 계획"으로 보고된다). 수신 방향도 같은 순서이며, 그래야
+  //    같은 결함이 양방향에서 같은 사유로 계수된다.
+  //    지역 버퍼에 쌓고 성공한 뒤에만 대입한다 — 실패 시 out 을 부분 채움 상태로 남기지 않는다.
+  mrs_interfaces::msg::PlannedPaths filled;
+
+  builtin_interfaces::msg::Time stamp;
+  const ConvertResult stamp_result = seconds_to_time(stamp_s, stamp);
+  if (!stamp_result.ok)
+  {
+    return stamp_result;
+  }
+
+  // `paths` 가 비어 있는 것은 정당한 값이다(`PlanPaths.srv` 가 빈 해를 허용) — 실패 신호가 아니다.
+  filled.paths.reserve(paths.size());
+  for (const mrs::RobotPath & path : paths)
+  {
+    mrs_interfaces::msg::RobotPath path_msg;
+    path_msg.robot_id = path.robot_id;
+    path_msg.visits.reserve(path.visits.size());
+    for (const mrs::TimedNodeVisit & visit : path.visits)
+    {
+      if (visit.node_id.is_none())
+      {
+        return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
+      }
+
+      mrs_interfaces::msg::TimedNodeVisit visit_msg;
+      visit_msg.node_id = node_id_to_msg(visit.node_id);
+      const ConvertResult arrival_result =
+        seconds_to_time(visit.arrival_time_s, visit_msg.arrival_time);
+      if (!arrival_result.ok)
+      {
+        return arrival_result;
+      }
+      path_msg.visits.push_back(visit_msg);
+    }
+
+    if (!is_monotonic_visit_sequence(path.visits))
+    {
+      return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
+    }
+    filled.paths.push_back(std::move(path_msg));
+  }
+
+  filled.header.stamp = stamp;
+  // ⚠ `frame_id` 는 비워 둔다. 이 메시지는 좌표를 하나도 싣지 않고(노드 id + 시각뿐),
+  //    `PlannedPaths.msg` 헤더에 프레임 규정 주석도 없다 — 근거 없는 값을 채우지 않는다.
+  //    `ExecutionWindow`·`RobotState` 가 "map" 을 찍는 것은 그 .msg 주석이 요구했기 때문이다.
+  filled.event_id = event_id; // 정기 계획은 0 이 정당하다 — E1(0 금지)을 적용하지 않는다
+  filled.plan_epoch = plan_epoch;
+  filled.roadmap_version = scope.roadmap_version;
+  filled.view_id = scope.view_id;
+  filled.is_partial = is_partial;
+
+  out = std::move(filled);
+  return convert_ok();
 }
 
 ConvertResult from_msg(
   const mrs_interfaces::msg::PlannedPaths & msg, const mrs::ViewScope & expected,
   std::vector<mrs::RobotPath> & out)
 {
-  (void)msg;
-  (void)expected;
-  (void)out;
-  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
-  return ConvertResult{};
+  // ⛔ `schema_version` 검사는 하지 않는다 — 이 계약에 그 필드가 없다. 하는 척하는 코드를 넣으면
+  //    방어선이 없는 상태로 감사를 통과한다.
+
+  // ① 뷰 종류(V1) + 인스턴스 스코프(V2). 이 메시지는 `ViewScope` 대신 평면 쌍을 실으므로
+  //    종류는 함수가 UNIFORM 을 공급한다(계약 §0.1 정본표).
+  const ConvertResult scope_result =
+    match_scope_flat(msg.roadmap_version, msg.view_id, ViewKind::UNIFORM, expected);
+  if (!scope_result.ok)
+  {
+    return scope_result;
+  }
+
+  // ② 필드 범위(노드 센티넬) → ③ 시각 가드 → ④ 단조증가.
+  //    ⚠ 단조증가는 표준 순서상 필드 범위이지만 **시각 가드 뒤**에 온다. 판정 대상인 도착 시각이
+  //    변환에 성공해야만 존재하기 때문이며, `from_msg(ExecutionWindow)` 가 개정 불변식을 열거
+  //    범위 뒤로 미룬 것과 같은 유형의 예외다. 순서를 뒤집으면 변환 실패한 시각으로 단조성을
+  //    판정하게 되어 사유가 뒤바뀐다. **발행 방향도 같은 순서다** — 양방향이 어긋나면 같은
+  //    결함이 방향에 따라 다른 폐기 카운터로 쌓인다.
+  std::vector<mrs::RobotPath> parsed;
+  parsed.reserve(msg.paths.size());
+  for (const mrs_interfaces::msg::RobotPath & path_msg : msg.paths)
+  {
+    mrs::RobotPath path;
+    path.robot_id = path_msg.robot_id;
+    path.visits.reserve(path_msg.visits.size());
+    for (const mrs_interfaces::msg::TimedNodeVisit & visit_msg : path_msg.visits)
+    {
+      mrs::TimedNodeVisit visit;
+      const ConvertResult node_result =
+        node_id_from_msg(visit_msg.node_id, NoneNodePolicy::REJECT, visit.node_id);
+      if (!node_result.ok)
+      {
+        return node_result;
+      }
+
+      const ConvertResult arrival_result =
+        time_to_seconds(visit_msg.arrival_time, visit.arrival_time_s);
+      if (!arrival_result.ok)
+      {
+        return arrival_result;
+      }
+      path.visits.push_back(visit);
+    }
+
+    if (!is_monotonic_visit_sequence(path.visits))
+    {
+      return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
+    }
+    parsed.push_back(std::move(path));
+  }
+
+  out = std::move(parsed);
+  return convert_ok();
 }
 
 ConvertResult from_request(

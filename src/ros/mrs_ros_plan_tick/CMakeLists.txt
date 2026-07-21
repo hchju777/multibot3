@@ -10,6 +10,8 @@ add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(mrs_interfaces REQUIRED)
+# mrs_msg_convert: R-18 구속(시각 변환 헬퍼 경유). L2 변환 패키지이지 도메인 패키지가 아니다.
+find_package(mrs_msg_convert REQUIRED)
 
 file(GLOB_RECURSE MRS_ROS_PLAN_TICK_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
@@ -18,7 +20,7 @@ target_include_directories(plan_tick_node_exe PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 target_compile_features(plan_tick_node_exe PUBLIC cxx_std_17)
-ament_target_dependencies(plan_tick_node_exe PUBLIC rclcpp mrs_interfaces)
+ament_target_dependencies(plan_tick_node_exe PUBLIC rclcpp mrs_interfaces mrs_msg_convert)
 
 install(TARGETS plan_tick_node_exe DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include)

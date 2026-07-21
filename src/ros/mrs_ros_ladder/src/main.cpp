@@ -19,7 +19,8 @@ int main(int argc, char ** argv)
   }
   catch (const std::exception & e)
   {
-    RCLCPP_FATAL(rclcpp::get_logger("LadderOrchestratorNode"), "uncaught exception at startup: %s", e.what());
+    RCLCPP_FATAL(
+      rclcpp::get_logger("LadderOrchestratorNode"), "기동 중 잡히지 않은 예외: %s", e.what());
     rclcpp::shutdown();
     return 1;
   }

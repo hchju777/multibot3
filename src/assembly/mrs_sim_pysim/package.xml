@@ -9,6 +9,11 @@
 
   <buildtool_depend>ament_python</buildtool_depend>
   <depend>rclpy</depend>
+  <!-- 백엔드 경계면(/sim_backend/*)이 계약 타입을 그대로 쓴다 — 백엔드 전용 스키마를 만들지
+       않는 것이 sim-abstraction 의 요지다(같은 인터페이스 뒤에 pysim/isaac/fake 가 선다). -->
+  <depend>mrs_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>builtin_interfaces</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

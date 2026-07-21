@@ -23,6 +23,7 @@ using mrs::convert::ConvertResult;
 using mrs::convert::ConvertStatus;
 using mrs_test::make_control_points;
 using mrs_test::make_observation;
+using mrs_test::make_planned_paths;
 using mrs_test::make_view;
 using mrs_test::make_window;
 using mrs_test::uniform_scope;
@@ -31,6 +32,19 @@ namespace
 {
 
 const double kNaN = std::numeric_limits<double>::quiet_NaN();
+
+/**
+ * @brief 유효한 계획을 메시지로 변환해 돌려준다 (수신 방향 부정 케이스의 출발점).
+ * @return `mrs_interfaces::msg::PlannedPaths` — 전 필드가 유효한 계획 메시지.
+ */
+mrs_interfaces::msg::PlannedPaths valid_planned_paths_msg()
+{
+  mrs_interfaces::msg::PlannedPaths msg;
+  const ConvertResult result =
+    mrs::convert::to_msg(make_planned_paths(), false, 0, 11, uniform_scope(42, 5), 12.5, msg);
+  EXPECT_TRUE(result.ok);
+  return msg;
+}
 
 /**
  * @brief 유효한 실행 창을 메시지로 변환해 돌려준다 (수신 방향 부정 케이스의 출발점).
@@ -532,4 +546,120 @@ TEST(RevisionInvariants, UnknownRevisionKindIsRejectedNotFallenBackToNew)
   const ConvertResult result = mrs::convert::from_msg(msg, uniform_scope(42, 5), out);
   EXPECT_FALSE(result.ok);
   EXPECT_EQ(result.reason, ConvertStatus::ENUM_OUT_OF_RANGE);
+}
+
+// ── PlannedPaths (L-09) ─────────────────────────────────────────────────────
+//
+// `pp → /planned_paths → sadg` 는 [0a] 에서 변환 스텁 탓에 한 번도 흐르지 않았다. 아래 6건은
+// 그 경로에 방어선이 실제로 서 있는지를 지킨다.
+
+// 발행 측이 물리·골격 스코프를 넘기면 거부한다. 이 메시지는 종류를 **와이어에 싣지 않으므로**
+// (평면 쌍만 실린다) 여기서 막지 않으면 수신자는 뷰가 뒤바뀐 사실을 영영 알 수 없다.
+TEST(ConvertRejects, PlannedPathsPublishRejectsNonUniformScopeKind)
+{
+  mrs::ViewScope physical = uniform_scope(42, 0);
+  physical.view_kind = mrs::ViewKind::PHYSICAL;
+
+  mrs_interfaces::msg::PlannedPaths msg;
+  const ConvertResult result =
+    mrs::convert::to_msg(make_planned_paths(), false, 0, 11, physical, 12.5, msg);
+  EXPECT_FALSE(result.ok);
+  EXPECT_EQ(result.reason, ConvertStatus::VIEW_KIND_MISMATCH);
+}
+
+// 지도 버전 0 은 계약이 런타임에 금지한다 — 내보내면 수신자가 100% 폐기한다.
+TEST(ConvertRejects, PlannedPathsPublishRejectsUnusableScope)
+{
+  mrs_interfaces::msg::PlannedPaths msg;
+  const ConvertResult result =
+    mrs::convert::to_msg(make_planned_paths(), false, 0, 11, uniform_scope(0, 5), 12.5, msg);
+  EXPECT_FALSE(result.ok);
+  EXPECT_EQ(result.reason, ConvertStatus::FIELD_RANGE_VIOLATION);
+}
+
+// 수신: 인스턴스 스코프 불일치는 VIEW_SCOPE_MISMATCH 다(재조회로 회복 가능한 상황).
+// 종류 불일치와 뭉개지면 노드가 회복 방법을 고를 수 없다.
+TEST(ConvertRejects, PlannedPathsReceiveDistinguishesScopeFromKindMismatch)
+{
+  const mrs_interfaces::msg::PlannedPaths msg = valid_planned_paths_msg();
+
+  std::vector<mrs::RobotPath> out;
+  EXPECT_EQ(
+    mrs::convert::from_msg(msg, uniform_scope(43, 5), out).reason,
+    ConvertStatus::VIEW_SCOPE_MISMATCH);
+  EXPECT_EQ(
+    mrs::convert::from_msg(msg, uniform_scope(42, 6), out).reason,
+    ConvertStatus::VIEW_SCOPE_MISMATCH);
+
+  mrs::ViewScope skeleton = uniform_scope(42, 5);
+  skeleton.view_kind = mrs::ViewKind::SKELETON;
+  EXPECT_EQ(
+    mrs::convert::from_msg(msg, skeleton, out).reason, ConvertStatus::VIEW_KIND_MISMATCH);
+}
+
+// 센티넬 노드가 실린 방문은 해석할 수 없다 — 양방향 모두 거부.
+TEST(ConvertRejects, PlannedPathsRejectSentinelNodeInBothDirections)
+{
+  std::vector<mrs::RobotPath> paths = make_planned_paths();
+  paths[0].visits[1].node_id = mrs::UNIFORM_NODE_ID_NONE;
+
+  mrs_interfaces::msg::PlannedPaths msg;
+  EXPECT_EQ(
+    mrs::convert::to_msg(paths, false, 0, 11, uniform_scope(42, 5), 12.5, msg).reason,
+    ConvertStatus::FIELD_RANGE_VIOLATION);
+
+  mrs_interfaces::msg::PlannedPaths wire = valid_planned_paths_msg();
+  wire.paths[0].visits[1].node_id = 4294967295U;
+  std::vector<mrs::RobotPath> out;
+  EXPECT_EQ(
+    mrs::convert::from_msg(wire, uniform_scope(42, 5), out).reason,
+    ConvertStatus::FIELD_RANGE_VIOLATION);
+}
+
+// 시각 단조증가는 `RobotPath.msg` 의 불변식이다. **발행 측도 검사**해야 한다 — 한쪽만 막으면
+// "발행은 되는데 수신자가 전량 폐기"하는 침묵 실패가 생긴다. 등호(같은 시각)도 위반이다.
+TEST(ConvertRejects, PlannedPathsRejectNonMonotonicArrivalsInBothDirections)
+{
+  std::vector<mrs::RobotPath> backwards = make_planned_paths();
+  backwards[1].visits[2].arrival_time_s = backwards[1].visits[1].arrival_time_s - 0.5;
+
+  mrs_interfaces::msg::PlannedPaths msg;
+  EXPECT_EQ(
+    mrs::convert::to_msg(backwards, false, 0, 11, uniform_scope(42, 5), 12.5, msg).reason,
+    ConvertStatus::FIELD_RANGE_VIOLATION);
+
+  std::vector<mrs::RobotPath> equal_times = make_planned_paths();
+  equal_times[0].visits[1].arrival_time_s = equal_times[0].visits[0].arrival_time_s;
+  EXPECT_EQ(
+    mrs::convert::to_msg(equal_times, false, 0, 11, uniform_scope(42, 5), 12.5, msg).reason,
+    ConvertStatus::FIELD_RANGE_VIOLATION);
+
+  mrs_interfaces::msg::PlannedPaths wire = valid_planned_paths_msg();
+  wire.paths[1].visits[2].arrival_time = wire.paths[1].visits[0].arrival_time;
+  std::vector<mrs::RobotPath> out;
+  EXPECT_EQ(
+    mrs::convert::from_msg(wire, uniform_scope(42, 5), out).reason,
+    ConvertStatus::FIELD_RANGE_VIOLATION);
+}
+
+// 시각 가드는 사유가 FIELD_RANGE_VIOLATION 과 **구별**되어야 한다 — 폐기 카운터가 "잘못된 계획"과
+// "시계 고장"을 나눠 세지 못하면 사후에 원인을 복원할 수 없다.
+TEST(ConvertRejects, PlannedPathsTimeGuardIsDistinctFromFieldRange)
+{
+  std::vector<mrs::RobotPath> negative = make_planned_paths();
+  negative[0].visits[0].arrival_time_s = -1.0;
+  negative[0].visits[1].arrival_time_s = 0.5; // 단조증가는 유지 — 시각 가드만 걸리게 한다
+  negative[0].visits[2].arrival_time_s = 1.0;
+
+  mrs_interfaces::msg::PlannedPaths msg;
+  EXPECT_EQ(
+    mrs::convert::to_msg(negative, false, 0, 11, uniform_scope(42, 5), 12.5, msg).reason,
+    ConvertStatus::TIME_CONVERSION_GUARD);
+
+  mrs_interfaces::msg::PlannedPaths wire = valid_planned_paths_msg();
+  wire.paths[0].visits[0].arrival_time.nanosec = 1000000000U; // rosidl 은 이것을 막지 않는다
+  std::vector<mrs::RobotPath> out;
+  EXPECT_EQ(
+    mrs::convert::from_msg(wire, uniform_scope(42, 5), out).reason,
+    ConvertStatus::TIME_CONVERSION_GUARD);
 }

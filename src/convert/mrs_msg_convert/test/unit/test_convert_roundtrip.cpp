@@ -21,8 +21,10 @@
 
 using mrs_test::make_control_points;
 using mrs_test::make_observation;
+using mrs_test::make_planned_paths;
 using mrs_test::make_window;
 using mrs_test::same_observation;
+using mrs_test::same_planned_paths;
 using mrs_test::same_window;
 using mrs_test::uniform_scope;
 
@@ -62,6 +64,48 @@ TEST(ExecutionWindowConvert, TruncateRevisionRoundTrips)
   EXPECT_TRUE(same_window(truncate, back));
   EXPECT_EQ(back.revision_kind, mrs::RevisionKind::TRUNCATE);
   EXPECT_EQ(back.valid_through_segment_index, 1);
+}
+
+// PlannedPaths 왕복 항등 — `pp → /planned_paths → sadg` 경로의 전부다. [0a] 는 이 변환이
+// 스텁이라 `ExecutionWindow` 가 0 건 발행됐다(0a 보고서 §4-②). 봉투 4필드(event_id·plan_epoch·
+// roadmap_version·view_id)는 도메인 표현에 없으므로 **메시지 쪽에서 직접 확인**한다.
+TEST(PlannedPathsConvert, RoundTripPreservesPathsAndStampsEnvelopeFields)
+{
+  const std::vector<mrs::RobotPath> original = make_planned_paths();
+
+  mrs_interfaces::msg::PlannedPaths msg;
+  ASSERT_TRUE(mrs::convert::to_msg(original, false, 0, 11, uniform_scope(42, 5), 12.5, msg).ok);
+
+  EXPECT_EQ(msg.event_id, 0U); // 정기 계획의 0 은 정당한 값이다(E1 미적용)
+  EXPECT_EQ(msg.plan_epoch, 11U);
+  EXPECT_EQ(msg.roadmap_version, 42U);
+  EXPECT_EQ(msg.view_id, 5U);
+  EXPECT_FALSE(msg.is_partial);
+  EXPECT_EQ(msg.header.stamp.sec, 12);
+  EXPECT_EQ(msg.header.stamp.nanosec, 500000000U);
+  ASSERT_EQ(msg.paths.size(), 2U);
+  // robot 1 의 두 번째 방문 = 2.25 + 1.5 = 3.75 s (손으로 계산한 기대값)
+  EXPECT_EQ(msg.paths[1].visits[1].arrival_time.sec, 3);
+  EXPECT_EQ(msg.paths[1].visits[1].arrival_time.nanosec, 750000000U);
+
+  std::vector<mrs::RobotPath> back;
+  ASSERT_TRUE(mrs::convert::from_msg(msg, uniform_scope(42, 5), back).ok);
+  EXPECT_TRUE(same_planned_paths(original, back));
+}
+
+// 빈 해는 **정당한 값**이다 — `PlanPaths.srv` 가 허용한다. 실패로 처리하면 "계획 없음"이
+// "변환 고장"과 구별되지 않는다.
+TEST(PlannedPathsConvert, EmptyPlanIsValidInBothDirections)
+{
+  mrs_interfaces::msg::PlannedPaths msg;
+  ASSERT_TRUE(mrs::convert::to_msg({}, true, 77, 3, uniform_scope(42, 5), 0.0, msg).ok);
+  EXPECT_TRUE(msg.paths.empty());
+  EXPECT_TRUE(msg.is_partial);
+  EXPECT_EQ(msg.event_id, 77U);
+
+  std::vector<mrs::RobotPath> back{make_planned_paths()};
+  ASSERT_TRUE(mrs::convert::from_msg(msg, uniform_scope(42, 5), back).ok);
+  EXPECT_TRUE(back.empty());
 }
 
 // 관측 왕복 항등 — 센티넬 next_node("미상")가 유효값으로 보존되는지가 핵심이다.

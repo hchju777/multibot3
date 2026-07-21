@@ -10,6 +10,14 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
   <depend>mrs_interfaces</depend>
+  <!--
+    mrs_msg_convert: R-18 구속 — 시각 변환(`seconds_to_time`)은 반드시 이 헬퍼를 경유한다.
+    노드가 1e9 로 직접 나누면 음수·NaN·범위 가드가 헬퍼 밖으로 새어 나간다.
+    ⚠ 이것은 **L2 변환 패키지**이지 도메인 패키지가 아니다 — architecture §2.2 의
+    "mrs_ros_plan_tick 은 도메인 패키지에 의존하지 않는다"는 통과 기준을 위반하지 않으며,
+    tools/check_boundaries.sh 검사 [4](도메인 목록 대조)·[5](랭크 4.0 -> 3.0 감소)를 통과한다.
+  -->
+  <depend>mrs_msg_convert</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

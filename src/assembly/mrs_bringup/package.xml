@@ -12,6 +12,8 @@
   <depend>mrs_core_types</depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <!-- launch/_common.launch.py 가 params_file 기본값(share/mrs_bringup/config)을 찾는 데 쓴다. -->
+  <exec_depend>ament_index_python</exec_depend>
   <!-- launch/_common.launch.py 가 Node(package=...) 로 참조하는 실행 패키지들.
        ros2 launch 시점 탐색을 위한 런타임 의존 — CMake 빌드 의존은 아니다. -->
   <exec_depend>mrs_ros_map_registry</exec_depend>

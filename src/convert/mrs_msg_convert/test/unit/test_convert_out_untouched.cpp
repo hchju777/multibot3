@@ -26,6 +26,7 @@ using mrs::convert::ConvertResult;
 using mrs::convert::ConvertStatus;
 using mrs_test::make_control_points;
 using mrs_test::make_observation;
+using mrs_test::make_planned_paths;
 using mrs_test::make_view;
 using mrs_test::make_window;
 using mrs_test::uniform_scope;
@@ -236,4 +237,46 @@ TEST(OutUntouched, NodeIdArrayWrapFailureLeavesOutIntact)
   ASSERT_EQ(out.size(), 2U);
   EXPECT_EQ(out[0].value(), 99U);
   EXPECT_EQ(out[1].value(), 98U);
+}
+
+// [13] PlannedPaths 발행 — **마지막 단계**(방문 시각 가드) 실패. 노드 id 는 전부 정상이라
+// 앞 검사를 통과하고 배열을 절반쯤 쌓은 뒤 실패하는 경로다. 여기서 out 이 오염되면 sadg 가
+// 절반짜리 계획으로 릴리스 대기열을 갱신하고, 짧아진 경로는 "정상적으로 짧은 경로"와 구별되지
+// 않는다 — [0a] 가 못 잡는 형태의 조용한 오염이다.
+TEST(OutUntouched, PlannedPathsToMsgLateTimeFailureLeavesOutIntact)
+{
+  mrs_interfaces::msg::PlannedPaths out;
+  out.plan_epoch = 999;
+  out.event_id = 4242;
+  out.paths.resize(5);
+
+  std::vector<mrs::RobotPath> bad = make_planned_paths();
+  bad[1].visits[2].arrival_time_s = kNaN; // 마지막 로봇의 마지막 방문에서 실패
+
+  const ConvertResult result =
+    mrs::convert::to_msg(bad, false, 0, 11, uniform_scope(42, 5), 12.5, out);
+  EXPECT_FALSE(result.ok);
+  EXPECT_EQ(result.reason, ConvertStatus::TIME_CONVERSION_GUARD);
+  EXPECT_EQ(out.plan_epoch, 999U);
+  EXPECT_EQ(out.event_id, 4242U);
+  EXPECT_EQ(out.paths.size(), 5U);
+}
+
+// [14] PlannedPaths 수신 — 두 번째 로봇의 방문열에서 실패한다(첫 로봇은 이미 파싱을 마친 뒤).
+TEST(OutUntouched, PlannedPathsFromMsgLateFailureLeavesDomainOutIntact)
+{
+  mrs_interfaces::msg::PlannedPaths msg;
+  ASSERT_TRUE(
+    mrs::convert::to_msg(make_planned_paths(), false, 0, 11, uniform_scope(42, 5), 12.5, msg).ok);
+  msg.paths[1].visits[2].node_id = 4294967295U; // 센티넬 노드
+
+  std::vector<mrs::RobotPath> out;
+  out.resize(3);
+  out[0].robot_id = 4242;
+
+  const ConvertResult result = mrs::convert::from_msg(msg, uniform_scope(42, 5), out);
+  EXPECT_FALSE(result.ok);
+  EXPECT_EQ(result.reason, ConvertStatus::FIELD_RANGE_VIOLATION);
+  ASSERT_EQ(out.size(), 3U); // 부분 파싱된 2대짜리 계획으로 덮이지 않았다
+  EXPECT_EQ(out[0].robot_id, 4242);
 }

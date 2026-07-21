@@ -9,6 +9,8 @@ add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(mrs_core_types REQUIRED)
 find_package(mrs_interfaces REQUIRED)
 find_package(mrs_msg_convert REQUIRED)
 find_package(mrs_sim_abstraction REQUIRED)
@@ -22,7 +24,7 @@ target_include_directories(sim_bridge_node_exe PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 target_compile_features(sim_bridge_node_exe PUBLIC cxx_std_17)
-ament_target_dependencies(sim_bridge_node_exe PUBLIC rclcpp mrs_interfaces mrs_msg_convert mrs_sim_abstraction geometry_msgs rosgraph_msgs)
+ament_target_dependencies(sim_bridge_node_exe PUBLIC rclcpp builtin_interfaces mrs_core_types mrs_interfaces mrs_msg_convert mrs_sim_abstraction geometry_msgs rosgraph_msgs)
 
 install(TARGETS sim_bridge_node_exe DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include)
