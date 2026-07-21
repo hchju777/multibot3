@@ -2,7 +2,10 @@
 #
 # 근거: D-11(3뷰 정합·왕복 무손실), T1 §7.2(정지선의 claim region 반경 r_clear)
 
-uint32 node_id
+uint32 node_id              # 뷰 종류는 **이 메시지를 담은 응답이 고정**한다:
+                            #   GetRoadmap → 물리(PhysicalNodeId) / GetUniformView → 균일(UniformNodeId)
+                            #   GetDependencySkeleton → 골격(SkeletonNodeId)
+                            # 인스턴스 스코프는 같은 응답의 roadmap_version·view_id 다
 float64 x_m                 # 노드 위치 x [m], map
 float64 y_m                 # 노드 위치 y [m], map
 float64 claim_radius_m      # r_clear [m] — 이 노드의 점유 주장 반경. 정지선 오프셋 계산에 사용.

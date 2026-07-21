@@ -92,7 +92,7 @@ void LocalTrajNode::check_plan_tick_single_publisher()
   startup_check_timer_->cancel(); // 1회성
 
   const std::size_t publisher_count = this->count_publishers("/plan_tick");
-  if (mrs::exceeds_single_publisher_count(publisher_count))
+  if (!mrs::is_single_publisher_ok(publisher_count))
   {
     RCLCPP_FATAL(
       this->get_logger(),

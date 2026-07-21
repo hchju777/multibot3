@@ -37,6 +37,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SimMetricSample.msg"
   "msg/TaskAssignment.msg"
   "msg/TimedNodeVisit.msg"
+  "msg/ViewScope.msg"
   "msg/WindowSegment.msg"
   "srv/GetDependencySkeleton.srv"
   "srv/GetRoadmap.srv"

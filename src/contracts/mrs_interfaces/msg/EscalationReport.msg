@@ -1,6 +1,9 @@
 # EscalationReport — L4(l4_traj_node) → 서버(ladder_orchestrator) 상향 에스컬레이션
 #
-# 계약 버전: 1.1.0  (1.0.0 → 1.1.0: REASON_SYNC_LOST 추가 — 오케스트레이터 R-06 승인)
+# 계약 버전: 2.0.0  (1.1.0 → 2.0.0 — **major**. `view_scope` 필수 필드 추가 +
+#                    `blocking_node_id` 의 뷰 확정. 스코프 없는 v1.x 메시지는 수신 시 폐기되므로
+#                    wire 호환이 깨진다. 근거: 사용자 결정 R-14 (a) = B + C)
+# (1.0.0 → 1.1.0: REASON_SYNC_LOST 추가 — 오케스트레이터 R-06 승인)
 # 근거: D-01(상향 경로), D-08(이원 트리거 — 하드/소프트), D-02(HARD 트리거 = '주행 불가'),
 #       T3-R3(event_id 상관 키), R-06/architecture §1.7-E(동기 결손 상향 보고처)
 # 토픽: /robot_{i}/escalation_report   QoS: reliable / volatile / depth 20
@@ -49,7 +52,19 @@ uint8 severity
 
 uint32 window_seq            # 보고 시점에 수용 중이던 창의 seq
 uint32 current_segment_index # 진행 중 세그먼트 인덱스 (segments 배열 기준)
-uint32 blocking_node_id      # 진행을 막는 노드 id. 4294967295 = 해당 없음
+
+# ── 뷰 스코프 (v2.0.0 신설) ────────────────────────────────────────────────────────────
+#  아래 blocking_node_id 가 유효한 뷰. **view_kind = VIEW_KIND_UNIFORM 고정**이며,
+#  값은 보고 대상 창(window_seq)의 ExecutionWindow.roadmap_version/view_id 를 그대로 복사한다.
+#  ⚠ view_kind 가 UNIFORM 이 아니면 수신자는 메시지를 폐기한다.
+ViewScope view_scope
+
+uint32 blocking_node_id      # 진행을 막는 노드 id — **균일 뷰(UniformNodeId)**. 4294967295 = 해당 없음.
+                             # 뷰 근거(추정 아님): 이 값의 출처는 정지선을 만든 노드 u_l 이며,
+                             # u_l 은 "창 W_i 에서 미충족 선행제약을 가진 첫 노드"(T1 §7.2)다.
+                             # 창의 segments·predecessor_constraints 는 전부 균일 뷰 노드이므로
+                             # (WindowSegment.msg, PredecessorConstraint.msg) u_l 도 균일 뷰다.
+                             # ⇒ L4 가 발행하지만 물리 뷰가 아니다. 물리 노드를 실으면 계약 위반.
 uint16 blocking_robot_id     # 정지선을 소유한 선행 로봇 id. 65535 = 미상/해당 없음
 float64 stalled_duration_s   # 진행 정체 지속 시간 [s]. 0 이상
 

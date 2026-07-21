@@ -13,6 +13,7 @@
 #    valid 조건이 유지되는지는 미유도 — R1 구현(로드맵 [3]) 전 해소 필요.
 
 uint16 predecessor_robot_id
-uint32 predecessor_node_id
+uint32 predecessor_node_id  # **균일 뷰(UniformNodeId)** — 릴리스된 창의 노드 공간과 같아야 한다
 uint16 successor_robot_id
-uint32 successor_node_id
+uint32 successor_node_id    # **균일 뷰(UniformNodeId)**
+# 스코프: 이 배열을 담은 PartialReplan.srv 요청의 roadmap_version·view_id (view_kind = UNIFORM)

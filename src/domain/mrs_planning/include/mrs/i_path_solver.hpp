@@ -2,7 +2,13 @@
 
 /**
  * @file i_path_solver.hpp
- * @brief L2 경로계획 솔버 플러그인 포트 (seam a, D-03). 계약 v1.0.0.
+ * @brief L2 경로계획 솔버 플러그인 포트 (seam a, D-03). 계약 v2.0.0.
+ *
+ * v1.0.0 → v2.0.0 (**major**, 사용자 결정 R-14 (a)): 입출력의 노드 id 가 **`UniformNodeId`**
+ * 강타입이 된다(`PlanRequestEntry.start_node`/`goal_node`, 출력 `TimedNodeVisit.node_id`).
+ * 이 포트는 §6.1 이 지목한 실패 계열의 한쪽 끝이다 — `mrs_task_alloc` 은 **물리** 노드를 다루고
+ * 이 포트는 **균일 뷰** 노드를 받는데, v1 에서는 사이의 `transform_node` 호출을 빼먹어도
+ * 컴파일됐다. v2 에서는 컴파일 에러가 된다.
  *
  * 근거: D-03 — "운용 구조(수신지평 창 + 이벤트 구동 재계획)와 솔버를 분리, 솔버는 교체 가능
  * 컴포넌트". 출력은 **시각 부여 node-visit 시퀀스**로 표준화되어 L3 가 솔버 불가지론이 된다.
@@ -26,10 +32,12 @@ namespace mrs
  */
 struct PlanRequestEntry
 {
-  RobotId robot_id{ROBOT_ID_NONE}; ///< 로봇 id
-  NodeId start_node{NODE_ID_NONE}; ///< 시작 노드 id (균일 뷰)
-  double start_theta_rad{0.0};     ///< 시작 자세 [rad], map, [-pi, pi] (diff-drive 회전 비용)
-  NodeId goal_node{NODE_ID_NONE};  ///< 목표 노드 id (균일 뷰)
+  RobotId robot_id{ROBOT_ID_NONE};        ///< 로봇 id
+  UniformNodeId start_node{NODE_ID_NONE}; ///< 시작 노드 id — **균일 뷰**
+  double start_theta_rad{0.0};            ///< 시작 자세 [rad], map, [-pi, pi] (diff-drive 회전 비용)
+  UniformNodeId goal_node{NODE_ID_NONE};  ///< 목표 노드 id — **균일 뷰**.
+                                          ///< 작업 엔드포인트(물리 뷰)는 MapRegistry 변환을 거쳐
+                                          ///< 여기 들어온다 — 변환 없이 넣으면 컴파일되지 않는다
 };
 
 /**
@@ -40,7 +48,7 @@ enum class SolverStatus : std::uint8_t
   SUCCESS = 0,         ///< 전 엔트리에 대한 해 반환
   INFEASIBLE = 1,      ///< 해 없음
   BUDGET_EXCEEDED = 2, ///< 예산 초과 — paths 는 부분해이거나 비어 있음
-  STALE_VERSION = 3,   ///< roadmap_version/view_id 불일치
+  STALE_VERSION = 3,   ///< `view_scope` 불일치 (종류·버전·뷰 id 중 하나라도)
   INTERNAL_ERROR = 4   ///< 구현체 내부 실패(예외를 잡아 여기로 보고)
 };
 
@@ -51,8 +59,9 @@ enum class SolverStatus : std::uint8_t
 struct PathSolverInput
 {
   const void * uniform_view{nullptr};        ///< 균일 뷰 그래프 (mrs_map_registry 의 GraphView*)
-  std::uint64_t roadmap_version{0};          ///< 지도 버전
-  std::uint32_t view_id{0};                  ///< 균일 뷰 id (입도 정합 — Q-7)
+  ViewScope view_scope;                      ///< 입력·출력 노드 id 의 뷰. view_kind = UNIFORM 고정.
+                                             ///< 구현체는 `uniform_view` 가 이 스코프의 것인지
+                                             ///< 확인하고 아니면 STALE_VERSION 을 반환한다
   std::vector<PlanRequestEntry> entries;     ///< 계획 대상
   std::vector<FrozenOrder> frozen_orders;    ///< 뒤집을 수 없는 교차 순서 (T2 (C3)). 전역 계획이면 빈 벡터
   std::uint32_t horizon_w{0};                ///< 수신지평 창 크기 [스텝]. 0 = 솔버 기본값

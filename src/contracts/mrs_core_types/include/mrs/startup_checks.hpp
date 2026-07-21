@@ -22,6 +22,13 @@ namespace mrs
 {
 
 /**
+ * @brief 정수배 판정의 부동소수 반올림 허용 상대오차.
+ * @note 기본 인자로 두면 호출자가 조용히 다른 값을 넘길 수 있는데, 두 소비처가 **같은 판정
+ *       로직**을 공유하는 것이 이 헤더의 존재 이유다. 상수로 고정한다.
+ */
+constexpr double STEP_RATIO_RELATIVE_TOLERANCE = 1e-6;
+
+/**
  * @brief Δt_h(재계획 주기)가 시뮬 스텝 dt 의 정수배인지 검사한다 (R-A2, architecture §1.7-B).
  *
  * 근거: 어긋나면 `/clock` 점프가 틱 경계와 맞지 않아 병합·중복이 발생하고 "전 에이전트가
@@ -30,11 +37,14 @@ namespace mrs
  *
  * @param[in] replan_period_s 재계획 주기 Δt_h [s]. 0 이하이면 항상 false.
  * @param[in] sim_step_s 시뮬 스텝 dt [s]. 0 이하이면 항상 false.
- * @param[in] relative_tolerance 부동소수 반올림 허용 상대오차. 기본 1e-6.
- * @return bool true = 정수배(허용오차 내). false = 위반 — 호출자는 기동을 거부해야 한다.
+ * @param[in] relative_tolerance 부동소수 반올림 허용 상대오차. 자료형 `double`,
+ *            기본값 @ref STEP_RATIO_RELATIVE_TOLERANCE.
+ * @return `bool` — **true = 통과**(정수배, 허용오차 내). false = 위반이므로 기동을 거부해야 한다.
  */
 inline bool is_integer_multiple(
-  double replan_period_s, double sim_step_s, double relative_tolerance = 1e-6) noexcept
+  double replan_period_s,
+  double sim_step_s,
+  double relative_tolerance = STEP_RATIO_RELATIVE_TOLERANCE) noexcept
 {
   if (replan_period_s <= 0.0 || sim_step_s <= 0.0)
   {
@@ -51,18 +61,22 @@ inline bool is_integer_multiple(
 }
 
 /**
- * @brief `/plan_tick` 발행자 수가 단일 발행자 강제(계약 L-15)를 위반하는지 판정한다 (R-05).
+ * @brief `/plan_tick` 발행자 수가 단일 발행자 강제(계약 L-15)를 만족하는지 판정한다 (R-05).
  *
  * 근거: 발행자가 2 개 이상이면 로봇마다 다른 스텝 지수 h 를 배포받을 수 있어 (A1) 지수 합의가
  * 조용히 깨진다(T4 §3.2) — 조용한 위반은 F5 결과를 무효화한다. `mrs_ros_l4` 는 이 함수가
- * true 를 반환하면 기동을 거부한다.
+ * false 를 반환하면 기동을 거부한다.
  *
- * @param[in] publisher_count 그래프 API 로 조회한 `/plan_tick` 발행자 수.
- * @return bool true = 위반(2 개 이상, 기동 거부). false = 정상(0 또는 1 개).
+ * @note 반환 극성은 @ref is_integer_multiple 과 **의도적으로 동일**하다(둘 다 "통과 = true").
+ *       같은 헤더의 두 기동 게이트가 서로 반대 극성이면 호출자가 한쪽을 뒤집어 쓰기 쉽고,
+ *       그러면 기동 게이트가 조용히 무력화된다 — 두 검사 모두 조용한 위반을 막으려고 만든 것이다.
+ *
+ * @param[in] publisher_count 그래프 API 로 조회한 `/plan_tick` 발행자 수. 자료형 `std::size_t`.
+ * @return `bool` — **true = 통과**(0 또는 1 개). false = 위반(2 개 이상)이므로 기동을 거부해야 한다.
  */
-inline bool exceeds_single_publisher_count(std::size_t publisher_count) noexcept
+inline bool is_single_publisher_ok(std::size_t publisher_count) noexcept
 {
-  return publisher_count >= 2;
+  return publisher_count < 2;
 }
 
 } // namespace mrs

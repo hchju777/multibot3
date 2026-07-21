@@ -2,7 +2,13 @@
 
 /**
  * @file i_local_planner.hpp
- * @brief L4 국소 궤적 계획 포트 (seam b 확장, D-07·D-05). 계약 v1.1.0.
+ * @brief L4 국소 궤적 계획 포트 (seam b 확장, D-07·D-05). 계약 v2.0.0.
+ *
+ * v1.1.0 → v2.0.0 (**major**, 사용자 결정 R-14 (a)): 직접 노드 id 필드는 없으나, 입력
+ * `ExecutionWindow` 의 `WindowSegment.node_from/node_to` 와 `PredecessorConstraint.node_id` 가
+ * **`UniformNodeId`** 강타입이 되어 이 포트의 시그니처 의미가 바뀐다. 구현체가 맨 uint32 로
+ * 창 노드를 다루면 컴파일되지 않는다. 정지선 노드 u_l 도 균일 뷰이며, 그것이 상향
+ * `EscalationReport.blocking_node_id`(균일 뷰 확정)의 근거다.
  *
  * v1.0.0 → v1.1.0 (theory T4 / 확정서 v4): 폴백이 QP 실패 경로가 아니라 **매 틱 주 경로**로
  * 이동했다. 구현은 매 틱 (1) 시프트 연산자 S 를 무조건 선행 실행하고, (2) solve_ok(h) 로

@@ -1,17 +1,30 @@
 # GetDependencySkeleton.srv — L3용 collapse 골격 조회 (MapRegistry, D-11 v2)
 #
-# 계약 버전: 1.0.0
+# 계약 버전: 2.0.0  (1.0.0 → 2.0.0 — **major**. `roadmap_version` 추가(스코프 미비 보정) +
+#                    노드 id 의 뷰 종류 확정. R-14 (a))
 # 서비스명: /map_registry/get_dependency_skeleton
+#
+# ── 뷰 규약 (v2.0.0) ───────────────────────────────────────────────────────────────────
+#  응답의 `nodes`/`edges` 는 **골격 뷰(SkeletonNodeId, view_kind = VIEW_KIND_SKELETON)** 다.
+#  `collapse_map` 은 **두 뷰를 잇는 유일한 배열**이며 방향이 고정돼 있다:
+#      from_node_id = 균일 뷰(UniformNodeId)  →  to_node_id = 골격 뷰(SkeletonNodeId)
+#  즉 원소마다 두 필드의 뷰 종류가 **다르고, 계약이 필드별로 고정**한다 — 이것이 한 메시지가
+#  두 종류를 실을 수 있는 유일한 허용 형태다(§0 규칙 V4). 방향을 뒤집어 담는 것은 계약 위반.
+#  스코프: 골격 뷰의 (roadmap_version, view_id) 는 **유래 균일 뷰의 값과 같다** — 종류만 다르다.
 # 근거: D-11 v2 (iii) — 차수 2 체인의 중간 가상 노드는 추월·교차가 불가해 의존성 결정점이
 #       아니므로 collapse 한다. SADG/BTPG 그래프 팽창(→R2 MILP 비용 증가)을 막기 위함.
 #       왕복(세분화↔collapse) 무손실은 D-11 검증 대상이며 unit 티어 필수 테스트다.
 
+uint64 roadmap_version   # 대상 지도 버전 (v2.0.0 신설 — 스코프 완성). 0 = 최신
 uint32 view_id           # 대상 균일 뷰 id
 ---
 uint8 RESULT_OK=0
 uint8 RESULT_UNKNOWN_VIEW=1
+uint8 RESULT_STALE_VERSION=2
 uint8 result
-uint32 view_id
-RoadmapNode[] nodes      # collapse 후 골격 노드
-RoadmapEdge[] edges
-NodeMapping[] collapse_map  # 균일 뷰 노드 → 골격 노드. 역방향 복원이 가능해야 한다(무손실)
+uint64 roadmap_version   # 응답 스코프 에코 (v2.0.0 신설)
+uint32 view_id           # 유래 균일 뷰 id. 골격 뷰의 스코프도 이 값이다(종류만 SKELETON)
+RoadmapNode[] nodes      # collapse 후 **골격 뷰(SkeletonNodeId)** 노드
+RoadmapEdge[] edges      # **골격 뷰** 엣지
+NodeMapping[] collapse_map  # from = 균일 뷰 노드 → to = 골격 노드 (방향 고정).
+                            # 역방향 복원이 가능해야 한다(D-11 왕복 무손실, 오차 0)

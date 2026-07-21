@@ -2,7 +2,11 @@
 
 /**
  * @file i_sim_backend.hpp
- * @brief 시뮬레이터 백엔드 포트 (seam c, sim-abstraction). 계약 v1.0.0.
+ * @brief 시뮬레이터 백엔드 포트 (seam c, sim-abstraction). 계약 v2.0.0.
+ *
+ * v1.0.0 → v2.0.0 (**major**, 사용자 결정 R-14 (a)): `RobotObservation` 의 노드 id 2건이
+ * `NodeId`(맨 uint32) → **`UniformNodeId`** 강타입으로 바뀌고, 인스턴스 스코프(`ViewScope`)를
+ * 동반한다. 기존 호출부는 컴파일되지 않는다 — 그것이 이 변경의 목적이다.
  *
  * 목적(사용자 확정 제약): 최종 목표는 Isaac Sim 이지만 지금은 pysim 으로 간다. **아이작이
  * 나중에 붙어도 코어 로직·시나리오·지표 파서가 재작성되지 않도록** 실행·센싱·구동을 전부
@@ -68,6 +72,10 @@ struct ObservationUncertainty
 
 /**
  * @brief 로봇 관측 상태.
+ * @note 노드 부착은 **균일 뷰** 기준이다(v2.0.0). 이 값들은 L3 진행 추적과 L4 창 소비의
+ *       입력이고 두 경로의 좌표계가 `ExecutionWindow.segments`(균일 뷰)이기 때문이다.
+ *       백엔드는 연속 좌표만 갖고 있으므로, MapRegistry 균일 뷰로 부착하고 그때 사용한
+ *       스코프를 `view_scope` 에 싣는다. 물리 노드를 실으면 진행 판정이 세그먼트와 어긋난다.
  */
 struct RobotObservation
 {
@@ -75,8 +83,9 @@ struct RobotObservation
   Pose2D body_pose;                   ///< 몸체 자세 q [m, rad], map (오프셋점 z 아님)
   double v_mps{0.0};                  ///< 몸체 선속도 [m/s]
   double omega_rps{0.0};              ///< 몸체 각속도 [rad/s]
-  NodeId occupied_node{NODE_ID_NONE}; ///< 점유 중 노드. 엣지 위면 NODE_ID_NONE
-  NodeId next_node{NODE_ID_NONE};     ///< 진행 방향 다음 노드
+  ViewScope view_scope;               ///< 아래 노드 id 2건의 뷰. view_kind = UNIFORM 고정
+  UniformNodeId occupied_node{NODE_ID_NONE}; ///< 점유 중 노드(**균일 뷰**). 엣지 위면 NODE_ID_NONE
+  UniformNodeId next_node{NODE_ID_NONE};     ///< 진행 방향 다음 노드(**균일 뷰**)
   double edge_progress{0.0};          ///< 엣지 진행률 [0,1]
   ObservationUncertainty uncertainty; ///< 관측 불확실성 (isaac 에서 실채워짐)
 };
@@ -111,7 +120,9 @@ struct FaultInjection
 {
   FaultKind kind{FaultKind::COMM_DELAY};   ///< 결함 종류
   RobotId target_robot_id{ROBOT_ID_NONE};  ///< 대상 로봇
-  EdgeId target_edge_id{NODE_ID_NONE};     ///< 대상 엣지 (통로 개폐)
+  EdgeId target_edge_id{NODE_ID_NONE};     ///< 대상 **물리 뷰** 엣지 (통로 개폐). 통로 개폐는
+                                           ///< 물리 지도의 사건이므로 균일 뷰 엣지가 아니다.
+                                           ///< (센티넬은 EDGE_ID_NONE 로 정정 예정 — 값 동일)
   double magnitude{0.0};                   ///< 강도 (단위는 kind 별)
   double duration_s{0.0};                  ///< 지속 시간 [s]. 0 = 해제 전까지
 };

@@ -1,7 +1,16 @@
 # ValidateMap.srv — roadmap 정적 검사기 3종 (MapRegistry, D-11 + theory T1-R5)
 #
-# 계약 버전: 1.0.0
+# 계약 버전: 2.0.0  (1.0.0 → 2.0.0 — **major**. 위반 목록을 **뷰별로 분리**. R-14 (a) 탈출구 #1)
 # 서비스명: /map_registry/validate_map
+#
+# ── v2.0.0 변경 사유 (탈출구 #1 처리) ──────────────────────────────────────────────────
+#  v1.0.0 의 `violating_node_ids`/`violating_edge_ids` 는 **요청 인자에 따라 뷰가 달라졌다**:
+#  well-formed·biconnected·통로 폭 위반은 **물리 뷰** 원소이고, 세분화 입도 위반은 **균일 뷰**
+#  원소다. 한 배열에 두 뷰가 섞이면 강타입으로 표현할 수 없고(어느 tag 로 랩할지 결정 불가),
+#  수신자가 잘못된 뷰에서 조회해도 값이 유효해 조용히 오독된다.
+#  ⇒ **뷰별로 분리**한다. 각 배열은 단일 뷰만 담으므로 msg_convert 가 배열마다 다른 강타입으로
+#     랩할 수 있다. 도메인 헤더 `RoadmapValidationResult`(mrs_map_registry) 도 같은 형태로
+#     맞춰야 한다 — 이 계약이 그 구조를 규정한다.
 # 호출 시점: **맵 로드 시점**(bringup) 및 R3 부분 재계획 후 재검사(T3-R4, O-T3-3 대비).
 #
 # 검사기 3종:
@@ -13,8 +22,8 @@
 #                     + 세분화 입도 하한 l_unit >= 2(r + L)
 #  ⚠ 3번을 강제하지 않은 채 F5 를 돌리면 **그 실험은 T1 이론을 검증하지 않는다**(theory §9).
 
-uint64 roadmap_version
-uint32 view_id            # 입도 검사 대상 뷰. 0 = 물리 roadmap만 검사
+uint64 roadmap_version    # 물리 뷰 스코프 (view_kind = PHYSICAL, view_id = 0 과 함께)
+uint32 view_id            # 입도 검사 대상 **균일 뷰** id. 0 = 물리 roadmap 만 검사(입도 검사 생략)
 uint16 robot_count        # well-formed 검사의 로봇 수
 float64 robot_radius_m    # r [m]
 float64 v_max_mps         # v_max [m/s]
@@ -31,8 +40,18 @@ bool biconnected              # 검사기 2
 bool corridor_width_ok        # 검사기 3 (통로 폭)
 bool unit_granularity_ok      # 검사기 3 (세분화 입도 하한)
 
-uint32[] violating_node_ids   # 위반 노드
-uint32[] violating_edge_ids   # 위반 엣지 (통로 폭 미달 구간)
+# ── 위반 목록 — **뷰별로 분리**(v2.0.0). 각 배열은 단일 뷰만 담는다 ────────────────────
+uint64 roadmap_version              # 응답 스코프 에코 (요청과 동일해야 한다)
+uint32 view_id                      # 입도 검사에 사용한 균일 뷰 id (미검사 시 0)
+
+uint32[] violating_physical_node_ids # **물리 뷰(PhysicalNodeId)** — 검사기 1·2 위반 노드
+                                     # (well-formed 미달 엔드포인트 / 막다른 골목·절단점)
+uint32[] violating_physical_edge_ids # **물리 뷰(EdgeId@Physical)** — 검사기 3-a 통로 폭 미달 구간
+uint32[] violating_uniform_node_ids  # **균일 뷰(UniformNodeId)** — 검사기 3-b 입도 하한 미달에
+                                     # 관여한 가상 노드. view_id = 0 이면 항상 비어 있다
+uint32[] violating_uniform_edge_ids  # **균일 뷰(EdgeId@Uniform)** — 입도 하한 미달 구간
+                                     # (엣지 길이가 unit 의 정수배가 아닐 때 생기는 잔여 구간 포함)
+
 float64 required_min_width_m  # 2(r + v_max/omega_max) [m] — 요구 최소 통로 폭
 float64 derated_v_max_mps     # 위반 구간에 적용될 디레이팅 속도 (W_min/2 − r)*omega_max [m/s].
                               # 정책상 '거부' 대신 '디레이팅'을 택할 때 사용
