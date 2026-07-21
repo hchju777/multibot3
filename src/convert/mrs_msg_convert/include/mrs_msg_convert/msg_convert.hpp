@@ -444,17 +444,21 @@ namespace mrs::convert
   std::vector<mrs_interfaces::msg::FrozenOrder> & out);
 
 /**
- * @brief L4 커밋 상태로 `CommitStatus.msg` 를 만든다 (T2-R6).
+ * @brief L4 커밋 상태로 `CommitStatus.msg` 를 만든다 (T2-R6, L-14 **v2.0.0**).
  *
- * 뷰 종류: `commit_boundary_node` 는 균일 뷰 노드라고 `.msg` 주석이 규정하나 **계약 §0.1
- * 정본표에 `CommitStatus` 행이 없다**. 정본표가 유일한 근거이므로 이 함수는 노드 id 를 인자로
- * 받지 않고 해당 필드를 채우지 않는다(감사 항목 U3 — contract-keeper 판정 대기).
+ * 뷰 종류: `commit_boundary_node` 는 **UNIFORM** 이다(계약 §0.1 정본표 + §0.1.1 유도 —
+ * β_i 는 `committed_through_segment_index` 가 가리키는 `ExecutionWindow.segments` 원소의 종점
+ * 노드이고 창의 세그먼트 노드는 균일 뷰이므로, 물리·골격 노드가 될 경로가 없다).
+ * 스코프는 v2.0.0 에서 신설된 `view_scope` 필드가 나르며, 이 함수는 봉투 인자로 받은
+ * `roadmap_version`·`view_id` 에 **`view_kind = UNIFORM` 을 상수로 더해** 채운다 —
+ * 계약이 고정한 값이므로 호출자가 종류를 고를 여지를 주지 않는다(계약 §0.2.1).
  *
  * 필수 검사:
  *  - `qp_status` — 인자를 `mrs::AdoptionStatus` 강타입으로 받아 **`QP_TICK_JITTER`(값 2)가
  *    표현 자체로 불가능**하게 한다. 그 값은 v1.1.0 에서 발행 금지됐다.
- *  - `commit_hull_vertices` 각 정점의 각도 범위·유한성(`common_convert.hpp` 의 `to_msg(Pose2D)`).
+ *  - `commit_hull_vertices` 각 정점의 각도 범위·유한성(`common_convert.hpp` 의 `poses_to_msg`).
  *    ⚠ 정점 배열이 **비어 있는 것은 유효**하다("커밋 없음/정지") — 오류로 처리하지 않는다.
+ *  - 스코프 자기 유효성 — `roadmap_version != 0`(`is_usable_scope`).
  *  - `stamp_s` 시각 가드.
  *
  * @param[in] robot_id 보고 로봇 id. 자료형 `mrs::RobotId`.
@@ -463,12 +467,18 @@ namespace mrs::convert
  * @param[in] commit_hull_vertices 커밋 볼록포 정점열(map 프레임, CCW).
  *            자료형 `std::vector<mrs::Pose2D>`. 빈 배열은 유효값.
  * @param[in] qp_status 채택 종류·폴백 사유. 자료형 `mrs::AdoptionStatus`.
+ * @param[in] roadmap_version 보고 대상 창의 지도 버전. 자료형 `std::uint64_t`.
+ *            0(미지정)은 런타임 금지값이다. `view_scope.roadmap_version` 이 된다.
+ * @param[in] view_id 보고 대상 창의 균일 뷰 id. 자료형 `std::uint32_t`.
+ *            `view_scope.view_id` 가 된다. 종류는 인자로 받지 않는다(UNIFORM 고정).
  * @param[in] stamp_s 발행 시각 [s]. 자료형 `double`. 시뮬 시계 절대시각 → `header.stamp`.
  * @param[out] out 채울 발행 메시지. 자료형 `mrs_interfaces::msg::CommitStatus`.
- * @return `ConvertResult` — 성공이면 `ok`. 정점 각도 범위·비유한 값이면
+ * @return `ConvertResult` — 성공이면 `ok`. 정점 각도 범위·비유한 값·스코프 사용 불가이면
  *         @ref ConvertStatus::FIELD_RANGE_VIOLATION, `qp_status` 가 열거 집합 밖이면
  *         @ref ConvertStatus::ENUM_OUT_OF_RANGE, 시각 가드 위반이면
  *         @ref ConvertStatus::TIME_CONVERSION_GUARD.
+ * @note **본문 미구현(스텁)이다.** `/robot_i/commit_status` 가 [0a] 최소 토픽에 없어 [0a] 발행
+ *       대상이 아니며, 이번 작업에서는 L-14 v2.0.0 이 요구한 **시그니처만** 맞췄다.
  * @note 7필드(`commit_boundary_node`·`predicted_arrival`·`predicted_theta_rad`·
  *       `brake_distance_m`·`qp_solve_time_s`·`neighbor_traj_max_age_s`·
  *       `last_rejected_window_seq`)는 인자에 없어 기본값으로 나간다. 감사 항목 L4 의 유예이며
@@ -477,7 +487,8 @@ namespace mrs::convert
 [[nodiscard]] ConvertResult make_commit_status(
   mrs::RobotId robot_id, std::uint32_t window_seq, std::uint32_t committed_through_segment_index,
   const std::vector<mrs::Pose2D> & commit_hull_vertices, mrs::AdoptionStatus qp_status,
-  double stamp_s, mrs_interfaces::msg::CommitStatus & out);
+  std::uint64_t roadmap_version, std::uint32_t view_id, double stamp_s,
+  mrs_interfaces::msg::CommitStatus & out);
 
 // ── LocalPlanShare <-> NeighborTrajectory (T4-R3) ────────────────────────
 /**
