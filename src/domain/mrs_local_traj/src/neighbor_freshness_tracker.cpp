@@ -11,8 +11,8 @@ void NeighborFreshnessTracker::on_neighbor_plan(
   (void)robot_id;
   (void)tick_seq;
   (void)shift_ratio_u;
-  throw std::logic_error(
-    "not implemented: NeighborFreshnessTracker::on_neighbor_plan — Phase 5 (coordination-builder) 대상");
+  throw std::logic_error("not implemented: NeighborFreshnessTracker::on_neighbor_plan — Phase 5 "
+                         "(coordination-builder) 대상");
 }
 
 bool NeighborFreshnessTracker::is_fresh(RobotId robot_id, std::uint32_t required_tick_seq) const

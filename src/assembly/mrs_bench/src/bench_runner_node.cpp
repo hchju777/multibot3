@@ -55,7 +55,8 @@ void BenchRunnerNode::on_rung_event(const mrs_interfaces::msg::RungEvent::Shared
   (void)msg;
   try
   {
-    throw std::logic_error("not implemented: BenchRunnerNode::on_rung_event — Phase 6 (sim-runner) 대상");
+    throw std::logic_error(
+      "not implemented: BenchRunnerNode::on_rung_event — Phase 6 (sim-runner) 대상");
   }
   catch (const std::exception & e)
   {

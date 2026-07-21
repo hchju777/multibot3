@@ -29,10 +29,10 @@ constexpr std::uint32_t GRID_ROWS = 2U;
  */
 struct TracerNodeSpec
 {
-  std::uint32_t column;   ///< 열 인덱스 (x = column * s)
-  std::uint32_t row;      ///< 행 인덱스 (y = row * s)
-  bool is_endpoint;       ///< 대기 가능 지점 여부 — 격자의 네 모서리
-  bool is_task_endpoint;  ///< 픽업/딜리버리 지점 여부 — 대각선 두 모서리
+  std::uint32_t column;  ///< 열 인덱스 (x = column * s)
+  std::uint32_t row;     ///< 행 인덱스 (y = row * s)
+  bool is_endpoint;      ///< 대기 가능 지점 여부 — 격자의 네 모서리
+  bool is_task_endpoint; ///< 픽업/딜리버리 지점 여부 — 대각선 두 모서리
 };
 
 /**
@@ -60,8 +60,8 @@ constexpr TracerNodeSpec NODE_SPECS[] = {
 
 // 하단 통로 3 + 상단 통로 3 + 가로대 4 = 10 엣지. 가로대가 4개라 교행 경로가 항상 존재한다.
 constexpr TracerEdgeSpec EDGE_SPECS[] = {
-  {0U, 1U}, {1U, 2U}, {2U, 3U}, // 하단 통로
-  {4U, 5U}, {5U, 6U}, {6U, 7U}, // 상단 통로
+  {0U, 1U}, {1U, 2U}, {2U, 3U},           // 하단 통로
+  {4U, 5U}, {5U, 6U}, {6U, 7U},           // 상단 통로
   {0U, 4U}, {1U, 5U}, {2U, 6U}, {3U, 7U}, // 가로대(교행 지점)
 };
 

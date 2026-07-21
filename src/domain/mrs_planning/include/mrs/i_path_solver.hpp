@@ -12,7 +12,8 @@
  *
  * 근거: D-03 — "운용 구조(수신지평 창 + 이벤트 구동 재계획)와 솔버를 분리, 솔버는 교체 가능
  * 컴포넌트". 출력은 **시각 부여 node-visit 시퀀스**로 표준화되어 L3 가 솔버 불가지론이 된다.
- * 구현체: LLLG(1순위) / RHCR(baseline·폴백) / PIBT(폴백 후보, 미확정) / CannedSolver(tracer bullet).
+ * 구현체: LLLG(1순위) / RHCR(baseline·폴백) / PIBT(폴백 후보, 미확정) / CannedSolver(tracer
+ * bullet).
  *
  * 예외 규율(CLAUDE.md 규율 2): 구현체는 예외를 밖으로 던지지 않는다. 내부 실패는 잡아서
  * SolverStatus 로 보고하고, 호출자는 구계획 유지로 폴백한다.
@@ -34,10 +35,10 @@ struct PlanRequestEntry
 {
   RobotId robot_id{ROBOT_ID_NONE};        ///< 로봇 id
   UniformNodeId start_node{NODE_ID_NONE}; ///< 시작 노드 id — **균일 뷰**
-  double start_theta_rad{0.0};            ///< 시작 자세 [rad], map, [-pi, pi] (diff-drive 회전 비용)
-  UniformNodeId goal_node{NODE_ID_NONE};  ///< 목표 노드 id — **균일 뷰**.
-                                          ///< 작업 엔드포인트(물리 뷰)는 MapRegistry 변환을 거쳐
-                                          ///< 여기 들어온다 — 변환 없이 넣으면 컴파일되지 않는다
+  double start_theta_rad{0.0}; ///< 시작 자세 [rad], map, [-pi, pi] (diff-drive 회전 비용)
+  UniformNodeId goal_node{NODE_ID_NONE}; ///< 목표 노드 id — **균일 뷰**.
+                                         ///< 작업 엔드포인트(물리 뷰)는 MapRegistry 변환을 거쳐
+                                         ///< 여기 들어온다 — 변환 없이 넣으면 컴파일되지 않는다
 };
 
 /**
@@ -58,15 +59,16 @@ enum class SolverStatus : std::uint8_t
  */
 struct PathSolverInput
 {
-  const void * uniform_view{nullptr};        ///< 균일 뷰 그래프 (mrs_map_registry 의 GraphView*)
-  ViewScope view_scope;                      ///< 입력·출력 노드 id 의 뷰. view_kind = UNIFORM 고정.
-                                             ///< 구현체는 `uniform_view` 가 이 스코프의 것인지
-                                             ///< 확인하고 아니면 STALE_VERSION 을 반환한다
-  std::vector<PlanRequestEntry> entries;     ///< 계획 대상
-  std::vector<FrozenOrder> frozen_orders;    ///< 뒤집을 수 없는 교차 순서 (T2 (C3)). 전역 계획이면 빈 벡터
-  std::uint32_t horizon_w{0};                ///< 수신지평 창 크기 [스텝]. 0 = 솔버 기본값
-  double budget_s{1.0};                      ///< 계획 예산 [s] (확정서 realtime_requirement ≤1 s/스텝)
-  bool allow_warm_start{true};               ///< 이전 해 접미부 웜스타트 허용 여부 (LLLG)
+  const void * uniform_view{nullptr}; ///< 균일 뷰 그래프 (mrs_map_registry 의 GraphView*)
+  ViewScope view_scope; ///< 입력·출력 노드 id 의 뷰. view_kind = UNIFORM 고정.
+                        ///< 구현체는 `uniform_view` 가 이 스코프의 것인지
+                        ///< 확인하고 아니면 STALE_VERSION 을 반환한다
+  std::vector<PlanRequestEntry> entries; ///< 계획 대상
+  std::vector<FrozenOrder>
+    frozen_orders; ///< 뒤집을 수 없는 교차 순서 (T2 (C3)). 전역 계획이면 빈 벡터
+  std::uint32_t horizon_w{0};  ///< 수신지평 창 크기 [스텝]. 0 = 솔버 기본값
+  double budget_s{1.0};        ///< 계획 예산 [s] (확정서 realtime_requirement ≤1 s/스텝)
+  bool allow_warm_start{true}; ///< 이전 해 접미부 웜스타트 허용 여부 (LLLG)
 };
 
 /**
@@ -75,9 +77,9 @@ struct PathSolverInput
 struct PathSolverOutput
 {
   SolverStatus status{SolverStatus::INTERNAL_ERROR}; ///< 종료 상태
-  std::vector<RobotPath> paths;                      ///< 시각 부여 node-visit 시퀀스 (표준형)
-  double planning_time_s{0.0};                       ///< 실제 소요 시간 [s]
-  std::string message;                               ///< 진단 문자열 (기계 판정 금지)
+  std::vector<RobotPath> paths; ///< 시각 부여 node-visit 시퀀스 (표준형)
+  double planning_time_s{0.0};  ///< 실제 소요 시간 [s]
+  std::string message;          ///< 진단 문자열 (기계 판정 금지)
 };
 
 /**

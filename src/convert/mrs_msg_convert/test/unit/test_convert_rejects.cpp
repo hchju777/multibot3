@@ -409,7 +409,7 @@ mrs::RungEventRecord make_rung_event()
   mrs::RungEventRecord record;
   record.event_id = 77;
   record.rung = mrs::Rung::R2_MILP;
-  record.transition = 2; // ESCALATE
+  record.transition = 2;   // ESCALATE
   record.trigger_kind = 1; // SOFT
   record.affected_robots = {1, 2};
   record.edge_set_fingerprint = 0xABCDEF;
@@ -429,8 +429,8 @@ TEST(RungEventConvert, AcceptsNanPhiHatAfterAsNotComputed)
   ASSERT_TRUE(mrs::convert::to_msg(make_rung_event(), 12.5, msg).ok);
 
   EXPECT_EQ(msg.schema_version, mrs::RUNG_EVENT_SCHEMA_VERSION);
-  EXPECT_EQ(msg.rung, 2U);        // R2_MILP
-  EXPECT_EQ(msg.transition, 2U);  // ESCALATE
+  EXPECT_EQ(msg.rung, 2U);         // R2_MILP
+  EXPECT_EQ(msg.transition, 2U);   // ESCALATE
   EXPECT_EQ(msg.trigger_kind, 1U); // SOFT
   EXPECT_TRUE(std::isnan(msg.phi_hat_after_s));
 }
@@ -494,11 +494,13 @@ TEST(SimMetricSampleConvert, RejectsEmptyKeyAndNanValue)
 
   mrs::SimMetricSample empty_key = sample;
   empty_key.key.clear();
-  EXPECT_EQ(mrs::convert::to_msg(empty_key, 12.5, msg).reason, ConvertStatus::FIELD_RANGE_VIOLATION);
+  EXPECT_EQ(
+    mrs::convert::to_msg(empty_key, 12.5, msg).reason, ConvertStatus::FIELD_RANGE_VIOLATION);
 
   mrs::SimMetricSample nan_value = sample;
   nan_value.value = kNaN;
-  EXPECT_EQ(mrs::convert::to_msg(nan_value, 12.5, msg).reason, ConvertStatus::FIELD_RANGE_VIOLATION);
+  EXPECT_EQ(
+    mrs::convert::to_msg(nan_value, 12.5, msg).reason, ConvertStatus::FIELD_RANGE_VIOLATION);
 }
 
 // ── 개정 불변식 (W7 파생) ───────────────────────────────────────────────────
@@ -593,8 +595,7 @@ TEST(ConvertRejects, PlannedPathsReceiveDistinguishesScopeFromKindMismatch)
 
   mrs::ViewScope skeleton = uniform_scope(42, 5);
   skeleton.view_kind = mrs::ViewKind::SKELETON;
-  EXPECT_EQ(
-    mrs::convert::from_msg(msg, skeleton, out).reason, ConvertStatus::VIEW_KIND_MISMATCH);
+  EXPECT_EQ(mrs::convert::from_msg(msg, skeleton, out).reason, ConvertStatus::VIEW_KIND_MISMATCH);
 }
 
 // 센티넬 노드가 실린 방문은 해석할 수 없다 — 양방향 모두 거부.

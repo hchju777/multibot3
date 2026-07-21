@@ -52,8 +52,8 @@ namespace mrs
 enum class ViewKind : std::uint8_t
 {
   PHYSICAL = 0, ///< 물리 roadmap (불균일 엣지, 자동 추출 원본). `view_id` 는 항상 0
-  UNIFORM = 1,  ///< L2 세분화 균일 뷰 (가상 노드 포함). `view_id` = GetUniformView 발급값
-  SKELETON = 2  ///< L3 collapse 골격. `view_id` = 유래 균일 뷰의 id (종류만 다르다)
+  UNIFORM = 1, ///< L2 세분화 균일 뷰 (가상 노드 포함). `view_id` = GetUniformView 발급값
+  SKELETON = 2 ///< L3 collapse 골격. `view_id` = 유래 균일 뷰의 id (종류만 다르다)
 };
 
 /**
@@ -64,8 +64,7 @@ enum class ViewKind : std::uint8_t
  *
  * @tparam K 이 id 가 유효한 뷰의 종류. 계약이 필드마다 고정한다(규칙 V1).
  */
-template <ViewKind K>
-class ViewNodeId final
+template <ViewKind K> class ViewNodeId final
 {
 public:
   /** @brief 이 타입이 속한 뷰 종류. 제네릭 코드에서 태그를 되읽을 때 쓴다. */
@@ -84,8 +83,7 @@ public:
    * @brief 원시 값으로부터 만든다. **`explicit` 이므로 암묵 변환되지 않는다**(규칙 V3).
    * @param[in] value 원시 노드 id. 자료형 `std::uint32_t`, 의미는 뷰 @p K 안에서의 노드 번호.
    */
-  explicit constexpr ViewNodeId(ValueType value) noexcept
-    : value_{value}
+  explicit constexpr ViewNodeId(ValueType value) noexcept : value_{value}
   {
   }
 
@@ -160,7 +158,8 @@ private:
 
 /** @brief 물리 roadmap 뷰의 노드 id. 불균일 엣지를 갖는 자동 추출 원본 지도 위의 노드. */
 using PhysicalNodeId = ViewNodeId<ViewKind::PHYSICAL>;
-/** @brief L2 세분화 균일 뷰의 노드 id. 가상 노드를 포함하며 LaCAM 계열의 이산 단위시간 전제를 만족한다. */
+/** @brief L2 세분화 균일 뷰의 노드 id. 가상 노드를 포함하며 LaCAM 계열의 이산 단위시간 전제를
+ * 만족한다. */
 using UniformNodeId = ViewNodeId<ViewKind::UNIFORM>;
 /** @brief L3 collapse 골격 뷰의 노드 id. 차수 2 체인의 가상 노드가 접힌 의존성 그래프 위의 노드. */
 using SkeletonNodeId = ViewNodeId<ViewKind::SKELETON>;
@@ -190,9 +189,10 @@ inline constexpr std::uint64_t ROADMAP_VERSION_UNSPECIFIED = 0U;
  */
 struct ViewScope
 {
-  ViewKind view_kind{ViewKind::PHYSICAL};                        ///< 뷰 종류. 계약이 필드마다 고정
-  std::uint64_t roadmap_version{ROADMAP_VERSION_UNSPECIFIED};    ///< MapRegistry 지도 버전. 0 = 미지정(런타임 금지)
-  std::uint32_t view_id{VIEW_ID_PHYSICAL};                       ///< 뷰 인스턴스 id. PHYSICAL 이면 0
+  ViewKind view_kind{ViewKind::PHYSICAL}; ///< 뷰 종류. 계약이 필드마다 고정
+  std::uint64_t roadmap_version{
+    ROADMAP_VERSION_UNSPECIFIED}; ///< MapRegistry 지도 버전. 0 = 미지정(런타임 금지)
+  std::uint32_t view_id{VIEW_ID_PHYSICAL}; ///< 뷰 인스턴스 id. PHYSICAL 이면 0
 };
 
 /**
@@ -260,8 +260,7 @@ namespace std
  *
  * @tparam K 뷰 종류.
  */
-template <mrs::ViewKind K>
-struct hash<mrs::ViewNodeId<K>>
+template <mrs::ViewKind K> struct hash<mrs::ViewNodeId<K>>
 {
   /**
    * @brief 노드 id 의 해시를 계산한다.

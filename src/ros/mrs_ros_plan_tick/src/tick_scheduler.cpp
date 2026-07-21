@@ -19,7 +19,8 @@ namespace
 {
 
 /** @brief `tick_seq`(`uint32`)의 최대값 — 인덱스 범위 가드 상한. */
-constexpr std::int64_t MAX_TICK_SEQ = static_cast<std::int64_t>(std::numeric_limits<std::uint32_t>::max());
+constexpr std::int64_t MAX_TICK_SEQ =
+  static_cast<std::int64_t>(std::numeric_limits<std::uint32_t>::max());
 
 /**
  * @brief R-20 권장 샘플 주기의 분모 — 한 틱 구간을 몇 번 관측할 것인가.
@@ -33,15 +34,17 @@ constexpr double SAMPLE_PERIOD_DIVISOR = 4.0;
 } // namespace
 
 TickScheduler::TickScheduler(double replan_period_s)
-: period_ns_(0), replan_period_s_(replan_period_s)
+    : period_ns_(0), replan_period_s_(replan_period_s)
 {
-  if (!std::isfinite(replan_period_s) || replan_period_s <= 0.0 ||
-      replan_period_s > MAX_CLOCK_SECONDS)
+  if (
+    !std::isfinite(replan_period_s) || replan_period_s <= 0.0 ||
+    replan_period_s > MAX_CLOCK_SECONDS)
   {
     throw std::invalid_argument("replan_period_s must be a finite positive number");
   }
 
-  const double period_ns = std::round(replan_period_s * static_cast<double>(NANOSECONDS_PER_SECOND));
+  const double period_ns =
+    std::round(replan_period_s * static_cast<double>(NANOSECONDS_PER_SECOND));
   if (period_ns < 1.0)
   {
     // 나노초 격자에서 0 이 되는 주기는 0 으로 나누는 것과 같다. 조용히 1 ns 로 올리지 않는다 —
@@ -78,10 +81,9 @@ void TickScheduler::anchor(TickSample & sample) const noexcept
   const bool regressed = anchored_ && sample.sampled_at_ns < last_sample_ns_;
   sample.resynced = regressed;
   sample.epoch_ns = (!anchored_ || regressed) ? sample.sampled_at_ns : epoch_ns_;
-  sample.clock_advance_s =
-    anchored_ ? static_cast<double>(sample.sampled_at_ns - last_sample_ns_) /
-                  static_cast<double>(NANOSECONDS_PER_SECOND)
-              : 0.0;
+  sample.clock_advance_s = anchored_ ? static_cast<double>(sample.sampled_at_ns - last_sample_ns_) /
+                                         static_cast<double>(NANOSECONDS_PER_SECOND)
+                                     : 0.0;
 }
 
 bool TickScheduler::fill_index(TickSample & sample) const noexcept

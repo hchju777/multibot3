@@ -63,9 +63,7 @@ constexpr int LOG_THROTTLE_MS = 5000;
 } // namespace
 
 PpServiceNode::PpServiceNode()
-: rclcpp::Node("pp_service"),
-  canned_solver_(nullptr),
-  planner_(nullptr)
+    : rclcpp::Node("pp_service"), canned_solver_(nullptr), planner_(nullptr)
 {
   // ── 파라미터 ─────────────────────────────────────────────────────────────
   // 값의 성격 3구분: (문헌치) 이론·계약이 준 값 / (배관) 실행 편의 상수 /
@@ -76,7 +74,8 @@ PpServiceNode::PpServiceNode()
   canned_lap_count_ = this->declare_parameter<int>(
     "canned_lap_count", 4); // 배관 — 세그먼트 2×4 = 8개. 창 릴리스를 여러 번 관측하기 위한 길이
   plan_budget_s_ = this->declare_parameter<double>(
-    "plan_budget_s", 1.0); // 문헌치 — 확정서 realtime_requirement ≤ 1 s/스텝. 더미는 소비하지 않는다
+    "plan_budget_s",
+    1.0); // 문헌치 — 확정서 realtime_requirement ≤ 1 s/스텝. 더미는 소비하지 않는다
   map_query_retry_period_s_ = this->declare_parameter<double>(
     "map_query_retry_period_s", 1.0); // 배관 — MapRegistry 기동 대기 재시도 주기
   map_query_timeout_s_ = this->declare_parameter<double>(
@@ -92,7 +91,8 @@ PpServiceNode::PpServiceNode()
   }
   if (!std::isfinite(segment_duration_s_) || segment_duration_s_ <= 0.0)
   {
-    RCLCPP_ERROR(this->get_logger(), "segment_duration_s 가 유효하지 않다 — 계획을 발행하지 못한다");
+    RCLCPP_ERROR(
+      this->get_logger(), "segment_duration_s 가 유효하지 않다 — 계획을 발행하지 못한다");
   }
   if (canned_lap_count_ < 0)
   {
@@ -303,7 +303,8 @@ bool PpServiceNode::adopt_uniform_view(
   view_scope_ = scope;
   scope_ready_ = true;
   RCLCPP_INFO(
-    this->get_logger(), "뷰 스코프 확보: roadmap_version=%lu view_id=%u unit_length_m=%.3f routes=%zu",
+    this->get_logger(),
+    "뷰 스코프 확보: roadmap_version=%lu view_id=%u unit_length_m=%.3f routes=%zu",
     static_cast<unsigned long>(scope.roadmap_version), scope.view_id, response.unit_length_m,
     canned_routes_.size());
   return true;
@@ -353,17 +354,18 @@ void PpServiceNode::on_uniform_view_response(
 bool PpServiceNode::wrap_edge_nodes(
   const mrs_interfaces::msg::RoadmapEdge & edge, mrs::ros_pp::CannedRoute & route)
 {
-  // `uint32` → 강타입 랩은 `mrs_msg_convert` 단독 소유다(규칙 V3). 강타입 생성자를 직접 부르지 않는다.
-  const mrs::convert::ConvertResult node_a_result = mrs::convert::node_id_from_msg(
-    edge.node_a, mrs::convert::NoneNodePolicy::REJECT, route.node_a);
+  // `uint32` → 강타입 랩은 `mrs_msg_convert` 단독 소유다(규칙 V3). 강타입 생성자를 직접 부르지
+  // 않는다.
+  const mrs::convert::ConvertResult node_a_result =
+    mrs::convert::node_id_from_msg(edge.node_a, mrs::convert::NoneNodePolicy::REJECT, route.node_a);
   if (!node_a_result.ok)
   {
     report_convert_failure("node_id_from_msg(edge.node_a)", node_a_result);
     return false;
   }
 
-  const mrs::convert::ConvertResult node_b_result = mrs::convert::node_id_from_msg(
-    edge.node_b, mrs::convert::NoneNodePolicy::REJECT, route.node_b);
+  const mrs::convert::ConvertResult node_b_result =
+    mrs::convert::node_id_from_msg(edge.node_b, mrs::convert::NoneNodePolicy::REJECT, route.node_b);
   if (!node_b_result.ok)
   {
     report_convert_failure("node_id_from_msg(edge.node_b)", node_b_result);
@@ -483,8 +485,9 @@ bool PpServiceNode::publish_plan_message(
   ++published_plan_count_;
   RCLCPP_INFO(
     this->get_logger(),
-    "[0a] /planned_paths 발행 trigger=%s plan_epoch=%u paths=%zu stamp_s=%.6f (누적 %lu건)", trigger,
-    plan_epoch_, msg.paths.size(), now_s, static_cast<unsigned long>(published_plan_count_));
+    "[0a] /planned_paths 발행 trigger=%s plan_epoch=%u paths=%zu stamp_s=%.6f (누적 %lu건)",
+    trigger, plan_epoch_, msg.paths.size(), now_s,
+    static_cast<unsigned long>(published_plan_count_));
   return true;
 }
 

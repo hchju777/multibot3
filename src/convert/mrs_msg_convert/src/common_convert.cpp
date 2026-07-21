@@ -130,8 +130,7 @@ static_assert(
       WireCommitStatus::FALLBACK_NO_INDEX &&
     static_cast<std::uint8_t>(AdoptionStatus::FALLBACK_NEIGHBOR_STALE) ==
       WireCommitStatus::FALLBACK_NEIGHBOR_STALE &&
-    static_cast<std::uint8_t>(AdoptionStatus::FALLBACK_SOLVER) ==
-      WireCommitStatus::FALLBACK_SOLVER,
+    static_cast<std::uint8_t>(AdoptionStatus::FALLBACK_SOLVER) == WireCommitStatus::FALLBACK_SOLVER,
   "AdoptionStatus 미러가 CommitStatus.msg 의 qp_status 값과 어긋났다 (계약 L-14 v1.1.0)");
 
 static_assert(
@@ -313,9 +312,7 @@ ConvertResult match_scope(const ViewScope & received, const ViewScope & expected
 }
 
 ConvertResult match_scope_flat(
-  std::uint64_t roadmap_version,
-  std::uint32_t view_id,
-  ViewKind fixed_kind,
+  std::uint64_t roadmap_version, std::uint32_t view_id, ViewKind fixed_kind,
   const ViewScope & expected)
 {
   ViewScope received;

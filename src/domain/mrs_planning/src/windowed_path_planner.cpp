@@ -19,8 +19,8 @@ PathSolverOutput WindowedPathPlanner::plan_partial_replan(
   (void)input;
   (void)commit_boundary;
   (void)frozen_orders;
-  throw std::logic_error(
-    "not implemented: WindowedPathPlanner::plan_partial_replan — Phase 5 (coordination-builder) 대상");
+  throw std::logic_error("not implemented: WindowedPathPlanner::plan_partial_replan — Phase 5 "
+                         "(coordination-builder) 대상");
 }
 
 } // namespace mrs

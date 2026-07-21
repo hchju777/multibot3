@@ -9,9 +9,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "mrs_task_alloc/lifelong_task_allocator.hpp"
 #include "mrs_interfaces/msg/task_assignment.hpp"
 #include "mrs_interfaces/srv/reassign_request.hpp"
+#include "mrs_task_alloc/lifelong_task_allocator.hpp"
 
 namespace mrs
 {
@@ -23,7 +23,8 @@ class TaServiceNode : public rclcpp::Node
 {
 public:
   /**
-   * @brief 노드를 생성하고 `/task_assignment` 발행자와 `/ta_service/reassign_request` 서비스를 구성한다.
+   * @brief 노드를 생성하고 `/task_assignment` 발행자와 `/ta_service/reassign_request` 서비스를
+   * 구성한다.
    */
   TaServiceNode();
   ~TaServiceNode() override = default;

@@ -91,7 +91,7 @@ void build_round_trip_path(
 } // namespace
 
 CannedSolver::CannedSolver(double segment_duration_s, std::uint32_t lap_count)
-: segment_duration_s_(segment_duration_s), lap_count_(lap_count)
+    : segment_duration_s_(segment_duration_s), lap_count_(lap_count)
 {
 }
 
@@ -110,8 +110,9 @@ SolverStatus CannedSolver::check_preconditions(
   const PathSolverInput & input, const char *& out_message) const noexcept
 {
   // ① 파라미터 자기 검사 — 값이 비정상이면 시각 단조증가(계약 L-09)를 만들 수 없다.
-  if (!std::isfinite(segment_duration_s_) || segment_duration_s_ <= 0.0 ||
-      !std::isfinite(plan_start_time_s_) || plan_start_time_s_ < 0.0)
+  if (
+    !std::isfinite(segment_duration_s_) || segment_duration_s_ <= 0.0 ||
+    !std::isfinite(plan_start_time_s_) || plan_start_time_s_ < 0.0)
   {
     out_message = "canned: invalid duration or start time";
     return SolverStatus::INTERNAL_ERROR;
@@ -135,6 +136,32 @@ SolverStatus CannedSolver::check_preconditions(
   return SolverStatus::SUCCESS;
 }
 
+SolverStatus CannedSolver::build_all_paths(
+  const PathSolverInput & input, std::vector<RobotPath> & out_paths,
+  const char *& out_message) const noexcept
+{
+  out_paths.clear();
+  out_paths.reserve(input.entries.size());
+
+  for (const PlanRequestEntry & entry : input.entries)
+  {
+    const CannedRoute * route = find_route(routes_, entry.robot_id);
+    if (route == nullptr || route->node_a.is_none() || route->node_b.is_none())
+    {
+      // 부분해를 SUCCESS 로 내보내지 않는다 — 빠진 로봇의 창을 L3 가 영원히 기다리게 된다.
+      out_message = "canned: no route for a requested robot";
+      return SolverStatus::INFEASIBLE;
+    }
+
+    RobotPath path;
+    build_round_trip_path(*route, entry, lap_count_, plan_start_time_s_, segment_duration_s_, path);
+    out_paths.push_back(std::move(path));
+  }
+
+  out_message = "";
+  return SolverStatus::SUCCESS;
+}
+
 // 예외 규율: 포트가 `noexcept` 이므로 어떤 예외도 밖으로 나갈 수 없다(CLAUDE.md 규율 2).
 // ⚠ 최종 catch 에서 @ref make_failure 를 부르지 않는 이유 — 진단 문자열 할당이 다시 던지면
 // `noexcept` 위반으로 프로세스가 즉시 죽는다. 할당 없는 기본 출력만 돌려준다
@@ -151,22 +178,14 @@ PathSolverOutput CannedSolver::solve(const PathSolverInput & input) noexcept
     }
 
     PathSolverOutput output;
-    output.planning_time_s = 0.0; // 더미는 계산을 하지 않는다 — 0 은 측정값이 아니라 "계산 없음"이다
-    output.paths.reserve(input.entries.size());
+    output.planning_time_s =
+      0.0; // 더미는 계산을 하지 않는다 — 0 은 측정값이 아니라 "계산 없음"이다
 
-    for (const PlanRequestEntry & entry : input.entries)
+    const char * build_message = "";
+    const SolverStatus build_status = build_all_paths(input, output.paths, build_message);
+    if (build_status != SolverStatus::SUCCESS)
     {
-      const CannedRoute * route = find_route(routes_, entry.robot_id);
-      if (route == nullptr || route->node_a.is_none() || route->node_b.is_none())
-      {
-        // 부분해를 SUCCESS 로 내보내지 않는다 — 빠진 로봇의 창을 L3 가 영원히 기다리게 된다.
-        return make_failure(SolverStatus::INFEASIBLE, "canned: no route for a requested robot");
-      }
-
-      RobotPath path;
-      build_round_trip_path(
-        *route, entry, lap_count_, plan_start_time_s_, segment_duration_s_, path);
-      output.paths.push_back(std::move(path));
+      return make_failure(build_status, build_message);
     }
 
     output.status = SolverStatus::SUCCESS;

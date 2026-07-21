@@ -8,7 +8,8 @@
 // ## 이 파일이 검증하지 **못하는** 것 (architecture §6)
 // - ROS 그래프 API 가 실제로 발행자를 몇 개 세는가: rclcpp 호출은 unit 티어에 없다(C1).
 //   여기서 검증되는 것은 "센 값을 받아 판정하는 순수 함수"뿐이며, 조회 부분은 pysim/isaac 몫이다.
-// - Δt_h 가 실제로 시뮬 스텝과 정렬되어 돌아가는가: `/clock` 점프·틱 병합은 pysim 이상에서만 관측된다.
+// - Δt_h 가 실제로 시뮬 스텝과 정렬되어 돌아가는가: `/clock` 점프·틱 병합은 pysim 이상에서만
+// 관측된다.
 // - QP feasibility · livelock · 물리 재현성: **unit 티어로 판정할 수 없다. isaac 필수.**
 
 #include <cstddef>

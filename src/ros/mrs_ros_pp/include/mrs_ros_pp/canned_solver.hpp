@@ -45,7 +45,7 @@ struct CannedRoute
 {
   RobotId robot_id{ROBOT_ID_NONE}; ///< 이 라우트를 쓰는 로봇 id
   UniformNodeId node_a{};          ///< 왕복 끝점 A. 뷰 **UNIFORM**. 기본값은 센티넬
-  UniformNodeId node_b{};          ///< 왕복 끝점 B. 뷰 **UNIFORM**. A 와 균일 뷰에서 인접해야 한다
+  UniformNodeId node_b{}; ///< 왕복 끝점 B. 뷰 **UNIFORM**. A 와 균일 뷰에서 인접해야 한다
 };
 
 /**
@@ -109,7 +109,8 @@ public:
 
   /**
    * @brief 구현체 식별 이름.
-   * @return `std::string` — 항상 `"canned"`. 로그·계측·`PlanPaths.srv` 응답의 `solver_name` 에 실린다.
+   * @return `std::string` — 항상 `"canned"`. 로그·계측·`PlanPaths.srv` 응답의 `solver_name` 에
+   * 실린다.
    */
   std::string name() const noexcept override;
 
@@ -136,11 +137,29 @@ private:
   [[nodiscard]] SolverStatus check_preconditions(
     const PathSolverInput & input, const char *& out_message) const noexcept;
 
-  std::vector<CannedRoute> routes_;  ///< 로봇별 고정 왕복 라우트
-  ViewScope routes_scope_{};         ///< 라우트가 속한 뷰 스코프 (STALE_VERSION 판정 근거)
-  double segment_duration_s_{0.0};   ///< 인접 방문 간 시각 간격 [s]
-  std::uint32_t lap_count_{0};       ///< 왕복 횟수
-  double plan_start_time_s_{0.0};    ///< 첫 방문 도착 시각 [s], 시뮬 시계 절대시각
+  /**
+   * @brief 요청된 전 로봇의 고정 왕복 경로를 만들어 출력에 덧붙인다.
+   *
+   * 한 로봇이라도 라우트가 없으면 **부분해를 만들지 않고** 실패를 반환한다 — 빠진 로봇의
+   * 창을 L3 가 영원히 기다리게 되기 때문이다.
+   *
+   * @param[in] input 계획 요청. 자료형 `mrs::PathSolverInput`.
+   * @param[out] out_paths 채워질 로봇별 경로 목록. 자료형 `std::vector<mrs::RobotPath>`.
+   *             실패 시 내용은 정의되지 않는다.
+   * @param[out] out_message 실패 사유 진단 문자열. 자료형 `const char *`. 정적 리터럴을 가리키며
+   *             성공 시 빈 문자열이 들어간다. 소유권을 넘기지 않는다.
+   * @return `mrs::SolverStatus` — 전 로봇의 경로를 만들었으면 `SUCCESS`,
+   *         라우트가 없는 로봇이 있으면 `INFEASIBLE`.
+   */
+  [[nodiscard]] SolverStatus build_all_paths(
+    const PathSolverInput & input, std::vector<RobotPath> & out_paths,
+    const char *& out_message) const noexcept;
+
+  std::vector<CannedRoute> routes_; ///< 로봇별 고정 왕복 라우트
+  ViewScope routes_scope_{}; ///< 라우트가 속한 뷰 스코프 (STALE_VERSION 판정 근거)
+  double segment_duration_s_{0.0}; ///< 인접 방문 간 시각 간격 [s]
+  std::uint32_t lap_count_{0};     ///< 왕복 횟수
+  double plan_start_time_s_{0.0};  ///< 첫 방문 도착 시각 [s], 시뮬 시계 절대시각
 };
 
 } // namespace mrs::ros_pp

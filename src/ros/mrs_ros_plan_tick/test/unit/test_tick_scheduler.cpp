@@ -302,7 +302,10 @@ TEST(TickScheduler, ConstructorRejectsUnusablePeriods)
 {
   // 람다를 거치는 이유는 most vexing parse 회피다 — `mrs::TickScheduler(x)` 를 그대로 쓰면
   // 컴파일러가 그것을 **변수 선언**으로 읽는다.
-  const auto construct = [](double period_s) { return mrs::TickScheduler(period_s); };
+  const auto construct = [](double period_s)
+  {
+    return mrs::TickScheduler(period_s);
+  };
 
   EXPECT_THROW(construct(0.0), std::invalid_argument);
   EXPECT_THROW(construct(-0.1), std::invalid_argument);

@@ -38,7 +38,8 @@ int main(int argc, char ** argv)
   }
   catch (const std::exception & e)
   {
-    RCLCPP_FATAL(rclcpp::get_logger("SimBridgeNode"), "uncaught exception at startup: %s", e.what());
+    RCLCPP_FATAL(
+      rclcpp::get_logger("SimBridgeNode"), "uncaught exception at startup: %s", e.what());
     rclcpp::shutdown();
     return 2;
   }

@@ -10,12 +10,13 @@ TaServiceNode::TaServiceNode() : rclcpp::Node("ta_service")
   rclcpp::QoS qos(5);
   qos.reliable();
   qos.durability_volatile();
-  task_assignment_pub_ = this->create_publisher<mrs_interfaces::msg::TaskAssignment>(
-    "/task_assignment", qos);
+  task_assignment_pub_ =
+    this->create_publisher<mrs_interfaces::msg::TaskAssignment>("/task_assignment", qos);
 
   reassign_request_srv_ = this->create_service<mrs_interfaces::srv::ReassignRequest>(
     "/ta_service/reassign_request",
-    std::bind(&TaServiceNode::on_reassign_request, this, std::placeholders::_1, std::placeholders::_2));
+    std::bind(
+      &TaServiceNode::on_reassign_request, this, std::placeholders::_1, std::placeholders::_2));
 
   RCLCPP_INFO(this->get_logger(), "ta_service started (stub)");
 }

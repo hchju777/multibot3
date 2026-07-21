@@ -365,6 +365,29 @@ sys.exit(1 if failed else 0)
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
+
+# ── [C] 코드 포맷 (.clang-format 기계 강제) ───────────────────────────────────────────
+# CLAUDE.md 규율 5~6(Allman·명명·ColumnLimit)을 사람이 지키는 상태로 두지 않는다.
+# clang-format 이 없으면 **통과로 넘기되 그 사실을 크게 알린다** — 조용히 건너뛰면
+# "포맷 검사가 돈다"는 착각만 남는다(검사 장치가 실제로 잡는지 확인한다 — R-17).
+if command -v clang-format >/dev/null 2>&1; then
+  FMT_BAD=""
+  while IFS= read -r f; do
+    clang-format --style=file:"$ROOT/.clang-format" --dry-run --Werror "$f" >/dev/null 2>&1 \
+      || FMT_BAD="$FMT_BAD$f\n"
+  done < <(find "$ROOT/src" \( -name '*.hpp' -o -name '*.cpp' \) -not -path '*/build/*' | sort)
+  if [ -n "$FMT_BAD" ]; then
+    echo "FAIL: [C] .clang-format 위반 — 'clang-format -i <파일>' 로 정정할 것"
+    printf "%b" "$FMT_BAD" | sed 's/^/    /'
+    FAIL=1
+  else
+    echo "PASS: [C] .clang-format — 전 C++ 소스가 포맷 규율을 만족"
+  fi
+else
+  echo "SKIP: [C] .clang-format — clang-format 미설치로 포맷 검사를 수행하지 못했다"
+  echo "         (sudo apt-get install -y clang-format — 설치 전까지 규율 5~6 은 기계로 지켜지지 않는다)"
+fi
+
 echo "=================================================================="
 if [ "$FAIL" -eq 0 ]; then
   echo "check_boundaries.sh: 전체 통과"

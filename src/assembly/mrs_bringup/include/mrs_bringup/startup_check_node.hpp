@@ -35,7 +35,10 @@ public:
    * @brief 검사 통과 여부를 반환한다.
    * @return bool true = Δt_h 가 dt 의 정수배(허용오차 내). false = 위반, 기동 거부 대상.
    */
-  bool passed() const noexcept { return passed_; }
+  bool passed() const noexcept
+  {
+    return passed_;
+  }
 
 private:
   bool passed_{false}; ///< R-A2 검사 결과

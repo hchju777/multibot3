@@ -29,7 +29,9 @@ public:
    * @brief 게이팅 정책을 주입하며 생성한다.
    * @param[in] policy 사용할 IGatingPolicy 구현체 (AttemptCount 기본 / AlwaysR2 / NeverR2).
    */
-  explicit BtpgAttemptTracker(std::shared_ptr<IGatingPolicy> policy) : policy_(std::move(policy)) {}
+  explicit BtpgAttemptTracker(std::shared_ptr<IGatingPolicy> policy) : policy_(std::move(policy))
+  {
+  }
   ~BtpgAttemptTracker() = default;
 
   /**

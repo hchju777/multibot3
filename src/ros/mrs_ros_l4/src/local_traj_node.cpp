@@ -33,8 +33,7 @@ constexpr int THROTTLE_MS = 2000;
 
 } // namespace
 
-LocalTrajNode::LocalTrajNode()
-: rclcpp::Node("l4_traj_node")
+LocalTrajNode::LocalTrajNode() : rclcpp::Node("l4_traj_node")
 {
   robot_id_ = this->declare_parameter<int>("robot_id", 0);
   neighbor_robot_ids_ = this->declare_parameter<std::vector<std::int64_t>>(
@@ -176,8 +175,7 @@ void LocalTrajNode::check_startup_gates()
       rclcpp::shutdown();
       return;
     }
-    RCLCPP_INFO(
-      this->get_logger(), "R-05 검사 통과 — /plan_tick 발행자 %zu 개", publisher_count);
+    RCLCPP_INFO(this->get_logger(), "R-05 검사 통과 — /plan_tick 발행자 %zu 개", publisher_count);
   }
   catch (const std::exception & e)
   {
@@ -346,8 +344,9 @@ void LocalTrajNode::on_plan_tick(const mrs_interfaces::msg::PlanTick::SharedPtr 
     last_tick_seq_ = msg->tick_seq;
     has_tick_ = true;
 
-    if (summary_log_interval_ticks_ > 0 &&
-        (msg->tick_seq % static_cast<std::uint32_t>(summary_log_interval_ticks_)) == 0U)
+    if (
+      summary_log_interval_ticks_ > 0 &&
+      (msg->tick_seq % static_cast<std::uint32_t>(summary_log_interval_ticks_)) == 0U)
     {
       log_discard_summary();
     }
@@ -374,8 +373,8 @@ void LocalTrajNode::record_tick_health(const mrs_interfaces::msg::PlanTick & msg
     tick_jitter_max_s_ = std::max(tick_jitter_max_s_, std::fabs(jitter_s));
     RCLCPP_INFO(
       this->get_logger(),
-      "[0a-metric] tick_arrival robot=%d tick_seq=%u jitter_s=%.6f replan_period_s=%.6f",
-      robot_id_, msg.tick_seq, jitter_s, msg.replan_period_s);
+      "[0a-metric] tick_arrival robot=%d tick_seq=%u jitter_s=%.6f replan_period_s=%.6f", robot_id_,
+      msg.tick_seq, jitter_s, msg.replan_period_s);
   }
 
   // R-A1: 유실은 **결번으로 드러난다**. ⛔ 결번을 자체 시계로 메우지 않는다(틱 외삽 금지, R-05).
@@ -420,8 +419,8 @@ void LocalTrajNode::advance_segment_if_due(double now_s)
   segment_entered_s_ = now_s;
   RCLCPP_INFO(
     this->get_logger(),
-    "[0a-metric] segment_advance robot=%d window_seq=%u next_index=%zu reason=%s",
-    robot_id_, window_.window_seq, segment_index_, by_timeout ? "TIMEOUT" : "NODE_REACHED");
+    "[0a-metric] segment_advance robot=%d window_seq=%u next_index=%zu reason=%s", robot_id_,
+    window_.window_seq, segment_index_, by_timeout ? "TIMEOUT" : "NODE_REACHED");
 }
 
 void LocalTrajNode::publish_cmd_vel(double now_s)
@@ -481,8 +480,7 @@ void LocalTrajNode::log_share_wire_size(
     robot_id_, point_count, serialized.size());
 }
 
-void LocalTrajNode::publish_plan_share(
-  std::uint32_t tick_seq, double replan_period_s, double now_s)
+void LocalTrajNode::publish_plan_share(std::uint32_t tick_seq, double replan_period_s, double now_s)
 {
   const std::uint8_t segments = static_cast<std::uint8_t>(std::max(1, share_num_segments_));
   const std::uint8_t degree = static_cast<std::uint8_t>(std::max(1, share_bernstein_degree_));
@@ -528,8 +526,7 @@ void LocalTrajNode::publish_escalation_if_due(double now_s)
   // E1: `event_id != 0`. [0a] 에는 상류 교란 주입기가 없어 보고자가 상관 키를 발급한다 —
   // 로봇별로 분리(상위 32 비트 = robot_id)해 여러 로봇의 키가 겹치지 않게 한다.
   ++event_id_counter_;
-  const mrs::EventId event_id =
-    (static_cast<std::uint64_t>(robot_id_) << 32U) | event_id_counter_;
+  const mrs::EventId event_id = (static_cast<std::uint64_t>(robot_id_) << 32U) | event_id_counter_;
 
   mrs_interfaces::msg::EscalationReport message;
   const mrs::convert::ConvertResult result = mrs::convert::make_escalation_report(
@@ -599,8 +596,7 @@ void LocalTrajNode::on_neighbor_plan_share(
     {
       stats.max_latency_s = std::max(stats.max_latency_s, now_s - stamp_s);
       RCLCPP_INFO(
-        this->get_logger(),
-        "[0a-metric] share_latency robot=%d from=%u tick_seq=%u latency_s=%.6f",
+        this->get_logger(), "[0a-metric] share_latency robot=%d from=%u tick_seq=%u latency_s=%.6f",
         robot_id_, static_cast<unsigned>(neighbor_robot_id), converted.tick_seq, now_s - stamp_s);
     }
 
@@ -675,8 +671,8 @@ void LocalTrajNode::log_discard_summary()
       this->get_logger(),
       "[0a-metric] neighbor robot=%d from=%u received=%" PRIu64 " discarded=%" PRIu64
       " gaps=%" PRIu64 " max_latency_s=%.6f",
-      robot_id_, static_cast<unsigned>(entry.first), entry.second.received,
-      entry.second.discarded, entry.second.gap_total, entry.second.max_latency_s);
+      robot_id_, static_cast<unsigned>(entry.first), entry.second.received, entry.second.discarded,
+      entry.second.gap_total, entry.second.max_latency_s);
   }
 }
 

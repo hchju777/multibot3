@@ -71,46 +71,46 @@
 #include <vector>
 
 #include "mrs/contract_types.hpp"
+#include "mrs/i_judge_policy.hpp"  // JudgeObservation, JudgeDecision, GuardDecision
+#include "mrs/i_local_planner.hpp" // NeighborTrajectory, LocalPlanOutput, AdoptionStatus
+#include "mrs/i_path_solver.hpp"   // PlanRequestEntry
 #include "mrs/view_ids.hpp"
-#include "mrs/i_path_solver.hpp"        // PlanRequestEntry
-#include "mrs/i_local_planner.hpp"      // NeighborTrajectory, LocalPlanOutput, AdoptionStatus
-#include "mrs/i_judge_policy.hpp"       // JudgeObservation, JudgeDecision, GuardDecision
 // RobotObservation, SimCapabilities, FaultInjection, SimMetricSample
 #include "mrs/i_sim_backend.hpp"
-#include "mrs/reorder_types.hpp"        // ReorderRequest, ReorderAck
+#include "mrs/reorder_types.hpp"                      // ReorderRequest, ReorderAck
+#include "mrs_map_registry/map_registry.hpp"          // RoadmapViewData, RoadmapValidationResult
+#include "mrs_metrics/metrics_collector.hpp"          // RungEventRecord
 #include "mrs_task_alloc/lifelong_task_allocator.hpp" // ReassignTrigger, ReassignResult
-#include "mrs_metrics/metrics_collector.hpp"           // RungEventRecord
-#include "mrs_map_registry/map_registry.hpp"           // RoadmapViewData, RoadmapValidationResult
 
 #include "mrs_msg_convert/common_convert.hpp"
 #include "mrs_msg_convert/convert_result.hpp"
 
 #include "geometry_msgs/msg/twist.hpp"
-#include "mrs_interfaces/msg/execution_window.hpp"
-#include "mrs_interfaces/msg/escalation_report.hpp"
-#include "mrs_interfaces/msg/planned_paths.hpp"
-#include "mrs_interfaces/msg/robot_path.hpp"
-#include "mrs_interfaces/msg/task_assignment.hpp"
 #include "mrs_interfaces/msg/commit_state.hpp"
 #include "mrs_interfaces/msg/commit_status.hpp"
+#include "mrs_interfaces/msg/escalation_report.hpp"
+#include "mrs_interfaces/msg/execution_window.hpp"
 #include "mrs_interfaces/msg/frozen_order.hpp"
-#include "mrs_interfaces/msg/local_plan_share.hpp"
 #include "mrs_interfaces/msg/judge_verdict.hpp"
-#include "mrs_interfaces/msg/rung_event.hpp"
-#include "mrs_interfaces/msg/robot_state.hpp"
+#include "mrs_interfaces/msg/local_plan_share.hpp"
+#include "mrs_interfaces/msg/node_mapping.hpp"
 #include "mrs_interfaces/msg/observation_uncertainty.hpp"
+#include "mrs_interfaces/msg/planned_paths.hpp"
+#include "mrs_interfaces/msg/roadmap_edge.hpp"
+#include "mrs_interfaces/msg/roadmap_node.hpp"
+#include "mrs_interfaces/msg/robot_path.hpp"
+#include "mrs_interfaces/msg/robot_state.hpp"
+#include "mrs_interfaces/msg/rung_event.hpp"
 #include "mrs_interfaces/msg/sim_capabilities.hpp"
 #include "mrs_interfaces/msg/sim_metric_sample.hpp"
-#include "mrs_interfaces/msg/roadmap_node.hpp"
-#include "mrs_interfaces/msg/roadmap_edge.hpp"
-#include "mrs_interfaces/msg/node_mapping.hpp"
+#include "mrs_interfaces/msg/task_assignment.hpp"
 #include "mrs_interfaces/srv/get_roadmap.hpp"
-#include "mrs_interfaces/srv/reassign_request.hpp"
 #include "mrs_interfaces/srv/partial_replan.hpp"
 #include "mrs_interfaces/srv/plan_paths.hpp"
+#include "mrs_interfaces/srv/reassign_request.hpp"
 #include "mrs_interfaces/srv/reorder_passing.hpp"
-#include "mrs_interfaces/srv/validate_map.hpp"
 #include "mrs_interfaces/srv/sim_inject.hpp"
+#include "mrs_interfaces/srv/validate_map.hpp"
 
 namespace mrs::convert
 {
@@ -146,8 +146,7 @@ namespace mrs::convert
  * @note [0a] tracer bullet 경로 (`/robot_{0,1}/execution_window`).
  */
 [[nodiscard]] ConvertResult to_msg(
-  const mrs::ExecutionWindow & window, double stamp_s,
-  mrs_interfaces::msg::ExecutionWindow & out);
+  const mrs::ExecutionWindow & window, double stamp_s, mrs_interfaces::msg::ExecutionWindow & out);
 
 /**
  * @brief `ExecutionWindow.msg` 를 도메인 ExecutionWindow 로 변환한다.
@@ -664,8 +663,7 @@ namespace mrs::convert
  *       계약이 정한 정상 경로다. 그 경우에도 `view_scope` 자체는 유효해야 한다.
  */
 [[nodiscard]] ConvertResult to_msg(
-  const mrs::RobotObservation & observation, double stamp_s,
-  mrs_interfaces::msg::RobotState & out);
+  const mrs::RobotObservation & observation, double stamp_s, mrs_interfaces::msg::RobotState & out);
 
 /**
  * @brief `RobotState.msg` 를 도메인 관측으로 변환한다.
@@ -736,8 +734,7 @@ namespace mrs::convert
  * @note 태그가 틀리면 충실도 부족 지표가 연구 검증으로 승격되어 kill-gate 정직성이 깨진다.
  */
 [[nodiscard]] ConvertResult to_msg(
-  const mrs::SimMetricSample & sample, double stamp_s,
-  mrs_interfaces::msg::SimMetricSample & out);
+  const mrs::SimMetricSample & sample, double stamp_s, mrs_interfaces::msg::SimMetricSample & out);
 
 /**
  * @brief `SimInject.srv` 요청을 도메인 FaultInjection 으로 변환한다.
@@ -902,8 +899,8 @@ namespace mrs::convert
  *       소유자는 검사기 3이며 경계 계층이 도메인 출력을 재유도해 채점하는 배치는 소관 밖이다.
  */
 [[nodiscard]] ConvertResult fill_response(
-  const mrs::RoadmapValidationResult & result, std::uint64_t roadmap_version,
-  std::uint32_t view_id, mrs_interfaces::srv::ValidateMap::Response & resp);
+  const mrs::RoadmapValidationResult & result, std::uint64_t roadmap_version, std::uint32_t view_id,
+  mrs_interfaces::srv::ValidateMap::Response & resp);
 
 // ── ReassignRequest.srv <-> ReassignTrigger/ReassignResult (D-02 v2) ────
 /**
@@ -1041,7 +1038,6 @@ namespace mrs::convert
  *         @ref ConvertStatus::FIELD_RANGE_VIOLATION.
  */
 [[nodiscard]] ConvertResult fill_response(
-  mrs::ReorderAck ack, std::uint64_t job_id,
-  mrs_interfaces::srv::ReorderPassing::Response & resp);
+  mrs::ReorderAck ack, std::uint64_t job_id, mrs_interfaces::srv::ReorderPassing::Response & resp);
 
 } // namespace mrs::convert

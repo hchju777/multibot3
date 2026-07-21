@@ -47,8 +47,8 @@ bool DependencyGraph::splice_partial_plan(
 void DependencyGraph::invalidate_stale_windows(double now_s)
 {
   (void)now_s;
-  throw std::logic_error(
-    "not implemented: DependencyGraph::invalidate_stale_windows — Phase 5 (coordination-builder) 대상");
+  throw std::logic_error("not implemented: DependencyGraph::invalidate_stale_windows — Phase 5 "
+                         "(coordination-builder) 대상");
 }
 
 } // namespace mrs

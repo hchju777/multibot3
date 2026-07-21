@@ -104,11 +104,11 @@ struct RobotPath
  */
 struct CommitState
 {
-  RobotId robot_id{ROBOT_ID_NONE};                  ///< 로봇 id
-  UniformNodeId boundary_node{};                    ///< 커밋 경계 \f$\beta_i\f$. 뷰 **UNIFORM**
-  double predicted_arrival_s{0.0};                  ///< \f$\hat{t}(\beta_i)\f$ [s], 시뮬 시계 절대시각
-  double predicted_theta_rad{0.0};                  ///< \f$\hat{\theta}(\beta_i)\f$ [rad], [-pi, pi], 몸체점 q
-  std::uint32_t window_seq{0};                      ///< 산출 근거 창의 seq
+  RobotId robot_id{ROBOT_ID_NONE}; ///< 로봇 id
+  UniformNodeId boundary_node{};   ///< 커밋 경계 \f$\beta_i\f$. 뷰 **UNIFORM**
+  double predicted_arrival_s{0.0}; ///< \f$\hat{t}(\beta_i)\f$ [s], 시뮬 시계 절대시각
+  double predicted_theta_rad{0.0}; ///< \f$\hat{\theta}(\beta_i)\f$ [rad], [-pi, pi], 몸체점 q
+  std::uint32_t window_seq{0};     ///< 산출 근거 창의 seq
   std::uint32_t committed_through_segment_index{0}; ///< 커밋 접두 끝 세그먼트 인덱스
 };
 
@@ -118,9 +118,9 @@ struct CommitState
 struct FrozenOrder
 {
   RobotId predecessor_robot_id{ROBOT_ID_NONE}; ///< 먼저 가야 하는 로봇
-  UniformNodeId predecessor_node_id{};         ///< 그 로봇이 클리어해야 하는 노드. 뷰 **UNIFORM**
-  RobotId successor_robot_id{ROBOT_ID_NONE};   ///< 뒤에 가야 하는 로봇
-  UniformNodeId successor_node_id{};           ///< 그 로봇이 진입하려는 노드. 뷰 **UNIFORM**
+  UniformNodeId predecessor_node_id{}; ///< 그 로봇이 클리어해야 하는 노드. 뷰 **UNIFORM**
+  RobotId successor_robot_id{ROBOT_ID_NONE}; ///< 뒤에 가야 하는 로봇
+  UniformNodeId successor_node_id{}; ///< 그 로봇이 진입하려는 노드. 뷰 **UNIFORM**
 };
 
 /**
@@ -138,7 +138,7 @@ struct WindowSegment
 struct PredecessorConstraint
 {
   RobotId predecessor_robot_id{ROBOT_ID_NONE}; ///< 선행 로봇 id
-  UniformNodeId node_id{};                     ///< 선행 로봇이 클리어해야 하는 노드. 뷰 **UNIFORM**
+  UniformNodeId node_id{}; ///< 선행 로봇이 클리어해야 하는 노드. 뷰 **UNIFORM**
 };
 
 /**
@@ -150,7 +150,7 @@ struct PredecessorConstraint
  */
 enum class RevisionKind : std::uint8_t
 {
-  NEW = 0,     ///< 새 창 릴리스
+  NEW = 0, ///< 새 창 릴리스
   TRUNCATE = 1 ///< 기존 창의 부분 폐기 통지 — `valid_through_segment_index` 이하만 유효
 };
 
@@ -165,14 +165,14 @@ enum class RevisionKind : std::uint8_t
  */
 struct ExecutionWindow
 {
-  RobotId robot_id{ROBOT_ID_NONE};      ///< 창 소유 로봇
-  std::uint32_t window_seq{0};          ///< 로봇별 단조증가 창 시퀀스
-  std::uint32_t plan_epoch{0};          ///< 유래 계획 세대
+  RobotId robot_id{ROBOT_ID_NONE}; ///< 창 소유 로봇
+  std::uint32_t window_seq{0};     ///< 로봇별 단조증가 창 시퀀스
+  std::uint32_t plan_epoch{0};     ///< 유래 계획 세대
   std::uint64_t roadmap_version{ROADMAP_VERSION_UNSPECIFIED}; ///< 지도 버전 (인스턴스 스코프)
-  std::uint32_t view_id{0};             ///< 균일 뷰 id (인스턴스 스코프)
-  std::vector<WindowSegment> segments;  ///< 실행 순서대로
+  std::uint32_t view_id{0};            ///< 균일 뷰 id (인스턴스 스코프)
+  std::vector<WindowSegment> segments; ///< 실행 순서대로
   std::vector<PredecessorConstraint> predecessor_constraints; ///< hard, 미충족분만
-  double window_valid_until_s{0.0};     ///< 창 전체 만료 시각 [s], 시뮬 시계 (staleness repair)
+  double window_valid_until_s{0.0}; ///< 창 전체 만료 시각 [s], 시뮬 시계 (staleness repair)
   RevisionKind revision_kind{RevisionKind::NEW}; ///< 개정 종류
   std::int32_t valid_through_segment_index{-1};  ///< -1 = 전 구간 유효, k = k 이하만 유효
 };
@@ -202,11 +202,11 @@ enum class Rung : std::uint8_t
  */
 enum class EscalationReason : std::uint8_t
 {
-  BLOCKED = 0,           ///< 진행 불가 지속 (HARD)
-  WINDOW_EXPIRING = 1,   ///< 창 소진 임박 (SOFT)
-  QP_INFEASIBLE = 2,     ///< QP 솔버 실패로 인증 폴백 발동 (HARD). 이론적 infeasibility 아님
+  BLOCKED = 0,         ///< 진행 불가 지속 (HARD)
+  WINDOW_EXPIRING = 1, ///< 창 소진 임박 (SOFT)
+  QP_INFEASIBLE = 2, ///< QP 솔버 실패로 인증 폴백 발동 (HARD). 이론적 infeasibility 아님
   LOCALIZATION_LOST = 3, ///< 위치추정 상실 (HARD)
-  SYNC_LOST = 4          ///< /plan_tick 연속 결번 k 회 초과 — N5 미성립 (HARD, 동기 복구 경로)
+  SYNC_LOST = 4 ///< /plan_tick 연속 결번 k 회 초과 — N5 미성립 (HARD, 동기 복구 경로)
 };
 
 /**
@@ -248,7 +248,7 @@ enum class RungTransition : std::uint8_t
   ABSORBED = 1,     ///< 이 가로대에서 교란을 흡수 — 상위로 올리지 않았다
   ESCALATE = 2,     ///< 흡수 실패로 상위 가로대에 반환
   GUARD_REJECT = 3, ///< G-ε 수용 가드가 거부 (D-08 v3 — 스래싱 억제)
-  ESCAPE_HATCH = 4  ///< 규정 경로 밖의 탈출 — 관측되면 설계 가정이 깨진 것이다
+  ESCAPE_HATCH = 4 ///< 규정 경로 밖의 탈출 — 관측되면 설계 가정이 깨진 것이다
 };
 
 /**

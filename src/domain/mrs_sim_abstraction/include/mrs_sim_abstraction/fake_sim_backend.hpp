@@ -163,8 +163,8 @@ public:
    *         `ROBOT_STALL`·`ROBOT_FAULT` 만 지원한다. 통신 결함은 `comms_emul` 소관이고,
    *         통로 개폐는 지도를 아는 계층의 일이라 여기서 흉내내지 않는다.
    */
-  [[nodiscard]] bool inject(const FaultInjection & fault, std::uint64_t & injection_id) noexcept
-    override;
+  [[nodiscard]] bool inject(
+    const FaultInjection & fault, std::uint64_t & injection_id) noexcept override;
 
   /**
    * @brief 마지막 회수 이후 누적된 metrics 표본을 가져간다(회수 후 내부 버퍼는 비워진다).
@@ -182,20 +182,20 @@ private:
   /** @brief 로봇 1대의 내부 상태. */
   struct RobotState
   {
-    Pose2D pose;              ///< 몸체 자세 q
-    double v_mps{0.0};        ///< 현재 적용 중인 선속도 [m/s]
-    double omega_rps{0.0};    ///< 현재 적용 중인 각속도 [rad/s]
-    bool stalled{false};      ///< ROBOT_STALL 로 일시 정지 중
-    double stall_until_s{0.0};///< 정지 해제 시각 [s]. 0 이면 해제 전까지
-    bool faulted{false};      ///< ROBOT_FAULT 로 영구 고장
+    Pose2D pose;               ///< 몸체 자세 q
+    double v_mps{0.0};         ///< 현재 적용 중인 선속도 [m/s]
+    double omega_rps{0.0};     ///< 현재 적용 중인 각속도 [rad/s]
+    bool stalled{false};       ///< ROBOT_STALL 로 일시 정지 중
+    double stall_until_s{0.0}; ///< 정지 해제 시각 [s]. 0 이면 해제 전까지
+    bool faulted{false};       ///< ROBOT_FAULT 로 영구 고장
   };
 
   /** @brief 지연 큐의 원소 — 반영 예정 시각과 지령. */
   struct PendingCommand
   {
-    double apply_at_s{0.0};        ///< 반영 예정 시뮬 시각 [s]
-    std::uint64_t sequence{0};     ///< 접수 순번 — 같은 시각에 대한 결정론적 순서 보장
-    ActuationCommand command;      ///< 지령
+    double apply_at_s{0.0}; ///< 반영 예정 시뮬 시각 [s]
+    std::uint64_t sequence{0}; ///< 접수 순번 — 같은 시각에 대한 결정론적 순서 보장
+    ActuationCommand command; ///< 지령
   };
 
   /**

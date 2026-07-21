@@ -24,8 +24,8 @@ ReassignResult LifelongTaskAllocator::handle_reassign_request(
   (void)task_id;
   (void)trigger;
   (void)attempt_count;
-  throw std::logic_error(
-    "not implemented: LifelongTaskAllocator::handle_reassign_request — Phase 5 (coordination-builder) 대상");
+  throw std::logic_error("not implemented: LifelongTaskAllocator::handle_reassign_request — Phase "
+                         "5 (coordination-builder) 대상");
 }
 
 void LifelongTaskAllocator::tick_aging(double now_s)

@@ -28,8 +28,7 @@ constexpr int THROTTLE_MS = 2000;
 
 } // namespace
 
-LadderOrchestratorNode::LadderOrchestratorNode()
-: rclcpp::Node("ladder_orchestrator")
+LadderOrchestratorNode::LadderOrchestratorNode() : rclcpp::Node("ladder_orchestrator")
 {
   robot_count_ = this->declare_parameter<int>("robot_count", 2);
   publish_rung_event_ = this->declare_parameter<bool>("publish_rung_event", true);
@@ -89,7 +88,8 @@ LadderOrchestratorNode::LadderOrchestratorNode()
     this->get_logger(),
     "ladder_orchestrator [0a] 기동 (로그 전용, 라우팅 없음) — robot_count=%d, "
     "rung_event 발행=%s, 기대 스코프 %s",
-    robot_count_, publish_rung_event_ ? "on" : "off", scope_known_ ? "확정" : "미확정(latched 대기)");
+    robot_count_, publish_rung_event_ ? "on" : "off",
+    scope_known_ ? "확정" : "미확정(latched 대기)");
 }
 
 void LadderOrchestratorNode::on_roadmap_version(const std_msgs::msg::UInt64::SharedPtr msg)
@@ -181,8 +181,9 @@ void LadderOrchestratorNode::record_escalation(
   {
     publish_rung_event(msg.robot_id, msg.event_id, now_s);
   }
-  if (summary_log_interval_ > 0 &&
-      (escalation_received_ % static_cast<std::uint64_t>(summary_log_interval_)) == 0U)
+  if (
+    summary_log_interval_ > 0 &&
+    (escalation_received_ % static_cast<std::uint64_t>(summary_log_interval_)) == 0U)
   {
     log_summary();
   }

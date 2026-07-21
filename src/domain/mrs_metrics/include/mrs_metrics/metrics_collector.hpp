@@ -27,12 +27,12 @@ struct RungEventRecord
   Rung rung{Rung::R0_LOCAL_ABSORB}; ///< 발동 가로대
   std::uint8_t transition{0};       ///< ENTER=0/ABSORBED=1/ESCALATE=2/GUARD_REJECT=3/ESCAPE_HATCH=4
   std::uint8_t trigger_kind{0};     ///< HARD=0/SOFT=1
-  std::vector<RobotId> affected_robots; ///< 영향 집합 A (M6 삼중쌍 요소)
+  std::vector<RobotId> affected_robots;  ///< 영향 집합 A (M6 삼중쌍 요소)
   std::uint64_t edge_set_fingerprint{0}; ///< 사용 엣지 집합 해시 (M6 삼중쌍 요소)
-  double phi_hat_before_s{0.0};     ///< Phi_hat, 판정 직전 (M2)
-  double phi_hat_after_s{0.0};      ///< Phi_hat, 판정/재계획 직후. 미산출 시 NaN
-  std::uint32_t attempt_count{0};   ///< 이 event_id 의 이 가로대 시도 횟수 (D-04 게이팅 카운터)
-  double duration_s{0.0};           ///< 처리 소요 시간 [s]
+  double phi_hat_before_s{0.0};          ///< Phi_hat, 판정 직전 (M2)
+  double phi_hat_after_s{0.0};           ///< Phi_hat, 판정/재계획 직후. 미산출 시 NaN
+  std::uint32_t attempt_count{0}; ///< 이 event_id 의 이 가로대 시도 횟수 (D-04 게이팅 카운터)
+  double duration_s{0.0}; ///< 처리 소요 시간 [s]
 };
 
 /**

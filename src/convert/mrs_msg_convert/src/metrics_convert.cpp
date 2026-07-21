@@ -77,7 +77,8 @@ ConvertResult to_msg(
   }
 
   RungTriggerKind trigger_kind{};
-  const ConvertResult trigger_result = rung_trigger_kind_from_msg(record.trigger_kind, trigger_kind);
+  const ConvertResult trigger_result =
+    rung_trigger_kind_from_msg(record.trigger_kind, trigger_kind);
   if (!trigger_result.ok)
   {
     return trigger_result;

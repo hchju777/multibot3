@@ -46,8 +46,7 @@ public:
    * @param[in] callback 완료 통지 수신 함수 (ReorderCompletion 값 전달).
    * @return void
    */
-  virtual void set_completion_callback(
-    std::function<void(const ReorderCompletion &)> callback) = 0;
+  virtual void set_completion_callback(std::function<void(const ReorderCompletion &)> callback) = 0;
 
   /**
    * @brief 구현체 식별 이름.

@@ -14,7 +14,7 @@ namespace mrs::ros_sadg
 CallbackGroupThread::CallbackGroupThread(
   rclcpp::CallbackGroup::SharedPtr group,
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base, rclcpp::Logger logger)
-: logger_(std::move(logger))
+    : logger_(std::move(logger))
 {
   if (group == nullptr || node_base == nullptr)
   {

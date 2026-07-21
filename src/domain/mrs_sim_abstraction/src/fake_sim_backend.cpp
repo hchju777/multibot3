@@ -61,8 +61,9 @@ bool FakeSimBackend::configure(const FakeSimConfig & config) noexcept
     return false;
   }
 
-  if (config.robot_radius_m < 0.0 || config.node_attach_radius_m < 0.0 ||
-      config.actuate_to_state_latency_s < 0.0)
+  if (
+    config.robot_radius_m < 0.0 || config.node_attach_radius_m < 0.0 ||
+    config.actuate_to_state_latency_s < 0.0)
   {
     return false;
   }
@@ -273,9 +274,8 @@ bool FakeSimBackend::attach_node(const Pose2D & pose, UniformNodeId & out) const
     const double distance = std::sqrt(dx * dx + dy * dy);
 
     // 동률이면 노드 id 가 작은 쪽을 택해 결정론을 유지한다.
-    const bool better =
-      distance < best_distance ||
-      (distance == best_distance && found && anchor.node_id.value() < best_node.value());
+    const bool better = distance < best_distance || (distance == best_distance && found &&
+                                                     anchor.node_id.value() < best_node.value());
     if (better)
     {
       best_distance = distance;
@@ -400,8 +400,7 @@ bool FakeSimBackend::inject(const FaultInjection & fault, std::uint64_t & inject
   if (fault.kind == FaultKind::ROBOT_STALL)
   {
     it->second.stalled = true;
-    it->second.stall_until_s =
-      (fault.duration_s > 0.0) ? (sim_time_s_ + fault.duration_s) : 0.0;
+    it->second.stall_until_s = (fault.duration_s > 0.0) ? (sim_time_s_ + fault.duration_s) : 0.0;
   }
   else
   {

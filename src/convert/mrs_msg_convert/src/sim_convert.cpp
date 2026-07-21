@@ -46,8 +46,7 @@ namespace
 } // namespace
 
 ConvertResult to_msg(
-  const mrs::RobotObservation & observation, double stamp_s,
-  mrs_interfaces::msg::RobotState & out)
+  const mrs::RobotObservation & observation, double stamp_s, mrs_interfaces::msg::RobotState & out)
 {
   // ① 뷰 종류(V1) — 노드 부착은 균일 뷰 기준이다(계약 §0.1 정본표, RobotState 행).
   if (observation.view_scope.view_kind != ViewKind::UNIFORM)
@@ -202,8 +201,7 @@ ConvertResult to_msg(const mrs::SimCapabilities & caps, mrs_interfaces::msg::Sim
 }
 
 ConvertResult to_msg(
-  const mrs::SimMetricSample & sample, double stamp_s,
-  mrs_interfaces::msg::SimMetricSample & out)
+  const mrs::SimMetricSample & sample, double stamp_s, mrs_interfaces::msg::SimMetricSample & out)
 {
   // ① 필드 범위 — 키가 비면 표본을 어느 지표에 적립할지 정할 수 없다.
   if (sample.key.empty())

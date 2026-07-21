@@ -90,7 +90,8 @@ TEST(NodeIdHelpers, ArrayRoundTripIsIdentity)
 {
   const std::vector<std::uint32_t> raw{1U, 2U, 3U};
   std::vector<mrs::UniformNodeId> wrapped;
-  ASSERT_TRUE(mrs::convert::node_ids_from_msg(raw, mrs::convert::NoneNodePolicy::REJECT, wrapped).ok);
+  ASSERT_TRUE(
+    mrs::convert::node_ids_from_msg(raw, mrs::convert::NoneNodePolicy::REJECT, wrapped).ok);
   ASSERT_EQ(wrapped.size(), 3U);
   EXPECT_EQ(mrs::convert::node_ids_to_msg(wrapped), raw);
 }

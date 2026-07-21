@@ -25,8 +25,8 @@ bool MapRegistry::build_dependency_skeleton(
 {
   (void)uniform_view_id;
   (void)out_skeleton_view_id;
-  throw std::logic_error(
-    "not implemented: MapRegistry::build_dependency_skeleton — Phase 5 (coordination-builder) 대상");
+  throw std::logic_error("not implemented: MapRegistry::build_dependency_skeleton — Phase 5 "
+                         "(coordination-builder) 대상");
 }
 
 bool MapRegistry::get_view(std::uint32_t view_id, RoadmapViewData & out_data) const
@@ -38,8 +38,7 @@ bool MapRegistry::get_view(std::uint32_t view_id, RoadmapViewData & out_data) co
 }
 
 bool MapRegistry::transform_node(
-  std::uint32_t from_view_id, NodeId from_node,
-  std::uint32_t to_view_id, NodeId & out_node) const
+  std::uint32_t from_view_id, NodeId from_node, std::uint32_t to_view_id, NodeId & out_node) const
 {
   (void)from_view_id;
   (void)from_node;
@@ -50,8 +49,8 @@ bool MapRegistry::transform_node(
 }
 
 RoadmapValidationResult MapRegistry::validate_map(
-  std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
-  double v_max_mps, double omega_max_rps, double nid_offset_l_m) const
+  std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m, double v_max_mps,
+  double omega_max_rps, double nid_offset_l_m) const
 {
   (void)view_id;
   (void)robot_count;

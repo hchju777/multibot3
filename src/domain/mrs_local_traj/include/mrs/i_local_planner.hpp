@@ -50,11 +50,11 @@ namespace mrs
  */
 struct NeighborTrajectory
 {
-  RobotId robot_id{ROBOT_ID_NONE};    ///< 이웃 로봇 id
-  std::uint32_t tick_seq{0};          ///< 이 계획의 스텝 지수 h. fresh_j(h-1) 판정의 유일한 근거
+  RobotId robot_id{ROBOT_ID_NONE}; ///< 이웃 로봇 id
+  std::uint32_t tick_seq{0}; ///< 이 계획의 스텝 지수 h. fresh_j(h-1) 판정의 유일한 근거
   std::vector<double> control_points; ///< 채택 계획 c^(h) 의 오프셋점 z 제어점 [m], (x,y) 평탄 배열
-  double shift_ratio_u{0.0};          ///< 발신자의 u = Δt_h/Δt. 자기 값과 다르면 (A1) 위반 → 폴백
-  double age_s{0.0};                  ///< 수신 후 경과 시간 [s]. **계측 전용** (안전 근거 아님)
+  double shift_ratio_u{0.0}; ///< 발신자의 u = Δt_h/Δt. 자기 값과 다르면 (A1) 위반 → 폴백
+  double age_s{0.0}; ///< 수신 후 경과 시간 [s]. **계측 전용** (안전 근거 아님)
 };
 
 /**
@@ -62,16 +62,16 @@ struct NeighborTrajectory
  */
 struct LocalPlanInput
 {
-  ExecutionWindow window;                        ///< 현재 수용 중인 실행 창 (hard 순서 포함)
-  Pose2D body_pose;                              ///< 측정된 몸체 자세 q [m, rad], map
-  double body_v_mps{0.0};                        ///< 몸체 선속도 [m/s]
-  double body_omega_rps{0.0};                    ///< 몸체 각속도 [rad/s]
-  std::vector<NeighborTrajectory> neighbors;     ///< 이웃 궤적. 단일로봇 ablation 에서는 무시된다
-  std::uint32_t tick_seq{0};                     ///< 스텝 지수 h (틱 수신·국소 클록·이웃 tick_seq 중 복원)
-  bool tick_index_known{false};                  ///< know_h — h 를 복원했는가. 거짓이면 폴백 강제
-  double tick_time_s{0.0};                       ///< 이 틱의 계획 기준 시각 t_h [s]
-  double tick_jitter_s{0.0};                     ///< 틱 도착 지터 [s]. **계측 전용** — 지터 자체는
-                                                 ///< 폴백 사유가 아니다(T4 §6.1, L-15 S4)
+  ExecutionWindow window;     ///< 현재 수용 중인 실행 창 (hard 순서 포함)
+  Pose2D body_pose;           ///< 측정된 몸체 자세 q [m, rad], map
+  double body_v_mps{0.0};     ///< 몸체 선속도 [m/s]
+  double body_omega_rps{0.0}; ///< 몸체 각속도 [rad/s]
+  std::vector<NeighborTrajectory> neighbors; ///< 이웃 궤적. 단일로봇 ablation 에서는 무시된다
+  std::uint32_t tick_seq{0}; ///< 스텝 지수 h (틱 수신·국소 클록·이웃 tick_seq 중 복원)
+  bool tick_index_known{false}; ///< know_h — h 를 복원했는가. 거짓이면 폴백 강제
+  double tick_time_s{0.0};      ///< 이 틱의 계획 기준 시각 t_h [s]
+  double tick_jitter_s{0.0};    ///< 틱 도착 지터 [s]. **계측 전용** — 지터 자체는
+                                ///< 폴백 사유가 아니다(T4 §6.1, L-15 S4)
 };
 
 /**
@@ -79,11 +79,11 @@ struct LocalPlanInput
  */
 enum class AdoptionStatus : std::uint8_t
 {
-  QP_OK = 0,                  ///< solve_ok(h) 참 — QP 해 채택
-  FALLBACK_GENERIC = 1,       ///< 인증 폴백 (사유 미분류)
-  FALLBACK_NO_INDEX = 3,      ///< know_h 거짓
-  FALLBACK_NEIGHBOR_STALE = 4,///< fresh_j(h-1) 거짓 — QP 금지(정리 T4.3)
-  FALLBACK_SOLVER = 5         ///< solver_ok 거짓
+  QP_OK = 0,                   ///< solve_ok(h) 참 — QP 해 채택
+  FALLBACK_GENERIC = 1,        ///< 인증 폴백 (사유 미분류)
+  FALLBACK_NO_INDEX = 3,       ///< know_h 거짓
+  FALLBACK_NEIGHBOR_STALE = 4, ///< fresh_j(h-1) 거짓 — QP 금지(정리 T4.3)
+  FALLBACK_SOLVER = 5          ///< solver_ok 거짓
 };
 
 /**
@@ -91,17 +91,18 @@ enum class AdoptionStatus : std::uint8_t
  */
 struct LocalPlanOutput
 {
-  double cmd_v_mps{0.0};                    ///< 몸체 선속도 지령 [m/s]
-  double cmd_omega_rps{0.0};                ///< 몸체 각속도 지령 [rad/s]
-  std::vector<double> control_points;       ///< **채택 계획 c^(h)** 의 제어점 [m]. 매 틱
-                                            ///< LocalPlanShare 로 발행한다(폴백 중에도 예외 없음).
-                                            ///< 시프트 결과 c_hat 을 발행하면 한 스텝 어긋난다
-  std::vector<Pose2D> commit_hull_vertices; ///< 커밋 볼록포 C_i 정점 [m], map — CommitStatus 로 상향
-  bool used_fallback{true};                 ///< true = 인증 폴백 채택 (정의 T4.1)
+  double cmd_v_mps{0.0};              ///< 몸체 선속도 지령 [m/s]
+  double cmd_omega_rps{0.0};          ///< 몸체 각속도 지령 [rad/s]
+  std::vector<double> control_points; ///< **채택 계획 c^(h)** 의 제어점 [m]. 매 틱
+                                      ///< LocalPlanShare 로 발행한다(폴백 중에도 예외 없음).
+                                      ///< 시프트 결과 c_hat 을 발행하면 한 스텝 어긋난다
+  std::vector<Pose2D>
+    commit_hull_vertices;   ///< 커밋 볼록포 C_i 정점 [m], map — CommitStatus 로 상향
+  bool used_fallback{true}; ///< true = 인증 폴백 채택 (정의 T4.1)
   AdoptionStatus adoption{AdoptionStatus::FALLBACK_GENERIC}; ///< 채택 종류·폴백 사유 (계측 B5)
-  double qp_solve_time_s{0.0};              ///< QP 소요 시간 [s]
-  std::uint32_t cusp_count{0};              ///< 이 지평에서 관측된 첨점 수 (NF3 첨점 밀도 계측)
-  bool escalation_requested{false};         ///< true = EscalationReport 발행 필요
+  double qp_solve_time_s{0.0};                               ///< QP 소요 시간 [s]
+  std::uint32_t cusp_count{0}; ///< 이 지평에서 관측된 첨점 수 (NF3 첨점 밀도 계측)
+  bool escalation_requested{false}; ///< true = EscalationReport 발행 필요
   EscalationReason escalation_reason{EscalationReason::BLOCKED}; ///< 위 플래그가 true 일 때 유효
 };
 

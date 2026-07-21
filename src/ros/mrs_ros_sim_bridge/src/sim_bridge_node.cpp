@@ -36,8 +36,7 @@ constexpr int LOG_THROTTLE_MS = 2000;
 
 } // namespace
 
-SimBridgeNode::SimBridgeNode()
-: rclcpp::Node("sim_bridge")
+SimBridgeNode::SimBridgeNode() : rclcpp::Node("sim_bridge")
 {
   declare_and_read_parameters();
 
@@ -71,7 +70,8 @@ SimBridgeNode::SimBridgeNode()
   metrics_pub_ =
     this->create_publisher<mrs_interfaces::msg::SimMetricSample>("/sim/metrics_tap", metrics_qos);
 
-  pending_actuations_.assign(static_cast<std::size_t>(std::max(robot_count_, 0)), PendingActuation{});
+  pending_actuations_.assign(
+    static_cast<std::size_t>(std::max(robot_count_, 0)), PendingActuation{});
 
   for (int i = 0; i < robot_count_; ++i)
   {
@@ -80,14 +80,13 @@ SimBridgeNode::SimBridgeNode()
       this->create_publisher<mrs_interfaces::msg::RobotState>(ns + "/robot_state", state_qos));
 
     const std::size_t robot_index = static_cast<std::size_t>(i);
-    cmd_vel_subs_.push_back(
-      this->create_subscription<geometry_msgs::msg::Twist>(
-        ns + "/cmd_vel", cmd_qos,
-        [this, robot_index](const geometry_msgs::msg::Twist::SharedPtr msg)
-        {
-          this->on_cmd_vel(robot_index, msg);
-        },
-        sub_options));
+    cmd_vel_subs_.push_back(this->create_subscription<geometry_msgs::msg::Twist>(
+      ns + "/cmd_vel", cmd_qos,
+      [this, robot_index](const geometry_msgs::msg::Twist::SharedPtr msg)
+      {
+        this->on_cmd_vel(robot_index, msg);
+      },
+      sub_options));
   }
 
   step_srv_ = this->create_service<mrs_interfaces::srv::SimStep>(
@@ -214,8 +213,7 @@ void SimBridgeNode::declare_scenario_parameters()
   robot_radius_m_ = this->declare_parameter<double>("robot_radius_m", 0.3);
   node_attach_radius_m_ = this->declare_parameter<double>("node_attach_radius_m", 0.25);
   // architecture §5.2 누수 조기 발견용 스윕축. 0 = 즉시 반영.
-  actuate_to_state_latency_s_ =
-    this->declare_parameter<double>("actuate_to_state_latency_s", 0.0);
+  actuate_to_state_latency_s_ = this->declare_parameter<double>("actuate_to_state_latency_s", 0.0);
 
   initial_x_m_ = this->declare_parameter<std::vector<double>>("initial_x_m", std::vector<double>{});
   initial_y_m_ = this->declare_parameter<std::vector<double>>("initial_y_m", std::vector<double>{});
@@ -321,8 +319,9 @@ bool SimBridgeNode::validate_spawn_parameters() const
 {
   const std::size_t count = static_cast<std::size_t>(robot_count_);
 
-  if (initial_x_m_.size() != count || initial_y_m_.size() != count ||
-      initial_theta_rad_.size() != count)
+  if (
+    initial_x_m_.size() != count || initial_y_m_.size() != count ||
+    initial_theta_rad_.size() != count)
   {
     RCLCPP_FATAL(
       this->get_logger(),
@@ -602,8 +601,8 @@ void SimBridgeNode::on_cmd_vel(
       ++rejected_cmd_vel_count_;
       RCLCPP_WARN_THROTTLE(
         this->get_logger(), steady_clock_, LOG_THROTTLE_MS,
-        "robot_%zu cmd_vel 비유한 지령 폐기 (누적 %llu) — 워치독이 정지로 폴백합니다.",
-        robot_index, static_cast<unsigned long long>(rejected_cmd_vel_count_));
+        "robot_%zu cmd_vel 비유한 지령 폐기 (누적 %llu) — 워치독이 정지로 폴백합니다.", robot_index,
+        static_cast<unsigned long long>(rejected_cmd_vel_count_));
       return;
     }
 
@@ -832,8 +831,7 @@ void SimBridgeNode::record_convert_failure(const char * site, convert::ConvertSt
   // 사유별로 **구분해서** 기록한다. 뭉개면 사후 감사에서 원인을 잃는다(계약 §0.2).
   RCLCPP_WARN_THROTTLE(
     this->get_logger(), steady_clock_, LOG_THROTTLE_MS,
-    "변환 실패 — site=%s reason=%s (해당 사유 누적 %llu)", key.c_str(),
-    convert::to_string(reason),
+    "변환 실패 — site=%s reason=%s (해당 사유 누적 %llu)", key.c_str(), convert::to_string(reason),
     static_cast<unsigned long long>((index < counters.size()) ? counters[index] : 0U));
 }
 

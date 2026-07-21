@@ -75,7 +75,8 @@ public:
     const std::size_t index = static_cast<std::size_t>(status);
     if (index >= CONVERT_STATUS_COUNT)
     {
-      // 열거 밖 값은 계약이 금지하지만, 카운터가 메모리를 밟는 것보다는 총계만 늘리는 편이 안전하다.
+      // 열거 밖 값은 계약이 금지하지만, 카운터가 메모리를 밟는 것보다는 총계만 늘리는 편이
+      // 안전하다.
       ++total_;
       return 0U;
     }

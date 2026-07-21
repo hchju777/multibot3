@@ -76,7 +76,10 @@ public:
    * @brief 현재 그래프가 사용 중인 지도 버전을 반환한다.
    * @return std::uint64_t roadmap_version.
    */
-  std::uint64_t roadmap_version() const noexcept { return roadmap_version_; }
+  std::uint64_t roadmap_version() const noexcept
+  {
+    return roadmap_version_;
+  }
 
 private:
   std::uint64_t roadmap_version_{0}; ///< 현재 그래프가 참조하는 지도 버전

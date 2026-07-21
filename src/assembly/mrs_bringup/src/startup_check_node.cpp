@@ -1,5 +1,5 @@
-#include "mrs/startup_checks.hpp"
 #include "mrs_bringup/startup_check_node.hpp"
+#include "mrs/startup_checks.hpp"
 
 namespace mrs
 {
@@ -24,8 +24,8 @@ StartupCheckNode::StartupCheckNode() : rclcpp::Node("bringup_startup_check")
     return;
   }
   RCLCPP_INFO(
-    this->get_logger(), "R-A2 검사 통과 — replan_period_s=%f, sim_step_s=%f",
-    replan_period_s, sim_step_s);
+    this->get_logger(), "R-A2 검사 통과 — replan_period_s=%f, sim_step_s=%f", replan_period_s,
+    sim_step_s);
 }
 
 } // namespace mrs

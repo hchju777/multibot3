@@ -13,7 +13,8 @@
  *
  * ## 정정된 규칙 — 이 클래스가 구현하는 것
  * 1. **타이머는 발행 주체가 아니라 샘플러다.** 주기는 "인덱스를 놓치지 않을 만큼 빠르면 족함"
- *    이며 정확도가 틱 정확도를 좌우하지 않는다(@ref mrs::TickScheduler::recommended_sample_period_s).
+ *    이며 정확도가 틱 정확도를 좌우하지 않는다(@ref
+ * mrs::TickScheduler::recommended_sample_period_s).
  * 2. **발행 조건 = 계산된 인덱스가 직전 발행 인덱스보다 클 때에만.** 같은 인덱스를 다시 보면
  *    그냥 `HOLD` 다 — 중복이 **발생 자체를 하지 않으므로** "중복 억제 → 스케줄 밀림" 경로가
  *    구조적으로 사라진다. (구 `accept_sequence` 의 중복 억제 로직은 도달 불가 경로가 되어 제거됨.)
@@ -53,7 +54,8 @@ enum class TickAction : std::uint8_t
   PUBLISH = 0,
   /** @brief 인덱스가 직전 발행분과 같다 — 발행하지 않는다. **정상이며 대다수의 샘플이 여기다.** */
   HOLD = 1,
-  /** @brief 시계 값이 비유한·음수·표현 범위 밖이다 — 발행 금지(값이 의심스러운 틱보다 결번이 낫다). */
+  /** @brief 시계 값이 비유한·음수·표현 범위 밖이다 — 발행 금지(값이 의심스러운 틱보다 결번이 낫다).
+   */
   CLOCK_REJECTED = 2,
   /** @brief 인덱스가 `uint32` 표현 범위를 넘었다 — 발행 금지. */
   RANGE_REJECTED = 3,
@@ -225,12 +227,12 @@ private:
    */
   void classify(TickSample & sample) const noexcept;
 
-  std::int64_t period_ns_;            ///< Δt_h [ns] — 나노초 격자 위의 정본값
-  double replan_period_s_;            ///< Δt_h [s] — 메시지에 싣는 값(생성자 입력 그대로)
-  std::int64_t epoch_ns_{0};          ///< R-A1 의 t0 [ns]
-  std::int64_t last_sample_ns_{0};    ///< 마지막으로 커밋된 표본의 시계 값 [ns] — 역행 탐지 기준
-  bool anchored_{false};              ///< t0 가 고정됐는지 여부
-  bool has_published_{false};         ///< 1건이라도 발행했는지 여부
+  std::int64_t period_ns_;   ///< Δt_h [ns] — 나노초 격자 위의 정본값
+  double replan_period_s_;   ///< Δt_h [s] — 메시지에 싣는 값(생성자 입력 그대로)
+  std::int64_t epoch_ns_{0}; ///< R-A1 의 t0 [ns]
+  std::int64_t last_sample_ns_{0}; ///< 마지막으로 커밋된 표본의 시계 값 [ns] — 역행 탐지 기준
+  bool anchored_{false};                 ///< t0 가 고정됐는지 여부
+  bool has_published_{false};            ///< 1건이라도 발행했는지 여부
   std::uint32_t last_published_seq_{0U}; ///< 마지막으로 발행한 `tick_seq`
 
   std::uint64_t published_count_{0U};    ///< 발행 누적

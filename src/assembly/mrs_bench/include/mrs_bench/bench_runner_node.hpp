@@ -14,12 +14,12 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "mrs_metrics/metrics_collector.hpp"
-#include "mrs_interfaces/msg/sim_metric_sample.hpp"
 #include "mrs_interfaces/msg/rung_event.hpp"
-#include "mrs_interfaces/srv/sim_step.hpp"
+#include "mrs_interfaces/msg/sim_metric_sample.hpp"
 #include "mrs_interfaces/srv/sim_inject.hpp"
 #include "mrs_interfaces/srv/sim_query_capabilities.hpp"
+#include "mrs_interfaces/srv/sim_step.hpp"
+#include "mrs_metrics/metrics_collector.hpp"
 
 namespace mrs
 {

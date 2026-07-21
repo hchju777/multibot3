@@ -48,7 +48,8 @@ MapRegistryNode::MapRegistryNode() : rclcpp::Node("map_registry")
     this->declare_parameter<std::int64_t>("uniform_view_id", 1);
   if (declared_uniform_view_id < 1)
   {
-    throw std::invalid_argument("uniform_view_id must be >= 1 (0 is reserved for the physical view)");
+    throw std::invalid_argument(
+      "uniform_view_id must be >= 1 (0 is reserved for the physical view)");
   }
 
   if (!build_tracer_roadmap(params, physical_view_))

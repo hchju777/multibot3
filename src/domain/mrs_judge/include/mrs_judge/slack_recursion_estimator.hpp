@@ -26,7 +26,10 @@ public:
    * @brief 판정 정책을 주입하며 생성한다.
    * @param[in] policy 사용할 IJudgePolicy 구현체 (RuleSlack 기본).
    */
-  explicit SlackRecursionEstimator(std::shared_ptr<IJudgePolicy> policy) : policy_(std::move(policy)) {}
+  explicit SlackRecursionEstimator(std::shared_ptr<IJudgePolicy> policy)
+      : policy_(std::move(policy))
+  {
+  }
   ~SlackRecursionEstimator() = default;
 
   /**

@@ -49,7 +49,10 @@ public:
    * @brief 현재 선택된 백엔드를 반환한다.
    * @return ISimBackend* 관측 포인터. 미선택이면 nullptr.
    */
-  ISimBackend * active() const noexcept { return active_.get(); }
+  ISimBackend * active() const noexcept
+  {
+    return active_.get();
+  }
 
 private:
   std::shared_ptr<ISimBackend> active_; ///< 현재 선택된 백엔드 (seam c)

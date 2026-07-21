@@ -198,8 +198,8 @@ ConvertResult fill_response(
 }
 
 ConvertResult fill_response(
-  const mrs::RoadmapValidationResult & result, std::uint64_t roadmap_version,
-  std::uint32_t view_id, mrs_interfaces::srv::ValidateMap::Response & resp)
+  const mrs::RoadmapValidationResult & result, std::uint64_t roadmap_version, std::uint32_t view_id,
+  mrs_interfaces::srv::ValidateMap::Response & resp)
 {
   (void)result;
   (void)roadmap_version;

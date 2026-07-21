@@ -19,11 +19,11 @@
 #include <vector>
 
 #include "builtin_interfaces/msg/time.hpp"
-#include "mrs/contract_types.hpp"       // EscalationReason·EscalationSeverity·Rung·RungTransition
-                                        // ·RungTriggerKind·RevisionKind
-#include "mrs/i_local_planner.hpp"      // AdoptionStatus
-#include "mrs/i_sim_backend.hpp"        // FaultKind·PhysicsFidelity
-#include "mrs/reorder_types.hpp"        // ReorderAck
+#include "mrs/contract_types.hpp"  // EscalationReason·EscalationSeverity·Rung·RungTransition
+                                   // ·RungTriggerKind·RevisionKind
+#include "mrs/i_local_planner.hpp" // AdoptionStatus
+#include "mrs/i_sim_backend.hpp"   // FaultKind·PhysicsFidelity
+#include "mrs/reorder_types.hpp"   // ReorderAck
 #include "mrs/view_ids.hpp"
 #include "mrs_interfaces/msg/pose2_d.hpp"
 #include "mrs_interfaces/msg/view_scope.hpp"
@@ -133,9 +133,7 @@ namespace mrs::convert
  * @return `ConvertResult` — @ref match_scope 와 같은 판정 규약.
  */
 [[nodiscard]] ConvertResult match_scope_flat(
-  std::uint64_t roadmap_version,
-  std::uint32_t view_id,
-  ViewKind fixed_kind,
+  std::uint64_t roadmap_version, std::uint32_t view_id, ViewKind fixed_kind,
   const ViewScope & expected);
 
 // ── 열거 왕복 (도메인 enum ↔ 와이어 `uint8`) ──────────────────────────────────
@@ -391,8 +389,7 @@ enum class NoneNodePolicy : std::uint8_t
  * @brief 어떤 타입이 @ref mrs::ViewNodeId 인스턴스인지 판정하는 형질.
  * @tparam T 판정할 타입.
  */
-template <typename T>
-struct IsViewNodeId : std::false_type
+template <typename T> struct IsViewNodeId : std::false_type
 {
 };
 
@@ -400,8 +397,7 @@ struct IsViewNodeId : std::false_type
  * @brief @ref IsViewNodeId 의 부분 특수화 — 뷰 종류 3종 전부를 이 하나가 덮는다.
  * @tparam K 뷰 종류.
  */
-template <ViewKind K>
-struct IsViewNodeId<ViewNodeId<K>> : std::true_type
+template <ViewKind K> struct IsViewNodeId<ViewNodeId<K>> : std::true_type
 {
 };
 
@@ -409,8 +405,7 @@ struct IsViewNodeId<ViewNodeId<K>> : std::true_type
  * @brief @ref IsViewNodeId 의 값 별칭.
  * @tparam T 판정할 타입.
  */
-template <typename T>
-inline constexpr bool IS_VIEW_NODE_ID = IsViewNodeId<T>::value;
+template <typename T> inline constexpr bool IS_VIEW_NODE_ID = IsViewNodeId<T>::value;
 
 /**
  * @brief 강타입 노드 id 를 와이어 `uint32` 로 언랩한다 (발행 방향). 실패할 수 없다.

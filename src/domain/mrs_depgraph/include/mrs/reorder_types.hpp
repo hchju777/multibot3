@@ -25,11 +25,11 @@ namespace mrs
  */
 struct ReorderRequest
 {
-  EventId event_id{0};                ///< 교란 상관 키
-  std::vector<RobotId> scope_robots;  ///< 재조정 범위. 비면 전역
-  std::uint32_t attempt_count{0};     ///< 이 tier 시도 횟수 (D-04 v2 게이팅 카운터)
-  std::uint32_t base_plan_epoch{0};   ///< 대상 계획 세대
-  double budget_s{1.0};               ///< 처리 예산 [s]. 초과 시 구 순서 유지
+  EventId event_id{0};               ///< 교란 상관 키
+  std::vector<RobotId> scope_robots; ///< 재조정 범위. 비면 전역
+  std::uint32_t attempt_count{0};    ///< 이 tier 시도 횟수 (D-04 v2 게이팅 카운터)
+  std::uint32_t base_plan_epoch{0};  ///< 대상 계획 세대
+  double budget_s{1.0};              ///< 처리 예산 [s]. 초과 시 구 순서 유지
   // ⛔ slack_estimate 를 추가하지 말 것 — D-04 v2 의 btpg↛judge 독립성 결정을 되돌리는 변경이다.
 };
 
@@ -38,10 +38,10 @@ struct ReorderRequest
  */
 enum class ReorderAck : std::uint8_t
 {
-  ACCEPTED = 0,        ///< 접수. 결과는 릴리스·RungEvent 로 관측
-  REJECTED_BUSY = 1,   ///< 동일 tier 작업 진행 중
-  REJECTED_SCOPE = 2,  ///< 범위 로봇이 현재 그래프에 없음
-  REJECTED_STALE = 3   ///< base_plan_epoch 불일치
+  ACCEPTED = 0,       ///< 접수. 결과는 릴리스·RungEvent 로 관측
+  REJECTED_BUSY = 1,  ///< 동일 tier 작업 진행 중
+  REJECTED_SCOPE = 2, ///< 범위 로봇이 현재 그래프에 없음
+  REJECTED_STALE = 3  ///< base_plan_epoch 불일치
 };
 
 /**

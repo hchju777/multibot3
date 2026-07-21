@@ -71,12 +71,12 @@ namespace mrs
  */
 struct RobotReleaseState
 {
-  RobotId robot_id{ROBOT_ID_NONE};          ///< 로봇 id
-  std::vector<WindowSegment> segments;      ///< 계획에서 잘라 낸 세그먼트 열 (뷰 UNIFORM)
-  std::size_t next_segment_index{0};        ///< 다음에 릴리스할 세그먼트 인덱스
-  std::uint32_t window_seq{0};              ///< 이 로봇에 마지막으로 실린 창 seq
-  std::uint32_t plan_epoch{0};              ///< 세그먼트가 유래한 계획 세대
-  bool exhausted_logged{false};             ///< 경로 소진 로그를 이미 남겼는지 (로그 폭주 방지)
+  RobotId robot_id{ROBOT_ID_NONE};     ///< 로봇 id
+  std::vector<WindowSegment> segments; ///< 계획에서 잘라 낸 세그먼트 열 (뷰 UNIFORM)
+  std::size_t next_segment_index{0};   ///< 다음에 릴리스할 세그먼트 인덱스
+  std::uint32_t window_seq{0};         ///< 이 로봇에 마지막으로 실린 창 seq
+  std::uint32_t plan_epoch{0};         ///< 세그먼트가 유래한 계획 세대
+  bool exhausted_logged{false}; ///< 경로 소진 로그를 이미 남겼는지 (로그 폭주 방지)
 };
 
 /**
@@ -206,7 +206,8 @@ private:
   /**
    * @brief 로봇 1대의 다음 창을 만들어 발행한다.
    *
-   * @warning 호출자가 @ref state_mutex_ 를 **이미 잡고** 있어야 한다(이름의 `_locked` 접미가 그 뜻).
+   * @warning 호출자가 @ref state_mutex_ 를 **이미 잡고** 있어야 한다(이름의 `_locked` 접미가 그
+   * 뜻).
    *
    * @param[in,out] state 대상 로봇의 릴리스 상태. 자료형 `mrs::RobotReleaseState`.
    *                성공 시 `next_segment_index` 와 `window_seq` 가 전진한다.
@@ -240,16 +241,16 @@ private:
   [[nodiscard]] double now_seconds() const;
 
   // ── 도메인 소유물 ([0a] 미사용 — [1]/[3] 에서 이 노드가 단일 소유자가 된다) ─────
-  mrs::DependencyGraph graph_;           ///< ADG/SADG 단일 소유 (D-05). [0a] 는 호출하지 않는다
+  mrs::DependencyGraph graph_; ///< ADG/SADG 단일 소유 (D-05). [0a] 는 호출하지 않는다
   mrs::BtpgAttemptTracker btpg_tracker_; ///< R1 (seam e). [0a] 미사용
   mrs::MilpJobTracker milp_tracker_;     ///< R2 (seam d). [0a] 미사용
   mrs::SlackRecursionEstimator judge_;   ///< judge (seam f). [0a] 미사용
 
   // ── 릴리스 상태 (두 콜백그룹이 공유 — state_mutex_ 가 경계) ─────────────
-  mutable std::mutex state_mutex_;               ///< 아래 상태 전부를 보호한다
-  std::vector<RobotReleaseState> robot_states_;  ///< 인덱스 = 0-base 로봇 인덱스
-  ViewScope view_scope_{};                       ///< 균일 뷰 스코프 (MapRegistry 가 유일 출처)
-  bool scope_ready_{false};                      ///< 스코프 확보 여부. false 면 아무것도 릴리스하지 않는다
+  mutable std::mutex state_mutex_;              ///< 아래 상태 전부를 보호한다
+  std::vector<RobotReleaseState> robot_states_; ///< 인덱스 = 0-base 로봇 인덱스
+  ViewScope view_scope_{}; ///< 균일 뷰 스코프 (MapRegistry 가 유일 출처)
+  bool scope_ready_{false}; ///< 스코프 확보 여부. false 면 아무것도 릴리스하지 않는다
 
   // ── 콜백그룹·실행자 (계약 Q-3) ──────────────────────────────────────────
   rclcpp::CallbackGroup::SharedPtr release_cb_group_; ///< 릴리스 경로 (노드 기본 실행자)
@@ -268,12 +269,12 @@ private:
   rclcpp::TimerBase::SharedPtr map_query_timer_;
 
   // ── 파라미터 (값의 성격은 생성자 주석 참조) ─────────────────────────────
-  int robot_count_{2};                    ///< 로봇 수. [0a] = 2대 (architecture §7)
-  double window_release_period_s_{0.5};   ///< 창 릴리스 주기 [s] (문헌치 Q-11 세그먼트 Δt)
-  int segments_per_window_{1};            ///< 창 1개에 싣는 세그먼트 수
+  int robot_count_{2};                  ///< 로봇 수. [0a] = 2대 (architecture §7)
+  double window_release_period_s_{0.5}; ///< 창 릴리스 주기 [s] (문헌치 Q-11 세그먼트 Δt)
+  int segments_per_window_{1};          ///< 창 1개에 싣는 세그먼트 수
   double window_validity_horizon_s_{2.0}; ///< `window_valid_until` 여유 [s] — **[0a] 실측 대상**
-  double map_query_retry_period_s_{1.0};  ///< MapRegistry 조회 재시도 주기 [s] (배관 상수)
-  double map_query_timeout_s_{2.0};       ///< 조회 응답 대기 시한 [s] (pending 누수 방지)
+  double map_query_retry_period_s_{1.0}; ///< MapRegistry 조회 재시도 주기 [s] (배관 상수)
+  double map_query_timeout_s_{2.0}; ///< 조회 응답 대기 시한 [s] (pending 누수 방지)
 
   // ── MapRegistry 조회 진행 상태 ──────────────────────────────────────────
   bool map_query_pending_{false};        ///< 응답 대기 중 여부 (중복 요청 방지)
@@ -281,7 +282,7 @@ private:
   double map_query_sent_at_s_{0.0};      ///< 요청 발신 시각 [s], 시뮬 시계 절대시각
 
   // ── 계측 ────────────────────────────────────────────────────────────────
-  std::uint64_t released_window_count_{0};   ///< 발행 성공 누적 창 수 (릴리스 스레드 전용)
+  std::uint64_t released_window_count_{0}; ///< 발행 성공 누적 창 수 (릴리스 스레드 전용)
   std::uint64_t escalation_report_count_{0}; ///< 수신 에스컬레이션 누적 건수 (수신 스레드 전용)
 
   /**

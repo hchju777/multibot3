@@ -50,9 +50,9 @@
 #include <string>
 #include <vector>
 
-#include <rclcpp/rclcpp.hpp>
 #include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int64.hpp>
 
 #include "mrs/contract_types.hpp"
@@ -80,7 +80,7 @@ struct NeighborShareStats
   std::uint64_t gap_total{0};     ///< `tick_seq` 결번 누적 (유실 추정치)
   std::uint32_t last_tick_seq{0}; ///< 마지막으로 본 `tick_seq`
   bool has_last_tick{false};      ///< `last_tick_seq` 유효 여부
-  double max_latency_s{0.0};      ///< 관측된 최대 전달 지연 [s] (발행 stamp → 수신 시각)
+  double max_latency_s{0.0}; ///< 관측된 최대 전달 지연 [s] (발행 stamp → 수신 시각)
 };
 
 /**
@@ -259,41 +259,42 @@ private:
   // ── 파라미터 ────────────────────────────────────────────────────────────────
   int robot_id_{0};                              ///< param `robot_id`
   std::vector<std::int64_t> neighbor_robot_ids_; ///< param `neighbor_robot_ids` (전 구독 대상)
-  double follow_speed_mps_{0.2};        ///< param — 창 실행 중 상수 전진 속도 [m/s]. **[0a] 잠정값**
-  double segment_timeout_s_{1.0};       ///< param — 세그먼트 체류 상한 [s]. **[0a] 실측 대상**
-  std::size_t escalation_remaining_segments_{1}; ///< param — 소진 임박 세그먼트 임계. **[0a] 잠정값**
-  double escalation_lead_time_s_{0.5};  ///< param — 만료 선행 임계 [s]. **[0a] 실측 대상**
-  int share_num_segments_{4};           ///< param — 더미 계획의 H (T1 §6.1 기본 4)
-  int share_bernstein_degree_{5};       ///< param — 더미 계획의 n (T1 §6.1 기본 5)
-  double share_segment_duration_s_{0.5};///< param — 더미 계획의 Δt [s] (T1 기본 0.5)
-  bool measure_wire_size_{true};        ///< param — 발행 1 회 직렬화 크기 실측 여부 (Q-18)
-  int startup_check_delay_ms_{1000};    ///< param — R-05 검사 지연 [ms]. **[0a] 실측 대상**
+  double follow_speed_mps_{0.2}; ///< param — 창 실행 중 상수 전진 속도 [m/s]. **[0a] 잠정값**
+  double segment_timeout_s_{1.0}; ///< param — 세그먼트 체류 상한 [s]. **[0a] 실측 대상**
+  std::size_t escalation_remaining_segments_{
+    1}; ///< param — 소진 임박 세그먼트 임계. **[0a] 잠정값**
+  double escalation_lead_time_s_{0.5}; ///< param — 만료 선행 임계 [s]. **[0a] 실측 대상**
+  int share_num_segments_{4};          ///< param — 더미 계획의 H (T1 §6.1 기본 4)
+  int share_bernstein_degree_{5};      ///< param — 더미 계획의 n (T1 §6.1 기본 5)
+  double share_segment_duration_s_{0.5}; ///< param — 더미 계획의 Δt [s] (T1 기본 0.5)
+  bool measure_wire_size_{true}; ///< param — 발행 1 회 직렬화 크기 실측 여부 (Q-18)
+  int startup_check_delay_ms_{1000}; ///< param — R-05 검사 지연 [ms]. **[0a] 실측 대상**
   int summary_log_interval_ticks_{100}; ///< param — 계측 요약 로그 주기 [틱]. 0 이면 비활성
 
   // ── 상태 ────────────────────────────────────────────────────────────────────
-  mrs::ViewScope expected_scope_;   ///< 기대 뷰 스코프 (UNIFORM 고정). 지도 버전은 param 또는 학습
-  bool scope_known_{false};         ///< 기대 스코프가 확정됐는지 (미확정이면 창을 수용하지 않는다)
+  mrs::ViewScope expected_scope_; ///< 기대 뷰 스코프 (UNIFORM 고정). 지도 버전은 param 또는 학습
+  bool scope_known_{false}; ///< 기대 스코프가 확정됐는지 (미확정이면 창을 수용하지 않는다)
 
-  mrs::ExecutionWindow window_;     ///< 현재 수용 중인 실행 창
-  bool has_window_{false};          ///< `window_` 유효 여부
-  std::size_t segment_index_{0};    ///< 다음에 소비할 세그먼트 인덱스
-  double segment_entered_s_{0.0};   ///< 현재 세그먼트 진입 시각 [s]
+  mrs::ExecutionWindow window_;           ///< 현재 수용 중인 실행 창
+  bool has_window_{false};                ///< `window_` 유효 여부
+  std::size_t segment_index_{0};          ///< 다음에 소비할 세그먼트 인덱스
+  double segment_entered_s_{0.0};         ///< 현재 세그먼트 진입 시각 [s]
   std::int64_t escalated_window_seq_{-1}; ///< 이미 상향 보고한 창 seq (-1 = 없음)
 
   mrs::RobotObservation observation_; ///< 마지막 자기 관측
   bool has_observation_{false};       ///< `observation_` 유효 여부
 
-  std::uint32_t last_tick_seq_{0};  ///< 마지막으로 본 `/plan_tick` 의 `tick_seq`
-  bool has_tick_{false};            ///< `last_tick_seq_` 유효 여부
+  std::uint32_t last_tick_seq_{0}; ///< 마지막으로 본 `/plan_tick` 의 `tick_seq`
+  bool has_tick_{false};           ///< `last_tick_seq_` 유효 여부
   std::uint64_t tick_gap_total_{0}; ///< `tick_seq` 결번 누적 (R-A1 — 유실은 결번으로 드러난다)
-  double tick_jitter_max_s_{0.0};   ///< 관측된 최대 틱 도착 지터 [s]
+  double tick_jitter_max_s_{0.0};     ///< 관측된 최대 틱 도착 지터 [s]
   std::uint64_t event_id_counter_{0}; ///< 상향 보고용 상관 키 시퀀스 (E1: 0 금지)
 
   std::uint64_t segment_advance_reached_{0}; ///< 노드 도달로 소비한 세그먼트 수
   std::uint64_t segment_advance_timeout_{0}; ///< 타임아웃으로 소비한 세그먼트 수
-  std::uint64_t truncate_reject_count_{0};   ///< 커밋 접두를 자르려 해 거부한 TRUNCATE 건수
-  std::uint64_t escalation_publish_count_{0};///< 발행한 `EscalationReport` 건수
-  bool share_wire_size_logged_{false};       ///< `LocalPlanShare` 실측 크기를 이미 기록했는지
+  std::uint64_t truncate_reject_count_{0}; ///< 커밋 접두를 자르려 해 거부한 TRUNCATE 건수
+  std::uint64_t escalation_publish_count_{0}; ///< 발행한 `EscalationReport` 건수
+  bool share_wire_size_logged_{false}; ///< `LocalPlanShare` 실측 크기를 이미 기록했는지
 
   /** @brief `mrs::convert::ConvertStatus` 값별 폐기 카운터 (인덱스 = 열거값, 0..6). */
   std::array<std::uint64_t, 7> discard_by_status_{};

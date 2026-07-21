@@ -51,7 +51,7 @@ enum class SegmentAdvance : std::uint8_t
  */
 struct FollowCommand
 {
-  double v_mps{0.0};     ///< 몸체 선속도 지령 [m/s]
+  double v_mps{0.0}; ///< 몸체 선속도 지령 [m/s]
   double omega_rps{0.0}; ///< 몸체 각속도 지령 [rad/s]. [0a] 는 항상 0 (조향 근거가 없다)
 };
 

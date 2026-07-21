@@ -130,7 +130,8 @@ TEST(LocalPlanShareConvert, RoundTripPreservesFieldsCarriedByDomain)
   ASSERT_EQ(control_points.size(), 48U);
 
   mrs_interfaces::msg::LocalPlanShare msg;
-  ASSERT_TRUE(mrs::convert::make_local_plan_share(1, 9, control_points, 4, 5, 0.5, 0.2, 12.5, msg).ok);
+  ASSERT_TRUE(
+    mrs::convert::make_local_plan_share(1, 9, control_points, 4, 5, 0.5, 0.2, 12.5, msg).ok);
   EXPECT_EQ(msg.control_points.size(), 48U);
 
   mrs::NeighborTrajectory back;

@@ -25,8 +25,8 @@ namespace mrs
  */
 enum class ReassignTrigger : std::uint8_t
 {
-  HARD = 0,                  ///< 즉시 회수·재배정 (EscalationReport 주행불가·고장·도달불가)
-  SOFT_REPEATED_FAILURE = 1  ///< aging 큐 재배치 (R3 부분 재계획 N 회 연속 무해)
+  HARD = 0, ///< 즉시 회수·재배정 (EscalationReport 주행불가·고장·도달불가)
+  SOFT_REPEATED_FAILURE = 1 ///< aging 큐 재배치 (R3 부분 재계획 N 회 연속 무해)
 };
 
 /**

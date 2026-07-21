@@ -27,10 +27,10 @@ namespace mrs
  */
 struct GatingObservation
 {
-  std::uint32_t attempt_count{0};            ///< 이 사건에 대한 R1 시도 누적 횟수
-  std::uint32_t consecutive_nonpositive{0};  ///< 개선폭 <= 0 이 연속된 횟수
-  double last_improvement_s{0.0};            ///< 직전 R1 시도의 예상 실행시간 개선폭 [s].
-                                             ///< 양수 = 개선. C-018 이 관측된 척도 그 자체다
+  std::uint32_t attempt_count{0};           ///< 이 사건에 대한 R1 시도 누적 횟수
+  std::uint32_t consecutive_nonpositive{0}; ///< 개선폭 <= 0 이 연속된 횟수
+  double last_improvement_s{0.0}; ///< 직전 R1 시도의 예상 실행시간 개선폭 [s].
+                                  ///< 양수 = 개선. C-018 이 관측된 척도 그 자체다
 };
 
 /**
@@ -38,8 +38,8 @@ struct GatingObservation
  */
 struct GatingDecision
 {
-  bool invoke_r2{false};       ///< true = R2 SADG MILP 온디맨드 호출
-  std::uint32_t threshold_n{0};///< 판정에 적용된 N (계측·재현 기록용)
+  bool invoke_r2{false};        ///< true = R2 SADG MILP 온디맨드 호출
+  std::uint32_t threshold_n{0}; ///< 판정에 적용된 N (계측·재현 기록용)
 };
 
 /**

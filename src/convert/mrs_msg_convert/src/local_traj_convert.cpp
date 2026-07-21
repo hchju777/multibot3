@@ -30,7 +30,8 @@ namespace
  * 길이 비교는 `std::size_t` 로 **승격해서** 한다 — 두 인자가 `uint8` 이라 곱셈을 그대로 두면
  * 오버플로해서 틀린 기대 길이와 대조하게 된다.
  *
- * @param[in] control_points 채택 계획 c^(h) 의 제어점(평탄 (x,y) 배열). 자료형 `std::vector<double>`.
+ * @param[in] control_points 채택 계획 c^(h) 의 제어점(평탄 (x,y) 배열). 자료형
+ * `std::vector<double>`.
  * @param[in] num_segments 지평 세그먼트 수 H. 자료형 `std::uint8_t`. 1 이상이어야 한다.
  * @param[in] bernstein_degree Bernstein 차수 n. 자료형 `std::uint8_t`. 1 이상이어야 한다.
  * @param[in] segment_duration_s 세그먼트 길이 Δt [s]. 자료형 `double`. 유한·양수여야 한다.

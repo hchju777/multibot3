@@ -38,12 +38,12 @@ struct CscMatrix
  */
 enum class QpStatus : std::uint8_t
 {
-  SOLVED = 0,           ///< 최적해
-  SOLVED_INACCURATE = 1,///< 완화 허용오차로 수렴 — 사용 가능하나 계측에 기록
-  MAX_ITER_REACHED = 2, ///< 반복 상한 도달 — 호출자는 초기궤적 폴백(T1 §6.7)
-  PRIMAL_INFEASIBLE = 3,///< 원문제 실행불가. ⚠ 정리 T1.2 하에서는 발생하지 않아야 한다 — 버그 신호
-  DUAL_INFEASIBLE = 4,  ///< 쌍대 실행불가(비유계)
-  SOLVER_ERROR = 5      ///< 백엔드 내부 실패
+  SOLVED = 0,            ///< 최적해
+  SOLVED_INACCURATE = 1, ///< 완화 허용오차로 수렴 — 사용 가능하나 계측에 기록
+  MAX_ITER_REACHED = 2,  ///< 반복 상한 도달 — 호출자는 초기궤적 폴백(T1 §6.7)
+  PRIMAL_INFEASIBLE = 3, ///< 원문제 실행불가. ⚠ 정리 T1.2 하에서는 발생하지 않아야 한다 — 버그 신호
+  DUAL_INFEASIBLE = 4,   ///< 쌍대 실행불가(비유계)
+  SOLVER_ERROR = 5       ///< 백엔드 내부 실패
 };
 
 /**
@@ -52,10 +52,10 @@ enum class QpStatus : std::uint8_t
 struct QpResult
 {
   QpStatus status{QpStatus::SOLVER_ERROR}; ///< 종료 상태
-  std::vector<double> x;                   ///< 결정변수 해 (길이 n_x). 실패 시 비어 있음
-  double objective_value{0.0};             ///< 목적함수 값
-  double solve_time_s{0.0};                ///< 해결 소요 시간 [s] (D-07 예산 판정 원천)
-  std::int64_t iterations{0};              ///< 반복 횟수
+  std::vector<double> x;       ///< 결정변수 해 (길이 n_x). 실패 시 비어 있음
+  double objective_value{0.0}; ///< 목적함수 값
+  double solve_time_s{0.0};    ///< 해결 소요 시간 [s] (D-07 예산 판정 원천)
+  std::int64_t iterations{0};  ///< 반복 횟수
 };
 
 /**
@@ -76,9 +76,8 @@ public:
    * @return bool 구성 성공 여부. false 면 호출자는 초기궤적 폴백만 사용한다.
    */
   virtual bool setup(
-    const CscMatrix & p, const std::vector<double> & q,
-    const CscMatrix & a, const std::vector<double> & l,
-    const std::vector<double> & u) noexcept = 0;
+    const CscMatrix & p, const std::vector<double> & q, const CscMatrix & a,
+    const std::vector<double> & l, const std::vector<double> & u) noexcept = 0;
 
   /**
    * @brief 목적함수 일차항만 갱신한다.

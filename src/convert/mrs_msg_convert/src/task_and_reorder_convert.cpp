@@ -55,8 +55,7 @@ ConvertResult from_request(
 }
 
 ConvertResult fill_response(
-  mrs::ReorderAck ack, std::uint64_t job_id,
-  mrs_interfaces::srv::ReorderPassing::Response & resp)
+  mrs::ReorderAck ack, std::uint64_t job_id, mrs_interfaces::srv::ReorderPassing::Response & resp)
 {
   (void)ack;
   (void)job_id;

@@ -46,8 +46,8 @@ mrs::FakeSimConfig make_config(double latency_s = 0.0)
   config.view_scope.roadmap_version = 7;
   config.view_scope.view_id = 1;
   // 일부러 id 내림차순으로 넣는다 — sense() 가 오름차순으로 되돌리는지 보기 위함.
-  config.robots = {{mrs::RobotId{1}, mrs::Pose2D{0.0, 0.0, 0.0}},
-                   {mrs::RobotId{0}, mrs::Pose2D{5.0, 0.0, 0.0}}};
+  config.robots = {
+    {mrs::RobotId{1}, mrs::Pose2D{0.0, 0.0, 0.0}}, {mrs::RobotId{0}, mrs::Pose2D{5.0, 0.0, 0.0}}};
   config.node_anchors = {{mrs::UniformNodeId{10}, 0.0, 0.0}, {mrs::UniformNodeId{11}, 1.0, 0.0}};
   return config;
 }
@@ -63,8 +63,8 @@ double run_fixed_sequence(std::uint64_t seed)
   EXPECT_TRUE(backend.configure(make_config()));
   EXPECT_TRUE(backend.reset(seed));
 
-  const std::vector<mrs::ActuationCommand> commands{{mrs::RobotId{1}, 1.0, 0.3},
-                                                    {mrs::RobotId{0}, -0.5, 0.0}};
+  const std::vector<mrs::ActuationCommand> commands{
+    {mrs::RobotId{1}, 1.0, 0.3}, {mrs::RobotId{0}, -0.5, 0.0}};
   double sim_time_s = 0.0;
   for (int i = 0; i < 40; ++i)
   {
@@ -321,8 +321,8 @@ TEST(FakeSimBackend, ActuateRejectsWholeBatchAndAppliesNothingOnPartialInvalidit
   ASSERT_TRUE(backend.configure(make_config()));
   ASSERT_TRUE(backend.reset(1));
 
-  const std::vector<mrs::ActuationCommand> partial{{mrs::RobotId{1}, 1.0, 0.0},
-                                                   {mrs::RobotId{9}, 1.0, 0.0}};
+  const std::vector<mrs::ActuationCommand> partial{
+    {mrs::RobotId{1}, 1.0, 0.0}, {mrs::RobotId{9}, 1.0, 0.0}};
   EXPECT_FALSE(backend.actuate(partial));
 
   double sim_time_s = 0.0;
@@ -415,8 +415,8 @@ TEST(FakeSimBackend, PollMetricsDetectsGeometricOverlapAsCollision)
 {
   mrs::FakeSimBackend backend;
   mrs::FakeSimConfig config = make_config();
-  config.robots = {{mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}},
-                   {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
+  config.robots = {
+    {mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}}, {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
   ASSERT_TRUE(backend.configure(config));
   ASSERT_TRUE(backend.reset(1));
 
@@ -437,8 +437,8 @@ TEST(FakeSimBackend, AllMetricSamplesAreTaggedPendingIsaac)
 {
   mrs::FakeSimBackend backend;
   mrs::FakeSimConfig config = make_config();
-  config.robots = {{mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}},
-                   {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
+  config.robots = {
+    {mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}}, {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
   ASSERT_TRUE(backend.configure(config));
   ASSERT_TRUE(backend.reset(1));
 
@@ -460,8 +460,8 @@ TEST(FakeSimBackend, IntervalMetricsResetAfterPoll)
 {
   mrs::FakeSimBackend backend;
   mrs::FakeSimConfig config = make_config();
-  config.robots = {{mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}},
-                   {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
+  config.robots = {
+    {mrs::RobotId{0}, mrs::Pose2D{0.0, 0.0, 0.0}}, {mrs::RobotId{1}, mrs::Pose2D{0.1, 0.0, 0.0}}};
   ASSERT_TRUE(backend.configure(config));
   ASSERT_TRUE(backend.reset(1));
 

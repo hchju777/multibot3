@@ -2,7 +2,8 @@
 
 /**
  * @file startup_checks.hpp
- * @brief 기동 거부 검사의 순수 판정 로직 (design-decision v5 지시 — 지금 실제로 구현하는 2건 중 2건).
+ * @brief 기동 거부 검사의 순수 판정 로직 (design-decision v5 지시 — 지금 실제로 구현하는 2건 중
+ * 2건).
  *
  * ROS 그래프 API(rclcpp::Node::count_publishers 등)에 대한 의존 없이 **순수 함수**로 둔다 —
  * (i) `mrs_bringup`(R-A2: Δt_h 가 시뮬 스텝 dt 의 정수배인지)와 (ii) `mrs_ros_l4`(R-05:
@@ -42,8 +43,7 @@ constexpr double STEP_RATIO_RELATIVE_TOLERANCE = 1e-6;
  * @return `bool` — **true = 통과**(정수배, 허용오차 내). false = 위반이므로 기동을 거부해야 한다.
  */
 inline bool is_integer_multiple(
-  double replan_period_s,
-  double sim_step_s,
+  double replan_period_s, double sim_step_s,
   double relative_tolerance = STEP_RATIO_RELATIVE_TOLERANCE) noexcept
 {
   if (replan_period_s <= 0.0 || sim_step_s <= 0.0)
@@ -72,7 +72,8 @@ inline bool is_integer_multiple(
  *       그러면 기동 게이트가 조용히 무력화된다 — 두 검사 모두 조용한 위반을 막으려고 만든 것이다.
  *
  * @param[in] publisher_count 그래프 API 로 조회한 `/plan_tick` 발행자 수. 자료형 `std::size_t`.
- * @return `bool` — **true = 통과**(0 또는 1 개). false = 위반(2 개 이상)이므로 기동을 거부해야 한다.
+ * @return `bool` — **true = 통과**(0 또는 1 개). false = 위반(2 개 이상)이므로 기동을 거부해야
+ * 한다.
  */
 inline bool is_single_publisher_ok(std::size_t publisher_count) noexcept
 {

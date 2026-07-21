@@ -2,7 +2,8 @@
 
 /**
  * @file ladder_orchestrator_node.hpp
- * @brief ladder_orchestrator — **[0a] tracer bullet 판: 로그 전용, 라우팅 없음**(architecture §7-6).
+ * @brief ladder_orchestrator — **[0a] tracer bullet 판: 로그 전용, 라우팅 없음**(architecture
+ * §7-6).
  *
  * ## 이 파일이 지금 무엇인가 (정직 고지)
  * 확정서 D-08 의 사다리는 R0→R5 상태기계 + 이원 트리거 라우팅이다. **이 구현에는 그것이 없다.**
@@ -44,8 +45,8 @@
 #include <map>
 #include <vector>
 
-#include <rclcpp/rclcpp.hpp>
 #include <builtin_interfaces/msg/time.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int64.hpp>
 
 #include "mrs/contract_types.hpp"
@@ -129,7 +130,8 @@ private:
 
   /**
    * @brief 관측한 R0 상향을 `/ladder/rung_event` 로 발행한다 (계측 경로 검증 — 파일 머리말 참조).
-   * @param[in] robot_id 보고 로봇 id. 자료형 `std::uint16_t`. `affected_robots` 의 유일 원소가 된다.
+   * @param[in] robot_id 보고 로봇 id. 자료형 `std::uint16_t`. `affected_robots` 의 유일 원소가
+   * 된다.
    * @param[in] event_id 상관 키. 자료형 `std::uint64_t`. 0 이면 convert 가 E1 위반으로 거부한다.
    * @param[in] now_s 발행 시각 [s]. 자료형 `double`. 시뮬 시계 절대시각 → `header.stamp`.
    * @return void
@@ -160,9 +162,9 @@ private:
   void log_summary();
 
   // ── 파라미터 ────────────────────────────────────────────────────────────────
-  int robot_count_{2};              ///< param `robot_count` — [0a] 는 2 대
-  bool publish_rung_event_{true};   ///< param — `/ladder/rung_event` 발행 여부 (머리말 판단)
-  int summary_log_interval_{20};    ///< param — 요약 로그 주기 [수신 건수]. 0 이면 비활성
+  int robot_count_{2};            ///< param `robot_count` — [0a] 는 2 대
+  bool publish_rung_event_{true}; ///< param — `/ladder/rung_event` 발행 여부 (머리말 판단)
+  int summary_log_interval_{20}; ///< param — 요약 로그 주기 [수신 건수]. 0 이면 비활성
 
   // ── 상태 ────────────────────────────────────────────────────────────────────
   /**
@@ -178,8 +180,8 @@ private:
 
   std::uint64_t escalation_received_{0};  ///< 변환까지 성공한 상향 보고 건수
   std::uint64_t rung_event_published_{0}; ///< 발행한 `RungEvent` 건수
-  std::uint64_t rung_event_received_{0};  ///< 수신한 `RungEvent` 건수 (자기 발행분 포함)
-  double escalation_latency_max_s_{0.0};  ///< 관측된 최대 상향 전달 지연 [s]
+  std::uint64_t rung_event_received_{0}; ///< 수신한 `RungEvent` 건수 (자기 발행분 포함)
+  double escalation_latency_max_s_{0.0}; ///< 관측된 최대 상향 전달 지연 [s]
   std::map<std::uint8_t, std::uint64_t> reason_counts_; ///< 사유별 수신 건수 (뭉개지 않기 위함)
 
   /** @brief `mrs::convert::ConvertStatus` 값별 폐기 카운터 (인덱스 = 열거값, 0..6). */

@@ -48,15 +48,15 @@ enum class PhysicsFidelity : std::uint8_t
  */
 struct SimCapabilities
 {
-  std::string backend_name{"fake"};                     ///< "fake" | "pysim" | "isaac"
-  bool deterministic_with_seed{false};                  ///< 시드 고정 시 완전 재현 가능 여부
-  std::uint64_t seed{0};                                ///< 현재 시드
+  std::string backend_name{"fake"};    ///< "fake" | "pysim" | "isaac"
+  bool deterministic_with_seed{false}; ///< 시드 고정 시 완전 재현 가능 여부
+  std::uint64_t seed{0};               ///< 현재 시드
   PhysicsFidelity physics_fidelity{PhysicsFidelity::NONE}; ///< 물리 충실도
-  bool supports_partial_observation{false};             ///< 부분관측/노이즈를 실제로 채우는가
-  bool supports_contact{false};                         ///< 접촉 충돌을 물리적으로 판정하는가
-  bool supports_fault_injection{false};                 ///< inject() 지원 여부
-  double nominal_realtime_factor{1.0};                  ///< 공칭 배속 (1.0 = 실시간)
-  double actuate_to_state_latency_s{0.0};               ///< actuate → 상태 반영 지연 [s]
+  bool supports_partial_observation{false}; ///< 부분관측/노이즈를 실제로 채우는가
+  bool supports_contact{false};             ///< 접촉 충돌을 물리적으로 판정하는가
+  bool supports_fault_injection{false};     ///< inject() 지원 여부
+  double nominal_realtime_factor{1.0};      ///< 공칭 배속 (1.0 = 실시간)
+  double actuate_to_state_latency_s{0.0};   ///< actuate → 상태 반영 지연 [s]
 };
 
 /**
@@ -64,10 +64,10 @@ struct SimCapabilities
  */
 struct ObservationUncertainty
 {
-  double pos_std_m{0.0};          ///< 위치 추정 표준편차 [m]. pysim = 0
-  double theta_std_rad{0.0};      ///< 자세 추정 표준편차 [rad]. pysim = 0
-  bool partial_observation{false};///< true = 일부 상태 미관측(마지막 추정치 반환)
-  double observation_time_s{0.0}; ///< 이 관측이 유효한 시뮬 시각 [s]
+  double pos_std_m{0.0};           ///< 위치 추정 표준편차 [m]. pysim = 0
+  double theta_std_rad{0.0};       ///< 자세 추정 표준편차 [rad]. pysim = 0
+  bool partial_observation{false}; ///< true = 일부 상태 미관측(마지막 추정치 반환)
+  double observation_time_s{0.0};  ///< 이 관측이 유효한 시뮬 시각 [s]
 };
 
 /**
@@ -79,15 +79,15 @@ struct ObservationUncertainty
  */
 struct RobotObservation
 {
-  RobotId robot_id{ROBOT_ID_NONE};    ///< 로봇 id
-  Pose2D body_pose;                   ///< 몸체 자세 q [m, rad], map (오프셋점 z 아님)
-  double v_mps{0.0};                  ///< 몸체 선속도 [m/s]
-  double omega_rps{0.0};              ///< 몸체 각속도 [rad/s]
-  ViewScope view_scope;               ///< 아래 노드 id 2건의 뷰. view_kind = UNIFORM 고정
+  RobotId robot_id{ROBOT_ID_NONE}; ///< 로봇 id
+  Pose2D body_pose;                ///< 몸체 자세 q [m, rad], map (오프셋점 z 아님)
+  double v_mps{0.0};               ///< 몸체 선속도 [m/s]
+  double omega_rps{0.0};           ///< 몸체 각속도 [rad/s]
+  ViewScope view_scope;            ///< 아래 노드 id 2건의 뷰. view_kind = UNIFORM 고정
   UniformNodeId occupied_node{NODE_ID_NONE}; ///< 점유 중 노드(**균일 뷰**). 엣지 위면 NODE_ID_NONE
-  UniformNodeId next_node{NODE_ID_NONE};     ///< 진행 방향 다음 노드(**균일 뷰**)
-  double edge_progress{0.0};          ///< 엣지 진행률 [0,1]
-  ObservationUncertainty uncertainty; ///< 관측 불확실성 (isaac 에서 실채워짐)
+  UniformNodeId next_node{NODE_ID_NONE}; ///< 진행 방향 다음 노드(**균일 뷰**)
+  double edge_progress{0.0};             ///< 엣지 진행률 [0,1]
+  ObservationUncertainty uncertainty;    ///< 관측 불확실성 (isaac 에서 실채워짐)
 };
 
 /**
@@ -118,13 +118,13 @@ enum class FaultKind : std::uint8_t
  */
 struct FaultInjection
 {
-  FaultKind kind{FaultKind::COMM_DELAY};   ///< 결함 종류
-  RobotId target_robot_id{ROBOT_ID_NONE};  ///< 대상 로봇
-  EdgeId target_edge_id{NODE_ID_NONE};     ///< 대상 **물리 뷰** 엣지 (통로 개폐). 통로 개폐는
-                                           ///< 물리 지도의 사건이므로 균일 뷰 엣지가 아니다.
-                                           ///< (센티넬은 EDGE_ID_NONE 로 정정 예정 — 값 동일)
-  double magnitude{0.0};                   ///< 강도 (단위는 kind 별)
-  double duration_s{0.0};                  ///< 지속 시간 [s]. 0 = 해제 전까지
+  FaultKind kind{FaultKind::COMM_DELAY};  ///< 결함 종류
+  RobotId target_robot_id{ROBOT_ID_NONE}; ///< 대상 로봇
+  EdgeId target_edge_id{NODE_ID_NONE}; ///< 대상 **물리 뷰** 엣지 (통로 개폐). 통로 개폐는
+                                       ///< 물리 지도의 사건이므로 균일 뷰 엣지가 아니다.
+                                       ///< (센티넬은 EDGE_ID_NONE 로 정정 예정 — 값 동일)
+  double magnitude{0.0};  ///< 강도 (단위는 kind 별)
+  double duration_s{0.0}; ///< 지속 시간 [s]. 0 = 해제 전까지
 };
 
 /**

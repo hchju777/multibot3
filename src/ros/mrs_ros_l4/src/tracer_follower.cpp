@@ -16,8 +16,9 @@ SegmentAdvance evaluate_segment_advance(
 {
   // ① 관측 도달이 우선한다. 관측이 없거나 엣지 위(센티넬)이면 도달로 보지 않는다 —
   //    미관측을 도달로 오인하면 창이 실제 진행 없이 소비되어 [0a] 계측이 거짓이 된다.
-  if (observation_valid && !occupied_node.is_none() && !target_node.is_none() &&
-      occupied_node == target_node)
+  if (
+    observation_valid && !occupied_node.is_none() && !target_node.is_none() &&
+    occupied_node == target_node)
   {
     return SegmentAdvance::NODE_REACHED;
   }

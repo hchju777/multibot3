@@ -26,7 +26,9 @@ public:
    * @brief 솔버 플러그인을 주입하며 생성한다.
    * @param[in] solver 사용할 IPathSolver 구현체. nullptr 이면 plan() 호출 시 실패 보고.
    */
-  explicit WindowedPathPlanner(std::shared_ptr<IPathSolver> solver) : solver_(std::move(solver)) {}
+  explicit WindowedPathPlanner(std::shared_ptr<IPathSolver> solver) : solver_(std::move(solver))
+  {
+  }
   ~WindowedPathPlanner() = default;
 
   /**
@@ -34,13 +36,19 @@ public:
    * @param[in] solver 새 IPathSolver 구현체.
    * @return void
    */
-  void set_solver(std::shared_ptr<IPathSolver> solver) noexcept { solver_ = std::move(solver); }
+  void set_solver(std::shared_ptr<IPathSolver> solver) noexcept
+  {
+    solver_ = std::move(solver);
+  }
 
   /**
    * @brief 현재 주입된 솔버를 조회한다.
    * @return IPathSolver* 관측 포인터. 미주입이면 nullptr.
    */
-  IPathSolver * solver() const noexcept { return solver_.get(); }
+  IPathSolver * solver() const noexcept
+  {
+    return solver_.get();
+  }
 
   /**
    * @brief 전역/신규 경로계획을 수행한다 (PlanPaths.srv 대응).
@@ -64,7 +72,10 @@ public:
    * @brief 계획 예산을 조회한다 (확정서 realtime_requirement <= 1 s/스텝).
    * @return double 현재 설정된 예산 [s].
    */
-  double budget_s() const noexcept { return budget_s_; }
+  double budget_s() const noexcept
+  {
+    return budget_s_;
+  }
 
 private:
   std::shared_ptr<IPathSolver> solver_; ///< 교체 가능 솔버 플러그인 (seam a)

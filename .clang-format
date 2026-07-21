@@ -34,12 +34,25 @@ NamespaceIndentation: None
 IndentCaseLabels: true
 ContinuationIndentWidth: 2
 
-# ── 포인터·참조 정렬 (타입에 붙임 — "int * x"가 아니라 헤더 선언 스타일과 일치) ────────────
-PointerAlignment: Left
-ReferenceAlignment: Left
+# ── 포인터·참조 정렬 ──────────────────────────────────────────────────────────────────
+# `Type & name` / `Type * name` (양쪽 공백). 근거 2가지:
+#  1. **잠긴 계약 포트 헤더 9종이 전부 이 스타일**이다. Left(`Type& name`)로 두면 계약 파일을
+#     재포맷해야 하는데 그것들은 잠겨 있다.
+#  2. ROS 2 코어·ament 관례가 이것이다(`const std::string & name`).
+# ⚠ 이 값은 원래 Left 였고, 그때는 clang-format 바이너리가 없어 **검증되지 않은 채** 들어갔다.
+#    2026-07-21 실측에서 108파일 중 101파일이 위반으로 잡혔고 원인의 대부분(&  1069건, * 182건)이
+#    이 항목이었다. 설정이 아니라 코드가 정본이라고 판정해 설정을 코드에 맞췄다.
+PointerAlignment: Middle
+ReferenceAlignment: Middle
 
 # ── 정렬·줄바꿈 ───────────────────────────────────────────────────────────────────────
-AlignAfterOpenBracket: Align
+# 인자가 한 줄에 안 들어가면 여는 괄호 **뒤에서 줄을 바꾸고 2칸 들여쓴다**(ContinuationIndentWidth).
+# 여는 괄호 위치에 정렬(Align)하지 않는 이유: 함수명이 길면 우측 여백이 없어져 다시 접히고,
+# 이름을 바꾸면 무관한 줄들이 전부 재정렬된다. ROS 2 코어 관례이자 이 코드베이스의 실제 스타일이다.
+AlignAfterOpenBracket: AlwaysBreak
+# 반환형을 홀로 줄에 두는 것보다 인자를 접는 쪽을 강하게 선호한다 — `bool\nfoo(...)` 는
+# 이 코드베이스에 한 건도 없다.
+PenaltyReturnTypeOnItsOwnLine: 1000
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignOperands: Align

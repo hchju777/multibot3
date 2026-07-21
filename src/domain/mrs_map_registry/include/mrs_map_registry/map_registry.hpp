@@ -23,13 +23,13 @@ namespace mrs
  */
 struct RoadmapNodeView
 {
-  NodeId node_id{NODE_ID_NONE};   ///< 노드 id (뷰 내 유효)
-  double x_m{0.0};                ///< 위치 x [m], map
-  double y_m{0.0};                ///< 위치 y [m], map
-  double claim_radius_m{0.0};     ///< r_clear [m]. 산정식 OPEN(theory T1 O6) — [0a] 실측 대상
-  bool is_endpoint{false};        ///< well-formed 검사용 엔드포인트 여부
-  bool is_task_endpoint{false};   ///< 작업 엔드포인트 여부
-  bool is_virtual{false};         ///< 세분화로 생성된 가상 노드 여부 (물리 뷰는 항상 false)
+  NodeId node_id{NODE_ID_NONE}; ///< 노드 id (뷰 내 유효)
+  double x_m{0.0};              ///< 위치 x [m], map
+  double y_m{0.0};              ///< 위치 y [m], map
+  double claim_radius_m{0.0}; ///< r_clear [m]. 산정식 OPEN(theory T1 O6) — [0a] 실측 대상
+  bool is_endpoint{false};    ///< well-formed 검사용 엔드포인트 여부
+  bool is_task_endpoint{false}; ///< 작업 엔드포인트 여부
+  bool is_virtual{false}; ///< 세분화로 생성된 가상 노드 여부 (물리 뷰는 항상 false)
 };
 
 /**
@@ -37,12 +37,12 @@ struct RoadmapNodeView
  */
 struct RoadmapEdgeView
 {
-  EdgeId edge_id{NODE_ID_NONE};     ///< 엣지 id
-  NodeId node_a{NODE_ID_NONE};      ///< 양단 노드 a
-  NodeId node_b{NODE_ID_NONE};      ///< 양단 노드 b
-  double length_m{0.0};             ///< 엣지 길이 [m]
-  double corridor_width_m{0.0};     ///< 최소 통로 폭 W_min [m] (검사기 3 입력)
-  double speed_limit_mps{0.0};      ///< 허용 최대 속도 [m/s] (통로폭 디레이팅 반영값)
+  EdgeId edge_id{NODE_ID_NONE}; ///< 엣지 id
+  NodeId node_a{NODE_ID_NONE};  ///< 양단 노드 a
+  NodeId node_b{NODE_ID_NONE};  ///< 양단 노드 b
+  double length_m{0.0};         ///< 엣지 길이 [m]
+  double corridor_width_m{0.0}; ///< 최소 통로 폭 W_min [m] (검사기 3 입력)
+  double speed_limit_mps{0.0};  ///< 허용 최대 속도 [m/s] (통로폭 디레이팅 반영값)
 };
 
 /**
@@ -53,7 +53,7 @@ struct NodeMappingView
   NodeId from_node_id{NODE_ID_NONE}; ///< 원본 뷰 노드 id
   NodeId to_node_id{NODE_ID_NONE};   ///< 대응 노드 id. NODE_ID_NONE = 해당 없음
   EdgeId to_edge_id{NODE_ID_NONE};   ///< 대응 물리 엣지 id. NODE_ID_NONE = 해당 없음
-  double s{0.0};                     ///< to_edge 위 정규화 위치 [0,1] (to_edge 유효 시만 의미)
+  double s{0.0}; ///< to_edge 위 정규화 위치 [0,1] (to_edge 유효 시만 의미)
 };
 
 /**
@@ -61,13 +61,13 @@ struct NodeMappingView
  */
 struct RoadmapViewData
 {
-  std::uint64_t roadmap_version{0};             ///< 지도 버전
-  std::uint32_t view_id{0};                     ///< 뷰 id (물리 roadmap = 0)
-  double unit_length_m{0.0};                    ///< 세분화 입도 [m] (균일 뷰에서만 의미)
-  double unit_length_lower_bound_m{0.0};        ///< 이론 하한 2(r+L) [m] (T1)
-  std::vector<RoadmapNodeView> nodes;            ///< 뷰 노드 목록
-  std::vector<RoadmapEdgeView> edges;            ///< 뷰 엣지 목록
-  std::vector<NodeMappingView> mappings;         ///< 세분화(subdivision) 또는 collapse 대응표
+  std::uint64_t roadmap_version{0};      ///< 지도 버전
+  std::uint32_t view_id{0};              ///< 뷰 id (물리 roadmap = 0)
+  double unit_length_m{0.0};             ///< 세분화 입도 [m] (균일 뷰에서만 의미)
+  double unit_length_lower_bound_m{0.0}; ///< 이론 하한 2(r+L) [m] (T1)
+  std::vector<RoadmapNodeView> nodes;    ///< 뷰 노드 목록
+  std::vector<RoadmapEdgeView> edges;    ///< 뷰 엣지 목록
+  std::vector<NodeMappingView> mappings; ///< 세분화(subdivision) 또는 collapse 대응표
 };
 
 /**
@@ -75,10 +75,10 @@ struct RoadmapViewData
  */
 struct RoadmapValidationResult
 {
-  bool well_formed{false};             ///< 검사기 1 (lifelong-mapd-2017 Def.1)
-  bool biconnected{false};             ///< 검사기 2 (pibt-2019 Thm 2 reachability 전제)
-  bool corridor_width_ok{false};       ///< 검사기 3-a: W_min > 2(r + v_max/omega_max)
-  bool unit_granularity_ok{false};     ///< 검사기 3-b: 세분화 입도 >= 2(r+L)
+  bool well_formed{false};                ///< 검사기 1 (lifelong-mapd-2017 Def.1)
+  bool biconnected{false};                ///< 검사기 2 (pibt-2019 Thm 2 reachability 전제)
+  bool corridor_width_ok{false};          ///< 검사기 3-a: W_min > 2(r + v_max/omega_max)
+  bool unit_granularity_ok{false};        ///< 검사기 3-b: 세분화 입도 >= 2(r+L)
   std::vector<NodeId> violating_node_ids; ///< 위반 노드
   std::vector<EdgeId> violating_edge_ids; ///< 위반 엣지 (통로 폭 미달)
   double required_min_width_m{0.0};       ///< 요구 최소 통로 폭 [m]
@@ -117,7 +117,8 @@ public:
    * @param[out] out_skeleton_view_id 생성된 골격 뷰 id.
    * @return bool 생성 성공 여부.
    */
-  bool build_dependency_skeleton(std::uint32_t uniform_view_id, std::uint32_t & out_skeleton_view_id);
+  bool build_dependency_skeleton(
+    std::uint32_t uniform_view_id, std::uint32_t & out_skeleton_view_id);
 
   /**
    * @brief 임의 뷰의 데이터를 조회한다 (GetRoadmap/GetUniformView/GetDependencySkeleton 공통 경로).
@@ -136,8 +137,8 @@ public:
    * @return bool 변환 성공 여부(대응 없음 = false).
    */
   bool transform_node(
-    std::uint32_t from_view_id, NodeId from_node,
-    std::uint32_t to_view_id, NodeId & out_node) const;
+    std::uint32_t from_view_id, NodeId from_node, std::uint32_t to_view_id,
+    NodeId & out_node) const;
 
   /**
    * @brief roadmap 정적 검사기 3종을 실행한다 (D-11, T1-R5). 맵 로드 시점 + R3 접합 후 재검사.
@@ -150,14 +151,17 @@ public:
    * @return RoadmapValidationResult 검사기 3종의 결과.
    */
   RoadmapValidationResult validate_map(
-    std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
-    double v_max_mps, double omega_max_rps, double nid_offset_l_m) const;
+    std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m, double v_max_mps,
+    double omega_max_rps, double nid_offset_l_m) const;
 
   /**
    * @brief 현재 지도 버전을 반환한다 (Q-6 캐시 무효화 키).
    * @return std::uint64_t 현재 roadmap_version. 미로드 상태면 0.
    */
-  std::uint64_t roadmap_version() const noexcept { return roadmap_version_; }
+  std::uint64_t roadmap_version() const noexcept
+  {
+    return roadmap_version_;
+  }
 
 private:
   std::uint64_t roadmap_version_{0}; ///< 현재 물리 지도 버전 (단조증가)

@@ -21,13 +21,12 @@ CommsEmulNode::CommsEmulNode() : rclcpp::Node("comms_emul")
 
     relay_pubs_.push_back(
       this->create_publisher<mrs_interfaces::msg::LocalPlanShare>(ns + "/local_plan_share", qos));
-    source_subs_.push_back(
-      this->create_subscription<mrs_interfaces::msg::LocalPlanShare>(
-        ns + "/local_plan_share_src", qos,
-        [this, robot_index](const mrs_interfaces::msg::LocalPlanShare::SharedPtr msg)
-        {
-          this->on_local_plan_share_src(robot_index, msg);
-        }));
+    source_subs_.push_back(this->create_subscription<mrs_interfaces::msg::LocalPlanShare>(
+      ns + "/local_plan_share_src", qos,
+      [this, robot_index](const mrs_interfaces::msg::LocalPlanShare::SharedPtr msg)
+      {
+        this->on_local_plan_share_src(robot_index, msg);
+      }));
   }
 
   RCLCPP_INFO(this->get_logger(), "comms_emul started (stub) — robot_count=%d", robot_count_);

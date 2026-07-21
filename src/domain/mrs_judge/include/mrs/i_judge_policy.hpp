@@ -28,11 +28,11 @@ namespace mrs
  */
 struct JudgeObservation
 {
-  EventId event_id{0};                    ///< 교란 상관 키
-  double completion_excess_s{0.0};        ///< max(예상 완료시각 − 계획 완료시각) [s]
-  double threshold_s{2.0};                ///< 소프트 트리거 임계 [s]. ROS2 param, 초기값 2.0(원저)
-  double phi_hat_s{0.0};                  ///< Phi_hat = sum_{i in D} t_hat_completion [s]
-  std::vector<RobotId> direct_affected;   ///< slack 전파가 산출한 직접 영향 집합 D
+  EventId event_id{0};             ///< 교란 상관 키
+  double completion_excess_s{0.0}; ///< max(예상 완료시각 − 계획 완료시각) [s]
+  double threshold_s{2.0}; ///< 소프트 트리거 임계 [s]. ROS2 param, 초기값 2.0(원저)
+  double phi_hat_s{0.0};   ///< Phi_hat = sum_{i in D} t_hat_completion [s]
+  std::vector<RobotId> direct_affected; ///< slack 전파가 산출한 직접 영향 집합 D
 };
 
 /**
@@ -40,9 +40,9 @@ struct JudgeObservation
  */
 struct JudgeDecision
 {
-  bool promote_r3{false};                 ///< true = R3 부분 재계획 승격
-  std::vector<RobotId> direct_affected;   ///< 직접 영향 집합 D (확장 A 는 AffectedSetClosure 소관)
-  double phi_hat_s{0.0};                  ///< 판정 시점 Phi_hat [s] — 가드 비교 기준값
+  bool promote_r3{false};               ///< true = R3 부분 재계획 승격
+  std::vector<RobotId> direct_affected; ///< 직접 영향 집합 D (확장 A 는 AffectedSetClosure 소관)
+  double phi_hat_s{0.0};                ///< 판정 시점 Phi_hat [s] — 가드 비교 기준값
 };
 
 /**
@@ -50,9 +50,9 @@ struct JudgeDecision
  */
 struct GuardDecision
 {
-  bool accept_release{false};    ///< true = 신규 부분계획을 릴리스, false = 폐기하고 R2 에 머문다
+  bool accept_release{false}; ///< true = 신규 부분계획을 릴리스, false = 폐기하고 R2 에 머문다
   bool escape_hatch_used{false}; ///< true = 탈출구 발동(도달불가 또는 연속 거부 N_reject 초과)
-  double phi_hat_new_s{0.0};     ///< 신규 계획의 Phi_hat [s] (계측 M2)
+  double phi_hat_new_s{0.0}; ///< 신규 계획의 Phi_hat [s] (계측 M2)
 };
 
 /**
@@ -79,8 +79,7 @@ public:
    *         가드가 off(param) 이면 항상 accept_release = true 를 반환해야 한다.
    */
   virtual GuardDecision check_release_guard(
-    double phi_hat_old_s, double phi_hat_new_s,
-    std::uint32_t consecutive_rejects) noexcept = 0;
+    double phi_hat_old_s, double phi_hat_new_s, std::uint32_t consecutive_rejects) noexcept = 0;
 
   /**
    * @brief 구현체 식별 이름.

@@ -73,32 +73,36 @@ inline mrs::ExecutionWindow make_window()
  */
 inline bool same_window(const mrs::ExecutionWindow & lhs, const mrs::ExecutionWindow & rhs)
 {
-  if (lhs.robot_id != rhs.robot_id || lhs.window_seq != rhs.window_seq ||
-      lhs.plan_epoch != rhs.plan_epoch || lhs.roadmap_version != rhs.roadmap_version ||
-      lhs.view_id != rhs.view_id || lhs.window_valid_until_s != rhs.window_valid_until_s ||
-      lhs.revision_kind != rhs.revision_kind ||
-      lhs.valid_through_segment_index != rhs.valid_through_segment_index)
+  if (
+    lhs.robot_id != rhs.robot_id || lhs.window_seq != rhs.window_seq ||
+    lhs.plan_epoch != rhs.plan_epoch || lhs.roadmap_version != rhs.roadmap_version ||
+    lhs.view_id != rhs.view_id || lhs.window_valid_until_s != rhs.window_valid_until_s ||
+    lhs.revision_kind != rhs.revision_kind ||
+    lhs.valid_through_segment_index != rhs.valid_through_segment_index)
   {
     return false;
   }
-  if (lhs.segments.size() != rhs.segments.size() ||
-      lhs.predecessor_constraints.size() != rhs.predecessor_constraints.size())
+  if (
+    lhs.segments.size() != rhs.segments.size() ||
+    lhs.predecessor_constraints.size() != rhs.predecessor_constraints.size())
   {
     return false;
   }
   for (std::size_t i = 0; i < lhs.segments.size(); ++i)
   {
-    if (lhs.segments[i].node_from != rhs.segments[i].node_from ||
-        lhs.segments[i].node_to != rhs.segments[i].node_to)
+    if (
+      lhs.segments[i].node_from != rhs.segments[i].node_from ||
+      lhs.segments[i].node_to != rhs.segments[i].node_to)
     {
       return false;
     }
   }
   for (std::size_t i = 0; i < lhs.predecessor_constraints.size(); ++i)
   {
-    if (lhs.predecessor_constraints[i].predecessor_robot_id !=
-          rhs.predecessor_constraints[i].predecessor_robot_id ||
-        lhs.predecessor_constraints[i].node_id != rhs.predecessor_constraints[i].node_id)
+    if (
+      lhs.predecessor_constraints[i].predecessor_robot_id !=
+        rhs.predecessor_constraints[i].predecessor_robot_id ||
+      lhs.predecessor_constraints[i].node_id != rhs.predecessor_constraints[i].node_id)
     {
       return false;
     }
@@ -125,7 +129,8 @@ inline std::vector<mrs::RobotPath> make_planned_paths()
       mrs::TimedNodeVisit visit;
       visit.node_id = mrs::UniformNodeId{static_cast<std::uint32_t>(10U * (robot_id + 1U) + k)};
       // 1.5 s 간격. 로봇마다 0.25 s 어긋나게 두어 로봇별 값 뒤섞임도 왕복에서 드러나게 한다.
-      visit.arrival_time_s = 2.0 + 0.25 * static_cast<double>(robot_id) + 1.5 * static_cast<double>(k);
+      visit.arrival_time_s =
+        2.0 + 0.25 * static_cast<double>(robot_id) + 1.5 * static_cast<double>(k);
       path.visits.push_back(visit);
     }
     paths.push_back(path);
@@ -154,8 +159,9 @@ inline bool same_planned_paths(
     }
     for (std::size_t k = 0; k < lhs[i].visits.size(); ++k)
     {
-      if (lhs[i].visits[k].node_id != rhs[i].visits[k].node_id ||
-          lhs[i].visits[k].arrival_time_s != rhs[i].visits[k].arrival_time_s)
+      if (
+        lhs[i].visits[k].node_id != rhs[i].visits[k].node_id ||
+        lhs[i].visits[k].arrival_time_s != rhs[i].visits[k].arrival_time_s)
       {
         return false;
       }

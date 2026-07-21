@@ -75,7 +75,7 @@ public:
 private:
   rclcpp::executors::SingleThreadedExecutor executor_; ///< 이 그룹 전용 단일 실행자
   rclcpp::Logger logger_;                              ///< 실패 보고용 로거
-  std::thread thread_;                                 ///< `executor_.spin()` 을 도는 전용 스레드
+  std::thread thread_; ///< `executor_.spin()` 을 도는 전용 스레드
 };
 
 } // namespace mrs::ros_sadg

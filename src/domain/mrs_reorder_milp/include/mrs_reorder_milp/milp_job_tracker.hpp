@@ -26,7 +26,9 @@ public:
    * @brief MILP 백엔드를 주입하며 생성한다.
    * @param[in] solver 사용할 IMilpSolver 구현체 (CBC 1순위).
    */
-  explicit MilpJobTracker(std::shared_ptr<IMilpSolver> solver) : solver_(std::move(solver)) {}
+  explicit MilpJobTracker(std::shared_ptr<IMilpSolver> solver) : solver_(std::move(solver))
+  {
+  }
   ~MilpJobTracker() = default;
 
   /**

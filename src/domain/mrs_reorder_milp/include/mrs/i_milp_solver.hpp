@@ -26,10 +26,10 @@ namespace mrs
  */
 struct SwitchableEdge
 {
-  std::uint32_t edge_index{0};                 ///< 의존성 그래프 내 엣지 인덱스
-  RobotId first_robot_id{ROBOT_ID_NONE};       ///< 현재 순서에서 먼저 가는 로봇
-  RobotId second_robot_id{ROBOT_ID_NONE};      ///< 현재 순서에서 나중 가는 로봇
-  bool is_frozen{false};                       ///< true = 이미 릴리스되어 뒤집을 수 없음 ((C3))
+  std::uint32_t edge_index{0};            ///< 의존성 그래프 내 엣지 인덱스
+  RobotId first_robot_id{ROBOT_ID_NONE};  ///< 현재 순서에서 먼저 가는 로봇
+  RobotId second_robot_id{ROBOT_ID_NONE}; ///< 현재 순서에서 나중 가는 로봇
+  bool is_frozen{false}; ///< true = 이미 릴리스되어 뒤집을 수 없음 ((C3))
 };
 
 /**
@@ -38,10 +38,10 @@ struct SwitchableEdge
  */
 struct MilpModel
 {
-  const void * dependency_graph{nullptr};   ///< mrs_depgraph 의 의존성 그래프 관측 포인터
-  std::vector<SwitchableEdge> switchables;  ///< 스위칭 후보 엣지
-  std::vector<double> node_duration_s;      ///< 각 행동 정점의 예상 소요 시간 [s]
-  double budget_s{1.0};                     ///< 해결 예산 [s]. 초과 시 현재 최선해 또는 구 순서 유지
+  const void * dependency_graph{nullptr}; ///< mrs_depgraph 의 의존성 그래프 관측 포인터
+  std::vector<SwitchableEdge> switchables; ///< 스위칭 후보 엣지
+  std::vector<double> node_duration_s;     ///< 각 행동 정점의 예상 소요 시간 [s]
+  double budget_s{1.0}; ///< 해결 예산 [s]. 초과 시 현재 최선해 또는 구 순서 유지
 };
 
 /**
@@ -49,12 +49,12 @@ struct MilpModel
  */
 enum class MilpStatus : std::uint8_t
 {
-  OPTIMAL = 0,          ///< 최적해
+  OPTIMAL = 0,             ///< 최적해
   FEASIBLE_SUBOPTIMAL = 1, ///< 예산 내 실행가능해 (gap > 0)
-  INFEASIBLE = 2,       ///< 실행가능해 없음 — 호출자는 구 순서 유지 후 상위 상향
-  BUDGET_EXCEEDED = 3,  ///< 예산 초과, 해 없음
-  CANCELLED = 4,        ///< 외부 취소
-  SOLVER_ERROR = 5      ///< 백엔드 실패
+  INFEASIBLE = 2, ///< 실행가능해 없음 — 호출자는 구 순서 유지 후 상위 상향
+  BUDGET_EXCEEDED = 3, ///< 예산 초과, 해 없음
+  CANCELLED = 4,       ///< 외부 취소
+  SOLVER_ERROR = 5     ///< 백엔드 실패
 };
 
 /**
@@ -63,10 +63,10 @@ enum class MilpStatus : std::uint8_t
 struct MilpResult
 {
   MilpStatus status{MilpStatus::SOLVER_ERROR}; ///< 종료 상태
-  std::vector<bool> switch_decision;           ///< switchables 와 동일 길이. true = 순서 반전
-  double objective_value{0.0};                 ///< 목적함수 값 (예상 총 완료시간 [s])
-  double optimality_gap{1.0};                  ///< 상대 gap [0,1]. OPTIMAL 이면 0
-  double solve_time_s{0.0};                    ///< 소요 시간 [s]
+  std::vector<bool> switch_decision; ///< switchables 와 동일 길이. true = 순서 반전
+  double objective_value{0.0};       ///< 목적함수 값 (예상 총 완료시간 [s])
+  double optimality_gap{1.0};        ///< 상대 gap [0,1]. OPTIMAL 이면 0
+  double solve_time_s{0.0};          ///< 소요 시간 [s]
 };
 
 /**

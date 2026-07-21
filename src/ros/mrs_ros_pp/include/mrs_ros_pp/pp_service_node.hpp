@@ -5,8 +5,9 @@
  * @brief pp_service — **[0a] tracer bullet 더미** L2 경로계획 노드 (D-03, architecture §7-2).
  *
  * ## 이 노드가 [0a] 에서 하는 일 / 하지 않는 일
- *  - 한다: MapRegistry 에서 균일 뷰를 받아 **고정 왕복 라우트**를 만들고(@ref mrs::ros_pp::CannedSolver),
- *    계약 표준형(`PlannedPaths` = 시각 부여 node-visit 시퀀스)으로 `/planned_paths` 에 발행한다.
+ *  - 한다: MapRegistry 에서 균일 뷰를 받아 **고정 왕복 라우트**를 만들고(@ref
+ * mrs::ros_pp::CannedSolver), 계약 표준형(`PlannedPaths` = 시각 부여 node-visit 시퀀스)으로
+ * `/planned_paths` 에 발행한다.
  *  - **하지 않는다**: 탐색·충돌회피·수신지평 운용·부분 재계획 접합. 전부 로드맵 [1]~[2] 의 일이다.
  *    이 노드는 배관(메시지 왕복 지연·계약 정합)을 재기 위한 얇은 I/O 어댑터일 뿐이다.
  *
@@ -91,8 +92,10 @@ private:
    *
    * [0a] 는 접합(splice)을 구현하지 않는다 — 응답은 "구계획 유지"로 수렴시킨다.
    *
-   * @param[in] request 부분 재계획 요청. 자료형 `mrs_interfaces::srv::PartialReplan::Request` 공유 포인터.
-   * @param[out] response 채울 응답. 자료형 `mrs_interfaces::srv::PartialReplan::Response` 공유 포인터.
+   * @param[in] request 부분 재계획 요청. 자료형 `mrs_interfaces::srv::PartialReplan::Request` 공유
+   * 포인터.
+   * @param[out] response 채울 응답. 자료형 `mrs_interfaces::srv::PartialReplan::Response` 공유
+   * 포인터.
    * @return void
    */
   void on_partial_replan(
@@ -221,7 +224,8 @@ private:
   /**
    * @brief 변환 실패 1건을 사유별로 적립하고 스로틀 로그를 남긴다 (R-15 (b) = b3).
    * @param[in] context 실패 지점 이름(로그용). 자료형 `const char *`. 예: "to_msg(PlannedPaths)".
-   * @param[in] result 변환 결과. 자료형 `mrs::convert::ConvertResult`. `ok == true` 이면 아무 일도 하지 않는다.
+   * @param[in] result 변환 결과. 자료형 `mrs::convert::ConvertResult`. `ok == true` 이면 아무 일도
+   * 하지 않는다.
    * @return void
    */
   void report_convert_failure(const char * context, const mrs::convert::ConvertResult & result);
@@ -238,12 +242,12 @@ private:
 
   // ── seam a (IPathSolver) ────────────────────────────────────────────────
   std::shared_ptr<mrs::ros_pp::CannedSolver> canned_solver_; ///< [0a] 더미 솔버 ([1] 에서 교체)
-  mrs::WindowedPathPlanner planner_;                         ///< seam a 소비자 — 운용 로직은 Phase 5
-  std::vector<mrs::ros_pp::CannedRoute> canned_routes_;      ///< 솔버에 주입한 라우트의 노드 측 사본
+  mrs::WindowedPathPlanner planner_; ///< seam a 소비자 — 운용 로직은 Phase 5
+  std::vector<mrs::ros_pp::CannedRoute> canned_routes_; ///< 솔버에 주입한 라우트의 노드 측 사본
 
   // ── 뷰 스코프 (MapRegistry 가 유일 출처) ────────────────────────────────
-  ViewScope view_scope_{};   ///< 균일 뷰 스코프. `roadmap_version == 0` 이면 미확보 상태
-  bool scope_ready_{false};  ///< 스코프·라우트 확보 여부. false 면 아무것도 발행하지 않는다
+  ViewScope view_scope_{}; ///< 균일 뷰 스코프. `roadmap_version == 0` 이면 미확보 상태
+  bool scope_ready_{false}; ///< 스코프·라우트 확보 여부. false 면 아무것도 발행하지 않는다
 
   // ── ROS 배선 ────────────────────────────────────────────────────────────
   rclcpp::Subscription<mrs_interfaces::msg::TaskAssignment>::SharedPtr task_assignment_sub_;
@@ -251,26 +255,26 @@ private:
   rclcpp::Service<mrs_interfaces::srv::PlanPaths>::SharedPtr plan_paths_srv_;
   rclcpp::Service<mrs_interfaces::srv::PartialReplan>::SharedPtr partial_replan_srv_;
   rclcpp::Client<mrs_interfaces::srv::GetUniformView>::SharedPtr uniform_view_client_;
-  rclcpp::TimerBase::SharedPtr map_query_timer_;  ///< MapRegistry 조회 재시도 (스코프 확보 후 정지)
-  rclcpp::TimerBase::SharedPtr auto_plan_timer_;  ///< 주기 재발행 (기본 비활성 — 지연 표본 채집용)
+  rclcpp::TimerBase::SharedPtr map_query_timer_; ///< MapRegistry 조회 재시도 (스코프 확보 후 정지)
+  rclcpp::TimerBase::SharedPtr auto_plan_timer_; ///< 주기 재발행 (기본 비활성 — 지연 표본 채집용)
 
   // ── 파라미터 (값의 근거는 생성자 주석 참조) ─────────────────────────────
-  int robot_count_{2};                ///< 로봇 수. [0a] = 2대 (architecture §7)
-  double segment_duration_s_{0.5};    ///< 방문 간 계획 시각 간격 [s] (문헌치 Q-11 Δt)
-  int canned_lap_count_{4};           ///< 고정 경로 왕복 횟수 — 세그먼트 수 = 2 × 이 값
-  double plan_budget_s_{1.0};         ///< 계획 예산 [s] (문헌치 — 더미는 소비하지 않는다)
-  double map_query_retry_period_s_{1.0};  ///< MapRegistry 조회 재시도 주기 [s] (배관 상수)
-  double map_query_timeout_s_{2.0};   ///< 조회 응답 대기 시한 [s]. 초과 시 pending 요청을 회수한다
-  double auto_plan_period_s_{0.0};    ///< 계획 주기 재발행 [s]. 0 = 비활성(기동 시 1회만)
+  int robot_count_{2};             ///< 로봇 수. [0a] = 2대 (architecture §7)
+  double segment_duration_s_{0.5}; ///< 방문 간 계획 시각 간격 [s] (문헌치 Q-11 Δt)
+  int canned_lap_count_{4};   ///< 고정 경로 왕복 횟수 — 세그먼트 수 = 2 × 이 값
+  double plan_budget_s_{1.0}; ///< 계획 예산 [s] (문헌치 — 더미는 소비하지 않는다)
+  double map_query_retry_period_s_{1.0}; ///< MapRegistry 조회 재시도 주기 [s] (배관 상수)
+  double map_query_timeout_s_{2.0}; ///< 조회 응답 대기 시한 [s]. 초과 시 pending 요청을 회수한다
+  double auto_plan_period_s_{0.0}; ///< 계획 주기 재발행 [s]. 0 = 비활성(기동 시 1회만)
 
   // ── MapRegistry 조회 진행 상태 ──────────────────────────────────────────
-  bool map_query_pending_{false};      ///< 응답 대기 중 여부 (중복 요청 방지)
+  bool map_query_pending_{false};        ///< 응답 대기 중 여부 (중복 요청 방지)
   std::int64_t map_query_request_id_{0}; ///< 대기 중 요청 id (`remove_pending_request` 인자)
-  double map_query_sent_at_s_{0.0};    ///< 요청 발신 시각 [s], 시뮬 시계 절대시각
+  double map_query_sent_at_s_{0.0};      ///< 요청 발신 시각 [s], 시뮬 시계 절대시각
 
   // ── 상태·계측 ───────────────────────────────────────────────────────────
-  std::uint32_t plan_epoch_{0};                  ///< 계획 세대 번호. **단조증가**(계약 L-09)
-  std::uint64_t published_plan_count_{0};        ///< 발행 성공 누적 건수 (로그·[0a] 실측 보조)
+  std::uint32_t plan_epoch_{0};           ///< 계획 세대 번호. **단조증가**(계약 L-09)
+  std::uint64_t published_plan_count_{0}; ///< 발행 성공 누적 건수 (로그·[0a] 실측 보조)
   mrs::ros_pp::ConvertDiagnostics convert_diag_; ///< 변환 실패 사유별 폐기 카운터
 
   /**

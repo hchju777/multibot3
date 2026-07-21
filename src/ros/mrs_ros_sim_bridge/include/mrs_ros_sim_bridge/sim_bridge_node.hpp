@@ -50,13 +50,13 @@
 
 #include "mrs/i_sim_backend.hpp"
 #include "mrs/view_ids.hpp"
-#include "mrs_sim_abstraction/fake_sim_backend.hpp"
 #include "mrs_interfaces/msg/robot_state.hpp"
 #include "mrs_interfaces/msg/sim_metric_sample.hpp"
 #include "mrs_interfaces/srv/sim_inject.hpp"
 #include "mrs_interfaces/srv/sim_query_capabilities.hpp"
 #include "mrs_interfaces/srv/sim_step.hpp"
 #include "mrs_msg_convert/convert_result.hpp"
+#include "mrs_sim_abstraction/fake_sim_backend.hpp"
 
 namespace mrs
 {
@@ -86,7 +86,10 @@ public:
    * @return `bool` — true 면 정상 기동. false 면 **기동 거부 대상**이며 `main()` 이 0 이 아닌
    *         종료코드로 빠져나가야 한다(미지원 백엔드·구성 오류·`reset()` 실패).
    */
-  [[nodiscard]] bool backend_ready() const noexcept { return backend_ready_; }
+  [[nodiscard]] bool backend_ready() const noexcept
+  {
+    return backend_ready_;
+  }
 
 private:
   /** @brief @ref mrs::convert::ConvertStatus 값의 개수(0..6). 사유별 카운터 배열 길이다. */
@@ -100,10 +103,10 @@ private:
    */
   struct PendingActuation
   {
-    double v_mps{0.0};                  ///< 최신 선속도 지령 [m/s]
-    double omega_rps{0.0};              ///< 최신 각속도 지령 [rad/s]
-    double received_sim_time_s{0.0};    ///< 이 지령이 도달한 시뮬 시각 [s]
-    bool ever_received{false};          ///< 한 번이라도 유효한 지령을 받았는가
+    double v_mps{0.0};               ///< 최신 선속도 지령 [m/s]
+    double omega_rps{0.0};           ///< 최신 각속도 지령 [rad/s]
+    double received_sim_time_s{0.0}; ///< 이 지령이 도달한 시뮬 시각 [s]
+    bool ever_received{false};       ///< 한 번이라도 유효한 지령을 받았는가
   };
 
   // ── 기동 ───────────────────────────────────────────────────────────────────
@@ -352,42 +355,43 @@ private:
   void log_discard_summary() const;
 
   // ── 백엔드·상태 ─────────────────────────────────────────────────────────────
-  std::shared_ptr<ISimBackend> backend_;  ///< 활성 백엔드 (seam c). 미구성이면 nullptr
-  bool backend_ready_{false};             ///< 구성·리셋까지 성공했는가 (기동 거부 판정)
-  double sim_time_s_{0.0};                ///< 시뮬 시각 정본 [s]. `step()` out 파라미터만이 갱신
-  std::uint64_t step_count_{0};           ///< `reset()` 이후 누적 스텝 수 (결정론 재현 키)
-  double last_realtime_report_sim_s_{0.0};   ///< 직전 배속 보고 시점의 시뮬 시각 [s]
-  double last_realtime_report_wall_s_{0.0};  ///< 직전 배속 보고 시점의 벽시계 시각 [s]
+  std::shared_ptr<ISimBackend> backend_; ///< 활성 백엔드 (seam c). 미구성이면 nullptr
+  bool backend_ready_{false}; ///< 구성·리셋까지 성공했는가 (기동 거부 판정)
+  double sim_time_s_{0.0};    ///< 시뮬 시각 정본 [s]. `step()` out 파라미터만이 갱신
+  std::uint64_t step_count_{0}; ///< `reset()` 이후 누적 스텝 수 (결정론 재현 키)
+  double last_realtime_report_sim_s_{0.0};  ///< 직전 배속 보고 시점의 시뮬 시각 [s]
+  double last_realtime_report_wall_s_{0.0}; ///< 직전 배속 보고 시점의 벽시계 시각 [s]
 
   std::vector<PendingActuation> pending_actuations_; ///< 로봇별 최신 지령 (인덱스 = 로봇 인덱스)
   std::unordered_map<std::string, DiscardCounters> discard_counts_; ///< 지점별·사유별 폐기 카운터
-  std::uint64_t watchdog_stop_count_{0};   ///< 워치독이 정지 지령으로 대체한 횟수(누적)
-  std::uint64_t rejected_cmd_vel_count_{0};///< 비유한 지령으로 폐기한 `cmd_vel` 수(누적)
+  std::uint64_t watchdog_stop_count_{0}; ///< 워치독이 정지 지령으로 대체한 횟수(누적)
+  std::uint64_t rejected_cmd_vel_count_{0}; ///< 비유한 지령으로 폐기한 `cmd_vel` 수(누적)
 
   /** @brief 로그 스로틀·벽시계 계측 전용 시계. 시뮬 시계가 멈춰도 스로틀이 굳지 않게 한다. */
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
 
   // ── 파라미터 ────────────────────────────────────────────────────────────────
-  int robot_count_{2};                     ///< 로봇 수 ([0a] = 2)
-  std::string sim_backend_{"fake"};        ///< 백엔드 선택 문자열 ("fake" | "pysim" | "isaac")
-  double sim_step_s_{0.05};                ///< 시뮬 스텝 dt [s] — **[0a] 실측 대상 placeholder**
-  double step_wall_period_s_{0.05};        ///< 자동 스텝의 벽시계 주기 [s] — **[0a] 실측 대상**
-  double clock_publish_wall_period_s_{0.01};///< `/clock` 재발행 벽시계 주기 [s]
-  bool auto_step_{true};                   ///< true = 벽시계 타이머가 세계를 굴린다
-  double cmd_vel_timeout_s_{0.5};          ///< 워치독 상한 [s] — **[0a] 실측 대상 placeholder**
-  double realtime_report_period_s_{1.0};   ///< 배속 지표 보고 주기(시뮬 시각 기준) [s]
-  std::int64_t sim_seed_{0};               ///< 백엔드 시드(결정론 재현 키)
-  double robot_radius_m_{0.3};             ///< 로봇 반지름 [m] (기하 충돌 판정 전용)
-  double node_attach_radius_m_{0.25};      ///< 노드 부착 반경 [m]
-  double actuate_to_state_latency_s_{0.0}; ///< actuate → 상태 반영 지연 [s] (누수 조기 발견용 스윕축)
-  std::vector<double> initial_x_m_;        ///< 로봇별 초기 x [m] (길이 = robot_count)
-  std::vector<double> initial_y_m_;        ///< 로봇별 초기 y [m]
-  std::vector<double> initial_theta_rad_;  ///< 로봇별 초기 방위각 [rad], `[-pi, pi]`
-  std::int64_t view_roadmap_version_{1};   ///< 관측이 실을 지도 버전 (0 = 런타임 금지값)
-  std::int64_t view_uniform_view_id_{0};   ///< 관측이 실을 균일 뷰 id
+  int robot_count_{2};              ///< 로봇 수 ([0a] = 2)
+  std::string sim_backend_{"fake"}; ///< 백엔드 선택 문자열 ("fake" | "pysim" | "isaac")
+  double sim_step_s_{0.05};         ///< 시뮬 스텝 dt [s] — **[0a] 실측 대상 placeholder**
+  double step_wall_period_s_{0.05}; ///< 자동 스텝의 벽시계 주기 [s] — **[0a] 실측 대상**
+  double clock_publish_wall_period_s_{0.01}; ///< `/clock` 재발행 벽시계 주기 [s]
+  bool auto_step_{true};                     ///< true = 벽시계 타이머가 세계를 굴린다
+  double cmd_vel_timeout_s_{0.5}; ///< 워치독 상한 [s] — **[0a] 실측 대상 placeholder**
+  double realtime_report_period_s_{1.0}; ///< 배속 지표 보고 주기(시뮬 시각 기준) [s]
+  std::int64_t sim_seed_{0};             ///< 백엔드 시드(결정론 재현 키)
+  double robot_radius_m_{0.3};           ///< 로봇 반지름 [m] (기하 충돌 판정 전용)
+  double node_attach_radius_m_{0.25};    ///< 노드 부착 반경 [m]
+  double actuate_to_state_latency_s_{
+    0.0}; ///< actuate → 상태 반영 지연 [s] (누수 조기 발견용 스윕축)
+  std::vector<double> initial_x_m_;       ///< 로봇별 초기 x [m] (길이 = robot_count)
+  std::vector<double> initial_y_m_;       ///< 로봇별 초기 y [m]
+  std::vector<double> initial_theta_rad_; ///< 로봇별 초기 방위각 [rad], `[-pi, pi]`
+  std::int64_t view_roadmap_version_{1}; ///< 관측이 실을 지도 버전 (0 = 런타임 금지값)
+  std::int64_t view_uniform_view_id_{0}; ///< 관측이 실을 균일 뷰 id
 
-  ViewScope observation_scope_;            ///< 관측·주입에 쓰는 뷰 스코프(종류 UNIFORM)
-  ViewScope physical_scope_;               ///< `SimInject.target_edge_id` 랩용 스코프(종류 PHYSICAL)
+  ViewScope observation_scope_; ///< 관측·주입에 쓰는 뷰 스코프(종류 UNIFORM)
+  ViewScope physical_scope_;    ///< `SimInject.target_edge_id` 랩용 스코프(종류 PHYSICAL)
 
   // ── ROS 배선 ────────────────────────────────────────────────────────────────
   rclcpp::CallbackGroup::SharedPtr backend_group_; ///< 백엔드 접근을 직렬화하는 상호배타 그룹

@@ -114,8 +114,7 @@ namespace
 } // namespace
 
 ConvertResult to_msg(
-  const mrs::ExecutionWindow & window, double stamp_s,
-  mrs_interfaces::msg::ExecutionWindow & out)
+  const mrs::ExecutionWindow & window, double stamp_s, mrs_interfaces::msg::ExecutionWindow & out)
 {
   // ① 스코프 자기 유효성 — 0 이 나가면 V3 를 지키는 수신자가 100% 폐기한다.
   //    종류는 계약이 UNIFORM 으로 고정하므로(정본표 L-01 행) 여기서 공급한다.
@@ -160,7 +159,8 @@ ConvertResult to_msg(
   }
 
   builtin_interfaces::msg::Time valid_until;
-  const ConvertResult valid_until_result = seconds_to_time(window.window_valid_until_s, valid_until);
+  const ConvertResult valid_until_result =
+    seconds_to_time(window.window_valid_until_s, valid_until);
   if (!valid_until_result.ok)
   {
     return valid_until_result;
@@ -573,8 +573,7 @@ ConvertResult from_msg(
 }
 
 ConvertResult to_msg(
-  const std::vector<mrs::FrozenOrder> & orders,
-  std::vector<mrs_interfaces::msg::FrozenOrder> & out)
+  const std::vector<mrs::FrozenOrder> & orders, std::vector<mrs_interfaces::msg::FrozenOrder> & out)
 {
   (void)orders;
   (void)out;

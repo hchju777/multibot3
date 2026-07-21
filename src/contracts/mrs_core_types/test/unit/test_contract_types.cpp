@@ -22,7 +22,8 @@
 // WINDOW_EXPIRING 만이 SOFT 다 — "실행은 가능하나 여유가 줄고 있다".
 TEST(SeverityOf, WindowExpiringIsSoft)
 {
-  EXPECT_EQ(mrs::severity_of(mrs::EscalationReason::WINDOW_EXPIRING), mrs::EscalationSeverity::SOFT);
+  EXPECT_EQ(
+    mrs::severity_of(mrs::EscalationReason::WINDOW_EXPIRING), mrs::EscalationSeverity::SOFT);
 }
 
 // 나머지 4종은 전부 HARD. 하나라도 SOFT 로 새면 사다리가 즉시 대응해야 할 사건을 지연시킨다.
@@ -94,9 +95,9 @@ TEST(ContractEnums, RevisionKindValuesMatchContract)
 
 TEST(ContractSentinels, IdSentinelsMatchContract)
 {
-  EXPECT_EQ(mrs::ROBOT_ID_NONE, 65535U);      // 2^16 - 1
-  EXPECT_EQ(mrs::NODE_ID_NONE, 4294967295U);  // 2^32 - 1
-  EXPECT_EQ(mrs::EDGE_ID_NONE, 4294967295U);  // 2^32 - 1
+  EXPECT_EQ(mrs::ROBOT_ID_NONE, 65535U);     // 2^16 - 1
+  EXPECT_EQ(mrs::NODE_ID_NONE, 4294967295U); // 2^32 - 1
+  EXPECT_EQ(mrs::EDGE_ID_NONE, 4294967295U); // 2^32 - 1
   EXPECT_EQ(mrs::EVENT_ID_UNASSIGNED, 0U);
 }
 

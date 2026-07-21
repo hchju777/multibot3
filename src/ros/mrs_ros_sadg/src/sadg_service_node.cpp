@@ -139,10 +139,7 @@ constexpr int LOG_THROTTLE_MS = 5000;
 } // namespace
 
 SadgServiceNode::SadgServiceNode()
-: rclcpp::Node("sadg_service"),
-  btpg_tracker_(nullptr),
-  milp_tracker_(nullptr),
-  judge_(nullptr)
+    : rclcpp::Node("sadg_service"), btpg_tracker_(nullptr), milp_tracker_(nullptr), judge_(nullptr)
 {
   // ── 파라미터 ─────────────────────────────────────────────────────────────
   // 값의 성격 3구분: (문헌치) 이론·계약이 준 값 / (배관) 실행 편의 상수 /
@@ -236,9 +233,8 @@ SadgServiceNode::SadgServiceNode()
     const std::string ns = "/robot_" + std::to_string(index);
     const std::size_t robot_index = static_cast<std::size_t>(index);
 
-    execution_window_pubs_.push_back(
-      this->create_publisher<mrs_interfaces::msg::ExecutionWindow>(
-        ns + "/execution_window", window_qos));
+    execution_window_pubs_.push_back(this->create_publisher<mrs_interfaces::msg::ExecutionWindow>(
+      ns + "/execution_window", window_qos));
 
     escalation_report_subs_.push_back(
       this->create_subscription<mrs_interfaces::msg::EscalationReport>(
@@ -529,8 +525,9 @@ void SadgServiceNode::apply_planned_paths(
   }
 
   RCLCPP_INFO(
-    this->get_logger(), "[0a] 계획 반영: plan_epoch=%u robots=%zu segments=%zu — 릴리스 대기열 갱신",
-    plan_epoch, updated_robots, total_segments);
+    this->get_logger(),
+    "[0a] 계획 반영: plan_epoch=%u robots=%zu segments=%zu — 릴리스 대기열 갱신", plan_epoch,
+    updated_robots, total_segments);
 }
 
 // `plan_epoch` 은 봉투 필드라 변환 결과에 실리지 않는다(계약 §0.3) — 메시지에서 직접 읽는다.

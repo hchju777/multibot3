@@ -139,9 +139,9 @@ private:
 
   rclcpp::CallbackGroup::SharedPtr timer_callback_group_; ///< MutuallyExclusive (nav2 §2-A1)
   rclcpp::Publisher<mrs_interfaces::msg::PlanTick>::SharedPtr tick_pub_; ///< `/plan_tick` 발행자
-  rclcpp::TimerBase::SharedPtr sample_timer_;                            ///< 샘플 타이머(노드 시계)
+  rclcpp::TimerBase::SharedPtr sample_timer_; ///< 샘플 타이머(노드 시계)
 
-  double replan_period_s_{0.1};      ///< Δt_h [s]. 계약 L-15 기본값 0.1 (theory T1 §6.1)
+  double replan_period_s_{0.1}; ///< Δt_h [s]. 계약 L-15 기본값 0.1 (theory T1 §6.1)
   double tick_sample_period_s_{0.0}; ///< 샘플 주기 [s] — 발행 정확도와 무관한 관측 주기
 
   /**
