@@ -1,0 +1,23 @@
+# TransformNode.srv — 노드 ↔ 연속 좌표 변환 (MapRegistry, D-11 무손실 요건)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /map_registry/transform_node
+# 사용 규율(Q-6): L4 실시간 루프는 이 서비스를 **호출하지 않는다**. GetRoadmap/GetUniformView 로
+#   받은 표를 roadmap_version 키로 캐시해 인프로세스로 변환한다. 이 서비스는 초기화·검증·
+#   저빈도 경로 전용이다. 매 제어 주기 호출은 계약 위반으로 간주한다.
+
+uint8 MODE_NODE_TO_POSE=0
+uint8 MODE_POSE_TO_NODE=1
+uint8 mode
+uint64 roadmap_version   # 변환 기준 버전. 불일치 시 STALE_VERSION
+uint32 view_id           # 노드 id 가 속한 뷰. 물리 roadmap 은 0
+uint32[] node_ids        # MODE_NODE_TO_POSE 일 때 사용
+Pose2D[] poses           # MODE_POSE_TO_NODE 일 때 사용 (theta 는 무시)
+---
+uint8 RESULT_OK=0
+uint8 RESULT_STALE_VERSION=1
+uint8 RESULT_NOT_FOUND=2     # 대응 노드/좌표 없음 — 부분 결과는 반환하지 않는다
+uint8 result
+Pose2D[] poses           # MODE_NODE_TO_POSE 결과 [m], map. theta 는 0
+uint32[] node_ids        # MODE_POSE_TO_NODE 결과 (최근접 노드)
+float64[] residual_m     # MODE_POSE_TO_NODE 의 잔차 거리 [m]. 무손실 검증 지표(통과 기준 0)

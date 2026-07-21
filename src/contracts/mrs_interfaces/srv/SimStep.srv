@@ -1,0 +1,16 @@
+# SimStep.srv — 시뮬 시간 명시적 전진 (sim-abstraction: step/advance)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /sim/step   호출자: bench_runner (D-09), tracer bullet 러너
+# 근거: sim-abstraction(이산 스텝·결정론·시드 고정), architecture §5.2
+#       "Step 은 **명시적 시간 전진**이다. 코어가 '지금 곧바로 반영됨'을 전제하지 않도록
+#        actuate 와 상태 반영 사이 지연을 백엔드 파라미터로 노출한다."
+
+uint32 steps          # 전진할 스텝 수. 0 = 1 스텝
+---
+uint8 RESULT_OK=0
+uint8 RESULT_BACKEND_ERROR=1
+uint8 result
+builtin_interfaces/Time sim_time   # 전진 후 시뮬 시각
+uint64 step_count                  # 리셋 이후 누적 스텝 수 (결정론 재현 키)
+string message

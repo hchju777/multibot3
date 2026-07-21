@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_sim_pysim</name>
+  <version>0.1.0</version>
+  <description>pysim 백엔드 프로세스 — 경량·물리 최소·이산·결정론(시드 고정). ISimBackend(seam c) 계약과 같은 형태(별도 프로세스)로 지금부터 둔다 — isaac 부착 시 프로세스 경계가 새로 등장하지 않게 하기 위함(architecture C2, §2.5-a).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <depend>rclpy</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

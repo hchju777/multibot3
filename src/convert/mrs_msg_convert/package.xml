@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_msg_convert</name>
+  <version>0.1.0</version>
+  <description>도메인 타입 &lt;-&gt; mrs_interfaces 메시지 변환의 유일한 장소 (architecture L2). ros/ 패키지는 이 패키지를 통해서만 mrs_interfaces 와 도메인 타입을 오간다.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mrs_core_types</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_map_registry</depend>
+  <depend>mrs_planning</depend>
+  <depend>mrs_depgraph</depend>
+  <depend>mrs_reorder_btpg</depend>
+  <depend>mrs_reorder_milp</depend>
+  <depend>mrs_judge</depend>
+  <depend>mrs_task_alloc</depend>
+  <depend>mrs_ladder</depend>
+  <depend>mrs_local_traj</depend>
+  <depend>mrs_sim_abstraction</depend>
+  <depend>mrs_metrics</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

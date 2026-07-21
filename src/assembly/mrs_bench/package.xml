@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_bench</name>
+  <version>0.1.0</version>
+  <description>bench_runner — D-09 시나리오 러너, baseline 구성(seam e/f 전략 교체), 결함주입 드라이버(§4.3). 연구 산출 경로를 시스템 런타임과 분리한다(architecture §1.1).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_msg_convert</depend>
+  <depend>mrs_metrics</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

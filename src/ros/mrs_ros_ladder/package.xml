@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_ladder</name>
+  <version>0.1.0</version>
+  <description>ladder_orchestrator — R0-&gt;R5 상태기계 오케스트레이션 (D-08). HARD 트리거는 R2 MILP 블로킹과 무관하게 즉시 라우팅돼야 하므로 sadg_service 와 분리(architecture §1.1). operator_alarm 페이로드는 자리만(U-08, 대시보드 의도적 유보) — 발행자 미생성.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_msg_convert</depend>
+  <depend>mrs_ladder</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

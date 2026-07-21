@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_bringup</name>
+  <version>0.1.0</version>
+  <description>mrs_bringup — Composition Root (architecture-patterns.md §4). launch/param/백엔드·솔버 선택. 기동 거부 검사 R-A2(Δt_h 가 시뮬 스텝 dt 의 정수배)를 실제로 구현한다 (design-decision v5 예외 2건 중 1건).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_core_types</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <!-- launch/_common.launch.py 가 Node(package=...) 로 참조하는 실행 패키지들.
+       ros2 launch 시점 탐색을 위한 런타임 의존 — CMake 빌드 의존은 아니다. -->
+  <exec_depend>mrs_ros_map_registry</exec_depend>
+  <exec_depend>mrs_ros_ta</exec_depend>
+  <exec_depend>mrs_ros_pp</exec_depend>
+  <exec_depend>mrs_ros_sadg</exec_depend>
+  <exec_depend>mrs_ros_ladder</exec_depend>
+  <exec_depend>mrs_ros_plan_tick</exec_depend>
+  <exec_depend>mrs_ros_sim_bridge</exec_depend>
+  <exec_depend>mrs_ros_l4</exec_depend>
+  <exec_depend>mrs_ros_comms_emul</exec_depend>
+  <exec_depend>mrs_sim_pysim</exec_depend>
+  <exec_depend>mrs_sim_isaac</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

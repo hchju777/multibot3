@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_pp</name>
+  <version>0.1.0</version>
+  <description>pp_service — L2 windowed-lifelong 경로계획 (D-03). PlanPaths.srv/PartialReplan.srv 응답, /planned_paths 발행. 콜백 안에 알고리즘 없음 — 전부 mrs_planning 위임.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_msg_convert</depend>
+  <depend>mrs_planning</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_core_types</name>
+  <version>0.1.0</version>
+  <description>
+    계약 레지스트리의 ROS 무관 값 타입 (contract_types.hpp). architecture 제약 C1 —
+    rclcpp·mrs_interfaces 에 의존하지 않는다. 전 L1 순수 도메인 패키지의 공통 기반.
+    헤더 전용(header-only) 패키지.
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

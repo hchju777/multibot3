@@ -1,0 +1,38 @@
+# PartialReplan.srv — R3 부분 재계획 요청 (ladder_orchestrator → pp_service)
+#
+# 계약 버전: 1.0.0
+# 근거: D-03(영향 로봇 부분집합 + 커밋 경계 시작 상태), D-03 v3 정정(커밋 경계 = 정의 T2.1),
+#       theory T2 §4(정리 T2.2 축약 판정 · (C3) 무역전), T2-R1(theta), T2-R2(frozen_orders),
+#       T3-R3(event_id)
+# 서비스명: /pp_service/partial_replan   호출자: ladder_orchestrator (judge 승격 또는 하드 트리거)
+#
+# 호출 전제(호출자 책임 — 위반 시 응답 REJECTED_NOT_CONTRACTIBLE):
+#   affected_robots 는 judge 의 직접 영향 집합 D 가 아니라, **A4(contractible)를 통과한 확장
+#   영향 집합 A** 여야 한다(T2 §4.3 AffectedSetClosure). 순진한 D 를 그대로 넘기면 접합 후
+#   순환이 생길 수 있다.
+# 응답 후 처리(L3 책임): 접합 전 A3(no_orphan) · A5(acyclic_after) · A6(no_reversal) 검사,
+#   그리고 G-eps 수용 가드(T3-R1) 통과 시에만 릴리스. 거부 시 구계획 유지(RungEvent
+#   TRANSITION_GUARD_REJECT).
+
+uint64 event_id            # 교란 상관 키. 0 금지
+uint16[] affected_robots   # 영향 집합 A. 비어 있으면 REJECTED
+CommitState[] commit_states # affected_robots 와 **같은 길이·같은 순서**. 정의 T2.1 의 시작 상태
+FrozenOrder[] frozen_orders # (C3) 강제용. 비어 있어도 유효하나 릴리스된 교차 순서가 있으면 필수
+uint64 roadmap_version     # 기준 지도 버전
+uint32 view_id             # 기준 균일 뷰 id (입도 정합 — Q-7)
+uint32 base_plan_epoch     # 접합 대상 구계획의 epoch
+float64 budget_s           # 계획 예산 [s]. 초과 시 부분해/구계획 유지로 폴백(D-03 §1.6 예산 규율)
+---
+uint8 RESULT_ACCEPTED=0                 # paths 유효
+uint8 RESULT_INFEASIBLE=1               # 해 없음 → 호출자는 R4 로 상향
+uint8 RESULT_BUDGET_EXCEEDED=2          # 예산 초과, paths 비었거나 부분해 → 구계획 유지
+uint8 RESULT_STALE_VERSION=3            # roadmap_version/view_id/base_plan_epoch 불일치
+uint8 RESULT_REJECTED_FROZEN_CONFLICT=4 # frozen_orders 를 만족하는 해가 없음 → A 확장 후 재시도
+uint8 RESULT_REJECTED_BAD_REQUEST=5     # 길이 불일치·빈 집합 등 요청 형식 위반
+uint8 result
+
+RobotPath[] paths          # RESULT_ACCEPTED 일 때만 유효. 각 경로의 첫 visit 은 해당 로봇의
+                           # commit_states[k].boundary_node 와 **일치해야 한다**(A2 no_retreat)
+uint32 plan_epoch          # 신규 계획 세대 번호
+float64 planning_time_s    # 실제 소요 [s] — D-03 verification(부분 vs 전역 planning time) 원천
+string message             # 진단용. 기계 판정에 쓰지 말 것

@@ -1,0 +1,25 @@
+# PlanPaths.srv — L2 전역/신규 경로계획 요청 (ta_service·ladder_orchestrator → pp_service)
+#
+# 계약 버전: 1.0.0
+# 근거: D-03(windowed-lifelong 운용 + 이벤트 구동 호출), architecture I-6
+# 서비스명: /pp_service/plan_paths
+# 예산 규율: budget_s 는 솔버 IF 에 인자로 전달되며(architecture §1.6), 초과 시 부분해 또는
+#            이전 해 유지로 폴백한다 — 예외를 던져 노드를 죽이지 않는다(CLAUDE.md 규율 2).
+
+uint64 event_id                # 0 = 정기/신규 작업 도착
+PlanRequestEntry[] entries     # 계획 대상 로봇별 시작·목표
+uint32 horizon_w               # 수신지평 창 크기 w [스텝]. 0 = 솔버 기본값
+uint64 roadmap_version
+uint32 view_id                 # 균일 뷰 id (LaCAM 계열 단위시간 전제 충족 뷰 — D-11 v2)
+float64 budget_s               # 계획 예산 [s]. 확정서 realtime_requirement = ≤1.0 s/스텝
+---
+uint8 RESULT_ACCEPTED=0
+uint8 RESULT_INFEASIBLE=1
+uint8 RESULT_BUDGET_EXCEEDED=2  # paths 는 부분해이거나 비어 있음
+uint8 RESULT_STALE_VERSION=3
+uint8 result
+RobotPath[] paths
+uint32 plan_epoch
+float64 planning_time_s
+string solver_name              # 사용된 IPathSolver 구현 이름 ("lllg"|"rhcr"|"pibt"|"canned"…)
+string message

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_reorder_milp</name>
+  <version>0.1.0</version>
+  <description>SADG 스위칭 MILP 모델링 (R2, D-04). IMilpSolver(seam d)·IReorderR2 포트 소유. CBC 링크는 Phase 5(1순위, impl-feasibility 확정) — 스캐폴딩은 포트만. ROS 무의존(C1).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mrs_core_types</depend>
+  <depend>mrs_depgraph</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

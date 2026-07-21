@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_analysis</name>
+  <version>0.1.0</version>
+  <description>로그-&gt;지표 오프라인 파이프라인 — 반복 실험 집계, 95% CI, paired-t 검정 (D-09, §2.5-b). 런타임 무관 도구. pandas/scipy 가 C++ 대비 압도적으로 우월한 유일한 3곳 중 하나.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>python3-pandas</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

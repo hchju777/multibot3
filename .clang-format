@@ -1,0 +1,59 @@
+# .clang-format — multibot3 C++ 코딩 규율의 기계 강제 (CLAUDE.md 코드 작성 규율 5~6)
+#
+# 핵심: Allman 스타일(여는 중괄호는 항상 새 줄 — 함수·클래스·if/else/for/while/namespace
+# 예외 없이) + PascalCase 타입 / snake_case 함수·변수 / trailing '_' 멤버변수 / UPPER_SNAKE 상수.
+# clang-format 은 개행·들여쓰기·중괄호 배치만 강제한다 — 명명 규칙(PascalCase 등)은
+# clang-format 의 책임 범위 밖이라 코드 리뷰(reviewer 에이전트)가 별도로 확인한다.
+#
+# 적용: clang-format -i <file>  (또는 에디터 저장 시 자동 적용 — .vscode/settings.json 참조)
+# 검증: clang-format --dry-run --Werror <file>
+
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+
+# ── Allman: 모든 중괄호를 새 줄에 (CLAUDE.md 규율 5 — 예외 없이) ──────────────────────────
+BreakBeforeBraces: Allman
+
+# 짧은 블록도 한 줄로 접지 않는다 — Allman 의 "여는 중괄호는 항상 새 줄"을
+# if/함수/람다에서도 예외 없이 지키기 위함.
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+
+# ── 들여쓰기·폭 ───────────────────────────────────────────────────────────────────────
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100
+AccessModifierOffset: -2
+NamespaceIndentation: None
+IndentCaseLabels: true
+ContinuationIndentWidth: 2
+
+# ── 포인터·참조 정렬 (타입에 붙임 — "int * x"가 아니라 헤더 선언 스타일과 일치) ────────────
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# ── 정렬·줄바꿈 ───────────────────────────────────────────────────────────────────────
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: Align
+AlignTrailingComments: true
+BinPackArguments: true
+BinPackParameters: true
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+Cpp11BracedListStyle: true
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+
+# ── 예외 규율 지원(CLAUDE.md 규율 2) — try/catch 도 Allman 로 감싸진다(위 옵션이 이미 강제) ──
+SpaceAfterCStyleCast: false
+DerivePointerAlignment: false

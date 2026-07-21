@@ -1,0 +1,39 @@
+# ValidateMap.srv — roadmap 정적 검사기 3종 (MapRegistry, D-11 + theory T1-R5)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /map_registry/validate_map
+# 호출 시점: **맵 로드 시점**(bringup) 및 R3 부분 재계획 후 재검사(T3-R4, O-T3-3 대비).
+#
+# 검사기 3종:
+#  1. well-formed   — 비작업 엔드포인트 >= 로봇 수, 엔드포인트 간 타 엔드포인트 회피 경로 존재
+#                     (lifelong-mapd-2017 Def.1) = 완주 분해 조건 ①
+#  2. biconnected류 — 인접 노드쌍이 단순 사이클에 속함(막다른 골목 금지)
+#                     (pibt-2019 Thm 2 reachability 전제) = 완주 분해 조건 ②'
+#  3. 통로 폭       — W_min > 2(r + v_max/omega_max)  [theory T1 §4.2 조건 N2, v3 신설]
+#                     + 세분화 입도 하한 l_unit >= 2(r + L)
+#  ⚠ 3번을 강제하지 않은 채 F5 를 돌리면 **그 실험은 T1 이론을 검증하지 않는다**(theory §9).
+
+uint64 roadmap_version
+uint32 view_id            # 입도 검사 대상 뷰. 0 = 물리 roadmap만 검사
+uint16 robot_count        # well-formed 검사의 로봇 수
+float64 robot_radius_m    # r [m]
+float64 v_max_mps         # v_max [m/s]
+float64 omega_max_rps     # omega_max [rad/s]
+float64 nid_offset_l_m    # NID 오프셋 L [m]. R_min <= L < W_min/2 − r 이어야 한다
+---
+uint8 RESULT_PASS=0
+uint8 RESULT_FAIL=1
+uint8 RESULT_STALE_VERSION=2
+uint8 result
+
+bool well_formed              # 검사기 1
+bool biconnected              # 검사기 2
+bool corridor_width_ok        # 검사기 3 (통로 폭)
+bool unit_granularity_ok      # 검사기 3 (세분화 입도 하한)
+
+uint32[] violating_node_ids   # 위반 노드
+uint32[] violating_edge_ids   # 위반 엣지 (통로 폭 미달 구간)
+float64 required_min_width_m  # 2(r + v_max/omega_max) [m] — 요구 최소 통로 폭
+float64 derated_v_max_mps     # 위반 구간에 적용될 디레이팅 속도 (W_min/2 − r)*omega_max [m/s].
+                              # 정책상 '거부' 대신 '디레이팅'을 택할 때 사용
+string[] messages             # 사람이 읽을 위반 설명

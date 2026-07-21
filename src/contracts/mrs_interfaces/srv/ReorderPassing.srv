@@ -1,0 +1,38 @@
+# ReorderPassing.srv — L3 통행순서 재조정 요청 (R1 BTPG / R2 SADG MILP)
+#
+# 계약 버전: 1.0.0
+# 근거: D-04(2단 게이팅), D-04 v2(게이팅 = 시도횟수/개선폭, btpg_module 내부 카운터),
+#       architecture §1.1(R1·R2·judge·릴리스는 한 노드), Q-3(MILP 블로킹 격리)
+#
+# ── Q-2 답: **스키마는 srv 로 잠그되, 기본 바인딩은 프로세스 내 호출** ──────────────────
+#  확정서 §1.1·D-04 가 `ReorderPassing.srv` 로 열거하므로 srv 정의를 계약에 등록한다(문언 준수).
+#  다만 R1·R2·judge·릴리스가 같은 노드에 있으므로(architecture §1.1 통합 근거) **기본 전송은
+#  프로세스 내 호출**(`IReorderR1`/`IReorderR2` 포트, 같은 필드 집합)이며, ROS 서비스 어댑터는
+#  관측성·리플레이가 필요할 때 bringup param `reorder_transport: inproc|service` 로 켠다.
+#  두 바인딩의 **필드·의미론은 동일**해야 하며, 다르면 계약 위반이다.
+#
+# ── Q-3 답: 이 호출은 **비블로킹 접수(ack)** 다 ────────────────────────────────────────
+#  응답은 "접수했다/거부한다"까지만이며 재조정 결과는 응답에 실리지 않는다. R2 MILP 는 별도
+#  워커 스레드에서 수행되고, 결과는 (i) 갱신된 의존성 그래프에 반영된 뒤 ExecutionWindow
+#  릴리스로, (ii) 계측은 RungEvent(reorder_job_id 를 detail 에 병기)로 관측된다.
+#  이 규약이 없으면 MILP 가 릴리스 콜백을 막아 D-05 창 소비율 지표가 오염된다.
+#
+# ⚠ **slack_estimate 를 넣지 마라** — btpg_module ↔ judge_module 독립성이 D-04 v2 의 핵심
+#    결정이며(F2·F3 교락 방지), 이 필드의 추가는 확정서 v2 결정의 조용한 되돌림이다.
+
+uint64 event_id
+uint8 TIER_R1_BTPG=0
+uint8 TIER_R2_MILP=1
+uint8 tier                 # 어느 가로대의 재조정을 요청하는가
+uint16[] scope_robots      # 재조정 범위 로봇 집합. 비면 전역(현 의존성 그래프 전체)
+uint32 attempt_count       # 이 event_id 에 대한 해당 tier 시도 횟수 (D-04 v2 게이팅 카운터)
+uint32 base_plan_epoch     # 대상 계획 세대
+float64 budget_s           # 처리 예산 [s]. 초과 시 워커는 중단하고 구 순서 유지(안전 폴백)
+---
+uint8 RESULT_ACCEPTED=0        # 접수됨. 결과는 릴리스·RungEvent 로 관측
+uint8 RESULT_REJECTED_BUSY=1   # 동일 tier 작업이 이미 진행 중
+uint8 RESULT_REJECTED_SCOPE=2  # scope_robots 가 현재 그래프에 없음
+uint8 RESULT_REJECTED_STALE=3  # base_plan_epoch 불일치
+uint8 result
+uint64 reorder_job_id          # 접수 식별자. RESULT_ACCEPTED 일 때만 유효(0 아님)
+string message

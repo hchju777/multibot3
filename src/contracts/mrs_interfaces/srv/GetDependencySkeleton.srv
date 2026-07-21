@@ -1,0 +1,17 @@
+# GetDependencySkeleton.srv — L3용 collapse 골격 조회 (MapRegistry, D-11 v2)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /map_registry/get_dependency_skeleton
+# 근거: D-11 v2 (iii) — 차수 2 체인의 중간 가상 노드는 추월·교차가 불가해 의존성 결정점이
+#       아니므로 collapse 한다. SADG/BTPG 그래프 팽창(→R2 MILP 비용 증가)을 막기 위함.
+#       왕복(세분화↔collapse) 무손실은 D-11 검증 대상이며 unit 티어 필수 테스트다.
+
+uint32 view_id           # 대상 균일 뷰 id
+---
+uint8 RESULT_OK=0
+uint8 RESULT_UNKNOWN_VIEW=1
+uint8 result
+uint32 view_id
+RoadmapNode[] nodes      # collapse 후 골격 노드
+RoadmapEdge[] edges
+NodeMapping[] collapse_map  # 균일 뷰 노드 → 골격 노드. 역방향 복원이 가능해야 한다(무손실)

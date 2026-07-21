@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_sim_bridge</name>
+  <version>0.1.0</version>
+  <description>sim_bridge — actuate/sense/inject/metrics-tap 의 유일 통로 (architecture §5.1). ISimBackend(seam c) 뒤에 pysim|isaac|fake 백엔드를 숨긴다. 시뮬 티어에서 /clock 유일 발행자.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_msg_convert</depend>
+  <depend>mrs_sim_abstraction</depend>
+  <depend>geometry_msgs</depend>
+  <depend>rosgraph_msgs</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

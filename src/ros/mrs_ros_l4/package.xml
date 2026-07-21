@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_l4</name>
+  <version>0.1.0</version>
+  <description>l4_traj_node — 로봇 온보드 분산 궤적최적화 (D-07, D-05). 사다리 최하단 R0. 기동 시 /plan_tick 발행자 수를 검사해 2개 이상이면 기동을 거부한다(R-05, 실제 구현).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+  <depend>mrs_msg_convert</depend>
+  <depend>mrs_local_traj</depend>
+  <depend>mrs_core_types</depend>
+  <depend>geometry_msgs</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

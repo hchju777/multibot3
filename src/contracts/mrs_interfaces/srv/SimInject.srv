@@ -1,0 +1,30 @@
+# SimInject.srv — 결함·교란 주입 훅 (sim-abstraction: inject)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /sim/inject   호출자: bench_runner
+# 근거: sim-abstraction(inject 는 백엔드 공통 포트 — 시나리오가 백엔드 교체에 안 흔들리게),
+#       06_implementation-requirements §4.3(교란 주입기 목록이 그대로 enum 이 된다),
+#       D-08 F6(통로 간헐 개폐 = 명제 T3.2 반례 조건), D-10(통신 T·손실·지연)
+#
+# ⚠ 통신 지연·손실은 백엔드가 아니라 comms_emul 노드가 담당할 수도 있다. 어느 경로를 쓰든
+#   **시나리오 스크립트는 이 enum 하나만 안다** — 그것이 이 계약의 목적이다.
+
+uint8 FAULT_COMM_DELAY=0      # 통신 지연 [magnitude = 초]
+uint8 FAULT_COMM_DROP=1       # 패킷 손실 [magnitude = 손실률 0..1]
+uint8 FAULT_CORRIDOR_CLOSE=2  # 통로(엣지) 폐쇄
+uint8 FAULT_CORRIDOR_OPEN=3   # 통로 재개방
+uint8 FAULT_ROBOT_STALL=4     # 로봇 일시 정지 [duration_s]
+uint8 FAULT_ROBOT_FAULT=5     # 로봇 영구 고장 (R4 HARD 트리거 유발)
+uint8 fault_kind
+
+uint16 target_robot_id   # 대상 로봇. 65535 = 해당 없음/전역
+uint32 target_edge_id    # 대상 엣지 (통로 개폐). 4294967295 = 해당 없음
+float64 magnitude        # 결함 강도. 단위는 fault_kind 별 위 주석 참조
+float64 duration_s       # 지속 시간 [s]. 0 = 해제 전까지 지속
+---
+uint8 RESULT_ACCEPTED=0
+uint8 RESULT_UNSUPPORTED=1   # 이 백엔드는 해당 결함을 지원하지 않음(SimCapabilities 참조)
+uint8 RESULT_BAD_TARGET=2
+uint8 result
+uint64 injection_id      # 해제·감사용 식별자
+string message

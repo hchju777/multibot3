@@ -1,0 +1,9 @@
+# SimQueryCapabilities.srv — 백엔드 능력 질의 (Q-8 답: 포함한다)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /sim/query_capabilities   호출자: sim-runner, bench_runner, bringup
+# 근거: architecture §5.2·§5.3, 오케스트레이터 R-01(백엔드 자기신고로 OPEN(pending-isaac)
+#       태깅 자동화). 사람이 백엔드를 착각해 pysim 결과를 연구 검증으로 승격하는 것을 막는다.
+
+---
+SimCapabilities capabilities

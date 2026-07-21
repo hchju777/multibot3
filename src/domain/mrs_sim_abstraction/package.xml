@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_sim_abstraction</name>
+  <version>0.1.0</version>
+  <description>ISimBackend 포트(seam c) — step/sense/actuate/inject/metrics tap. pysim/isaac/fake 가 같은 인터페이스 뒤에 선다(R-01). 백엔드 선택은 config 한 줄. ROS 무의존(C1).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mrs_core_types</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

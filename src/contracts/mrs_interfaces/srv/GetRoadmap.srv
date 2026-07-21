@@ -1,0 +1,18 @@
+# GetRoadmap.srv — 물리 roadmap(불균일) 조회 (MapRegistry, D-11)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /map_registry/get_roadmap
+# Q-6 캐시 규약: 응답의 roadmap_version 을 키로 클라이언트가 **불변 캐시**를 보유한다.
+#   무효화는 latched 토픽 /map_registry/roadmap_version(transient_local, depth 1)의 값 변화로
+#   통지되며, 그때만 재조회한다. 고빈도 좌표 변환을 매 호출 srv 로 하지 않는다(L4 실시간 예산).
+#   요청의 known_version 이 서버 현재 버전과 같으면 서버는 본문 없이 UNCHANGED 를 반환한다.
+
+uint64 known_version    # 클라이언트가 이미 캐시한 버전. 0 = 캐시 없음
+---
+uint8 RESULT_OK=0
+uint8 RESULT_UNCHANGED=1   # known_version 이 최신 — nodes/edges 는 비어 있음
+uint8 result
+uint64 roadmap_version
+string frame_id            # 항상 "map"
+RoadmapNode[] nodes
+RoadmapEdge[] edges

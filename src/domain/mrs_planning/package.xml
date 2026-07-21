@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_planning</name>
+  <version>0.1.0</version>
+  <description>windowed-lifelong 운용 로직 (D-03). IPathSolver 포트(seam a) 소유. LLLG/RHCR/PIBT 어댑터는 Phase 5. 예산·폴백 정책. ROS 무의존(architecture C1).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mrs_core_types</depend>
+  <depend>mrs_map_registry</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

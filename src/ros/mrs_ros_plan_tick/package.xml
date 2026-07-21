@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_plan_tick</name>
+  <version>0.1.0</version>
+  <description>plan_tick_node — 전 l4_traj_node 공용 동기 재계획 틱 발행 (T1-R1, R-05). 타이머 1개 + 발행 1개, 그 외 아무 일도 하지 않는 최소 프로세스. 도메인 패키지 의존 없음이 이 패키지의 통과 기준이다.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

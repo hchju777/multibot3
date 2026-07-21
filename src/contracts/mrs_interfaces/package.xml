@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_interfaces</name>
+  <version>0.1.0</version>
+  <description>
+    계약 레지스트리 v1.0.0 (재잠금 3차)의 .msg/.srv 실체 — L-01~L-24 (msg 24 + srv 12).
+    contract-registry.md 가 정본이며, 이 패키지는 그 스키마를 rosidl 로 구현한다.
+    스키마 변경은 §7 변경 게이트(contract-keeper 경유)를 거쳐야 한다.
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <depend>std_msgs</depend>
+  <depend>builtin_interfaces</depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

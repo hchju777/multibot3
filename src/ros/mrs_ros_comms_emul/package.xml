@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_ros_comms_emul</name>
+  <version>0.1.0</version>
+  <description>comms_emul — 서버&lt;-&gt;로봇 + 로봇&lt;-&gt;로봇(local_plan_share, R-09) 인터포지션 릴레이 (D-10). Proxy/Decorator 패턴 — 코어 노드는 수정하지 않는다. 도메인 알고리즘 없음(순수 I/O 중계).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>mrs_interfaces</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

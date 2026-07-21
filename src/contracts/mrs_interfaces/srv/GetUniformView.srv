@@ -1,0 +1,21 @@
+# GetUniformView.srv — L2용 세분화 균일 뷰 조회 (MapRegistry, D-11 v2)
+#
+# 계약 버전: 1.0.0
+# 서비스명: /map_registry/get_uniform_view
+# 근거: D-11 v2(물리 불균일 + L2 균일 뷰), theory T1 §4.2 파생(세분화 입도 하한
+#       l_unit >= 2(r + L)) — Q-7 답: **입도 메타데이터를 계약에 노출한다**.
+#       L2 해가 어느 입도의 뷰에서 나왔는지 L3 가 알아야 collapse 가 정합하기 때문이다.
+
+uint64 roadmap_version   # 기준 물리 지도 버전. 0 = 최신
+---
+uint8 RESULT_OK=0
+uint8 RESULT_STALE_VERSION=1
+uint8 result
+uint64 roadmap_version
+uint32 view_id                    # 이 뷰의 식별자. 입도가 바뀌면 반드시 새 view_id
+float64 unit_length_m             # 세분화 입도 (가상 노드 간 간격) [m]
+float64 unit_length_lower_bound_m # 이론 하한 2(r + L) [m] (T1). unit_length_m 은 이 값 이상이어야
+                                  # 하며, 미만이면 ValidateMap 이 거부한다
+RoadmapNode[] nodes               # 가상 노드 포함 (is_virtual = true)
+RoadmapEdge[] edges
+NodeMapping[] subdivision_map     # 가상 노드 → 물리 엣지 위 위치 (왕복 무손실의 표현체)

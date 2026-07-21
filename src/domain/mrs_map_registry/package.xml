@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_map_registry</name>
+  <version>0.1.0</version>
+  <description>MapRegistry — 물리 roadmap/균일 뷰(L2)/의존성 골격(L3) 3뷰 정합의 단일 소유자 (D-11). 세분화·collapse·좌표 변환·validator 3종. ROS 무의존(architecture C1).</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mrs_core_types</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
