@@ -1,6 +1,9 @@
 # CommitStatus — L4 → L3 상향 커밋 경계 보고 (T2-R6)
 #
-# 계약 버전: 1.1.0  (1.0.0 → 1.1.0 — qp_status 값 추가 + NF2' 철회 전파. theory T4 / 확정서 v4)
+# 계약 버전: 2.0.0  (1.1.0 → 2.0.0 — **major**. `view_scope` 필수 필드 추가(V2 위반 시정).
+#                    스코프 없는 v1.x 메시지는 수신 시 폐기되므로 wire 호환이 깨진다.
+#                    승인: 오케스트레이터, 2026-07-21 / 레지스트리 §0.1.1·§0.1.2)
+# (1.0.0 → 1.1.0 — qp_status 값 추가 + NF2' 철회 전파. theory T4 / 확정서 v4)
 # 근거: theory T2 정의 T2.1(커밋 접두·커밋 경계·커밋 상태), 불변식 P0, 술어 A1(commit_nesting),
 #       T1-R9(폴백 발동률 계측), T4 §8-(b) B5(폴백 사유별 분해 계측)
 # 토픽: /robot_{i}/commit_status   QoS: reliable / volatile / depth 5 / deadline 2*Δt_h (주기 발행)
@@ -14,7 +17,26 @@ std_msgs/Header header
 uint16 robot_id
 uint32 window_seq                        # 현재 수용 중인 창 seq
 uint32 committed_through_segment_index   # 커밋 접두 Pi_i 의 끝 세그먼트 인덱스
-uint32 commit_boundary_node              # 커밋 경계 beta_i = last(Pi_i) 의 노드 id (균일 뷰)
+                                         # (= ExecutionWindow.segments 의 인덱스)
+
+# ── 뷰 스코프 (v2.0.0 신설) ────────────────────────────────────────────────────────────
+#  아래 commit_boundary_node 가 유효한 뷰. **view_kind = VIEW_KIND_UNIFORM 고정**이며,
+#  값은 보고 대상 창(window_seq)의 ExecutionWindow.roadmap_version/view_id 를 그대로 복사한다
+#  (EscalationReport 와 동일 규약).
+#  ⚠ view_kind 가 UNIFORM 이 아니거나 스코프가 수신자 기대와 다르면 메시지를 폐기한다
+#    (ConvertStatus VIEW_KIND_MISMATCH / VIEW_SCOPE_MISMATCH — 레지스트리 §0.2).
+#  왜 window_seq 로 암묵 해석하지 않는가: (i) 메시지에 스코프가 없으면 mrs_msg_convert 가
+#  대조할 대상이 없어 판정이 노드로 넘어가 "판정은 convert, 보고는 노드" 경계가 무너지고,
+#  (ii) L3 재시작·창 이력 정리 후에는 복원 자체가 불가능하다.
+ViewScope view_scope
+
+uint32 commit_boundary_node              # 커밋 경계 beta_i = last(Pi_i) — **균일 뷰(UniformNodeId)**.
+                                         # 뷰 근거(순환 논증 아님, 레지스트리 §0.1.1):
+                                         #  ① beta_i 는 committed_through_segment_index 가 가리키는
+                                         #     ExecutionWindow.segments 원소의 종점 노드다.
+                                         #  ② WindowSegment.node_from/node_to 는 균일 뷰로 고정돼 있다
+                                         #     (근거: ExecutionWindow.view_id).
+                                         #  ⇒ beta_i 가 물리·골격 노드가 될 수 있는 경로가 없다.
 builtin_interfaces/Time predicted_arrival # beta_i 예측 도착 시각 t_hat(beta_i)
 float64 predicted_theta_rad              # beta_i 예측 도착 자세 [rad], map, [-pi, pi] (T2-R1 근거)
 

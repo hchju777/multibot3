@@ -7,17 +7,17 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
+# mrs_reorder_btpg / mrs_reorder_milp / mrs_ladder 는 R-15 (c2) 로 제거했다 — 헤더 include 에
+# 대응이 없었다(실측). ⚠ mrs_local_traj 는 실제 사용 중이므로 남긴다.
 find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(mrs_core_types REQUIRED)
 find_package(mrs_interfaces REQUIRED)
 find_package(mrs_map_registry REQUIRED)
 find_package(mrs_planning REQUIRED)
 find_package(mrs_depgraph REQUIRED)
-find_package(mrs_reorder_btpg REQUIRED)
-find_package(mrs_reorder_milp REQUIRED)
 find_package(mrs_judge REQUIRED)
 find_package(mrs_task_alloc REQUIRED)
-find_package(mrs_ladder REQUIRED)
 find_package(mrs_local_traj REQUIRED)
 find_package(mrs_sim_abstraction REQUIRED)
 find_package(mrs_metrics REQUIRED)
@@ -29,7 +29,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-ament_target_dependencies(${PROJECT_NAME} PUBLIC mrs_core_types mrs_interfaces mrs_map_registry mrs_planning mrs_depgraph mrs_reorder_btpg mrs_reorder_milp mrs_judge mrs_task_alloc mrs_ladder mrs_local_traj mrs_sim_abstraction mrs_metrics)
+ament_target_dependencies(${PROJECT_NAME} PUBLIC geometry_msgs mrs_core_types mrs_interfaces mrs_map_registry mrs_planning mrs_depgraph mrs_judge mrs_task_alloc mrs_local_traj mrs_sim_abstraction mrs_metrics)
 
 install(DIRECTORY include/ DESTINATION include)
 install(
@@ -42,7 +42,7 @@ install(
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_include_directories(include)
-ament_export_dependencies(mrs_core_types mrs_interfaces mrs_map_registry mrs_planning mrs_depgraph mrs_reorder_btpg mrs_reorder_milp mrs_judge mrs_task_alloc mrs_ladder mrs_local_traj mrs_sim_abstraction mrs_metrics)
+ament_export_dependencies(geometry_msgs mrs_core_types mrs_interfaces mrs_map_registry mrs_planning mrs_depgraph mrs_judge mrs_task_alloc mrs_local_traj mrs_sim_abstraction mrs_metrics)
 
 
 if(BUILD_TESTING)

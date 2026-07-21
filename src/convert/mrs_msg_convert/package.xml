@@ -8,19 +8,23 @@
   <license>TBD</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- geometry_msgs: /robot_i/cmd_vel 변환(make_cmd_vel, R-15 (f2) 신규)이 Twist 를 쓴다. -->
+  <depend>geometry_msgs</depend>
   <depend>mrs_core_types</depend>
   <depend>mrs_interfaces</depend>
   <depend>mrs_map_registry</depend>
   <depend>mrs_planning</depend>
   <depend>mrs_depgraph</depend>
-  <depend>mrs_reorder_btpg</depend>
-  <depend>mrs_reorder_milp</depend>
   <depend>mrs_judge</depend>
   <depend>mrs_task_alloc</depend>
-  <depend>mrs_ladder</depend>
   <depend>mrs_local_traj</depend>
   <depend>mrs_sim_abstraction</depend>
   <depend>mrs_metrics</depend>
+  <!--
+    mrs_reorder_btpg / mrs_reorder_milp / mrs_ladder 는 R-15 (c2) 로 제거했다 —
+    msg_convert.hpp 의 include 목록에 대응 헤더가 하나도 없었고(실측), 선언만으로 링크 표면과
+    [0a] 빌드 범위를 넓히고 있었다. ⚠ mrs_local_traj 는 i_local_planner.hpp 로 실제 사용 중이다.
+  -->
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

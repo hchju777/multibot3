@@ -1,99 +1,168 @@
-#include <stdexcept>
+/**
+ * @file core_seam_convert.cpp
+ * @brief L-01/L-04 계열 변환 — **본문 미구현**. 시그니처와 문서만 확정된 상태다.
+ *
+ * 이 파일의 함수는 전부 스텁이다. 예외를 던지지 않으며(계약 §0.1 V3, R-15 (c)), 기본 생성
+ * @ref mrs::convert::ConvertResult 를 반환한다 — `ok = false` 이므로 호출자는 안전 폴백으로 간다.
+ * 사유를 **실제 실패 사유처럼 보이는 값으로 채우지 않는다**: 미구현을 `FIELD_RANGE_VIOLATION`
+ * 같은 값으로 보고하면 폐기 카운터가 존재하지 않는 결함을 가리키게 된다.
+ */
 
 #include "mrs_msg_convert/msg_convert.hpp"
 
 namespace mrs::convert
 {
 
-mrs_interfaces::msg::ExecutionWindow to_msg(const mrs::ExecutionWindow & window)
+ConvertResult to_msg(
+  const mrs::ExecutionWindow & window, double stamp_s,
+  mrs_interfaces::msg::ExecutionWindow & out)
 {
   (void)window;
-  throw std::logic_error("not implemented: mrs::convert::to_msg(ExecutionWindow) — Phase 5 (ros-builder) 대상");
+  (void)stamp_s;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs::ExecutionWindow from_msg(const mrs_interfaces::msg::ExecutionWindow & msg)
+ConvertResult from_msg(
+  const mrs_interfaces::msg::ExecutionWindow & msg, const mrs::ViewScope & expected,
+  mrs::ExecutionWindow & out)
 {
   (void)msg;
-  throw std::logic_error("not implemented: mrs::convert::from_msg(ExecutionWindow) — Phase 5 (ros-builder) 대상");
+  (void)expected;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs_interfaces::msg::EscalationReport make_escalation_report(
+ConvertResult make_escalation_report(
   mrs::RobotId robot_id, mrs::EventId event_id, mrs::EscalationReason reason,
-  std::uint32_t window_seq)
+  std::uint32_t window_seq, const mrs::ViewScope & scope, double stamp_s,
+  mrs_interfaces::msg::EscalationReport & out)
 {
   (void)robot_id;
   (void)event_id;
   (void)reason;
   (void)window_seq;
-  throw std::logic_error("not implemented: mrs::convert::make_escalation_report — Phase 5 (ros-builder) 대상");
+  (void)scope;
+  (void)stamp_s;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs::EscalationReason reason_from_msg(const mrs_interfaces::msg::EscalationReport & msg)
+ConvertResult reason_from_msg(
+  const mrs_interfaces::msg::EscalationReport & msg, const mrs::ViewScope & expected,
+  mrs::EscalationReason & out)
 {
   (void)msg;
-  throw std::logic_error("not implemented: mrs::convert::reason_from_msg — Phase 5 (ros-builder) 대상");
+  (void)expected;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs_interfaces::msg::PlannedPaths to_msg(const std::vector<mrs::RobotPath> & paths, bool is_partial)
+ConvertResult to_msg(
+  const std::vector<mrs::RobotPath> & paths, bool is_partial, mrs::EventId event_id,
+  std::uint32_t plan_epoch, const mrs::ViewScope & scope, double stamp_s,
+  mrs_interfaces::msg::PlannedPaths & out)
 {
   (void)paths;
   (void)is_partial;
-  throw std::logic_error("not implemented: mrs::convert::to_msg(RobotPath[]) — Phase 5 (ros-builder) 대상");
+  (void)event_id;
+  (void)plan_epoch;
+  (void)scope;
+  (void)stamp_s;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-std::vector<mrs::RobotPath> from_msg(const mrs_interfaces::msg::PlannedPaths & msg)
+ConvertResult from_msg(
+  const mrs_interfaces::msg::PlannedPaths & msg, const mrs::ViewScope & expected,
+  std::vector<mrs::RobotPath> & out)
 {
   (void)msg;
-  throw std::logic_error("not implemented: mrs::convert::from_msg(PlannedPaths) — Phase 5 (ros-builder) 대상");
+  (void)expected;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-std::vector<mrs::PlanRequestEntry> from_request(const mrs_interfaces::srv::PlanPaths::Request & req)
+ConvertResult from_request(
+  const mrs_interfaces::srv::PlanPaths::Request & req, const mrs::ViewScope & expected,
+  std::vector<mrs::PlanRequestEntry> & out)
 {
   (void)req;
-  throw std::logic_error("not implemented: mrs::convert::from_request(PlanPaths::Request) — Phase 5 (ros-builder) 대상");
+  (void)expected;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs_interfaces::msg::TaskAssignment make_task_assignment(
-  std::uint64_t task_id, mrs::RobotId robot_id, mrs::NodeId pickup_node,
-  mrs::NodeId delivery_node, std::uint32_t assignment_epoch)
+ConvertResult make_task_assignment(
+  std::uint64_t task_id, mrs::RobotId robot_id, mrs::PhysicalNodeId pickup_node,
+  mrs::PhysicalNodeId delivery_node, std::uint32_t assignment_epoch, double waiting_time_s,
+  std::uint32_t reassign_count, const mrs::ViewScope & scope, double stamp_s,
+  mrs_interfaces::msg::TaskAssignment & out)
 {
   (void)task_id;
   (void)robot_id;
   (void)pickup_node;
   (void)delivery_node;
   (void)assignment_epoch;
-  throw std::logic_error("not implemented: mrs::convert::make_task_assignment — Phase 5 (ros-builder) 대상");
+  (void)waiting_time_s;
+  (void)reassign_count;
+  (void)scope;
+  (void)stamp_s;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs_interfaces::msg::CommitState to_msg(const mrs::CommitState & state)
+ConvertResult to_msg(const mrs::CommitState & state, mrs_interfaces::msg::CommitState & out)
 {
   (void)state;
-  throw std::logic_error("not implemented: mrs::convert::to_msg(CommitState) — Phase 5 (ros-builder) 대상");
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs::CommitState from_msg(const mrs_interfaces::msg::CommitState & msg)
+ConvertResult from_msg(
+  const mrs_interfaces::msg::CommitState & msg, const mrs::ViewScope & expected,
+  mrs::CommitState & out)
 {
   (void)msg;
-  throw std::logic_error("not implemented: mrs::convert::from_msg(CommitState) — Phase 5 (ros-builder) 대상");
+  (void)expected;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-std::vector<mrs_interfaces::msg::FrozenOrder> to_msg(const std::vector<mrs::FrozenOrder> & orders)
+ConvertResult to_msg(
+  const std::vector<mrs::FrozenOrder> & orders,
+  std::vector<mrs_interfaces::msg::FrozenOrder> & out)
 {
   (void)orders;
-  throw std::logic_error("not implemented: mrs::convert::to_msg(FrozenOrder[]) — Phase 5 (ros-builder) 대상");
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
 
-mrs_interfaces::msg::CommitStatus make_commit_status(
+ConvertResult make_commit_status(
   mrs::RobotId robot_id, std::uint32_t window_seq, std::uint32_t committed_through_segment_index,
-  const std::vector<mrs::Pose2D> & commit_hull_vertices, std::uint8_t qp_status)
+  const std::vector<mrs::Pose2D> & commit_hull_vertices, mrs::AdoptionStatus qp_status,
+  double stamp_s, mrs_interfaces::msg::CommitStatus & out)
 {
   (void)robot_id;
   (void)window_seq;
   (void)committed_through_segment_index;
   (void)commit_hull_vertices;
   (void)qp_status;
-  throw std::logic_error("not implemented: mrs::convert::make_commit_status — Phase 5 (ros-builder) 대상");
+  (void)stamp_s;
+  (void)out;
+  // TODO(0a): 미구현 — 안전한 기본 실패를 반환한다.
+  return ConvertResult{};
 }
-
 
 } // namespace mrs::convert
