@@ -34,8 +34,17 @@ ament_export_dependencies(mrs_core_types)
 
 
 if(BUILD_TESTING)
-  # gtest 골격은 Phase 5(test-author)가 내용과 함께 생성한다 (design-decision v5 build_policy).
-  # 빈 테스트 파일을 두지 않는다 — 자리만 남긴다.
+  # unit 티어 규약(architecture §6): 도메인 패키지이므로 rclcpp·mrs_interfaces 에 링크하지
+  # 않는다(C1). 이 테스트는 sleep 도 쓰지 않으며 시간은 step() 으로만 전진한다.
+  #
+  # ⚠ 이 테스트들의 통과는 **물리 검증이 아니다** — FakeSimBackend 는 PhysicsFidelity::NONE
+  #   이며 QP feasibility·livelock·물리 재현성은 isaac 필수다(architecture §5.3).
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_mrs_sim_abstraction test/unit/test_fake_sim_backend.cpp)
+  if(TARGET test_mrs_sim_abstraction)
+    target_link_libraries(test_mrs_sim_abstraction ${PROJECT_NAME})
+  endif()
 endif()
 
 ament_package()

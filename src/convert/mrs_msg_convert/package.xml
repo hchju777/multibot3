@@ -26,6 +26,7 @@
     [0a] 빌드 범위를 넓히고 있었다. ⚠ mrs_local_traj 는 i_local_planner.hpp 로 실제 사용 중이다.
   -->
 
+  <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

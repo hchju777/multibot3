@@ -199,6 +199,91 @@ PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
 # ------------------------------------------------------------------
+# 6. unit 티어 정직성 — test/ 코드가 rclcpp/rclpy 를 include 하지 않는다.
+#    (architecture §6 "unit = gtest 바이너리 1개, ROS 없음" / nav2-reference §2-G2)
+#
+#    왜 필요한가: unit 티어의 정의는 "rclcpp 없이 돈다"이고, mrs_msg_convert 테스트는
+#    "mrs_interfaces 가 rosidl 인터페이스 패키지라 rclcpp::init 없이 메시지 타입을 쓸 수 있다"는
+#    사실에 **의존**한다. 누군가 테스트에 rclcpp 를 끌어들이면 그 의존이 조용히 깨지고,
+#    unit 티어가 사실상 pysim 티어로 승격되는데 아무 신호도 나지 않는다. Nav2 는 규율 문서만
+#    두었다가 실제로 샜다(gtest main 234개 중 222개가 rclcpp::init 호출) — 문서가 아니라
+#    검사로 강제한다.
+# ------------------------------------------------------------------
+violations=$(grep -rnE '^\s*#include\s*[<"](rclcpp|rclpy|rclcpp_lifecycle|rclcpp_action)/' \
+  "$SRC" --include='*.hpp' --include='*.cpp' 2>/dev/null | grep -E '/test/' || true)
+if [ -n "$violations" ]; then
+  fail "[6] unit 티어 위반 — test/ 코드가 rclcpp/rclpy 를 include 함 (unit 은 ROS 없이 돌아야 한다)"
+  echo "$violations" | sed 's/^/    /'
+else
+  pass "[6] unit 티어 — test/ 코드가 rclcpp/rclpy 를 include 하지 않음"
+fi
+
+# ------------------------------------------------------------------
+# 7. unit 티어 정직성 (링크 층) — BUILD_TESTING 블록이 rclcpp 를 링크하지 않는다.
+#    include 검사만으로는 부족하다: 테스트 대상 라이브러리를 통해 전이 링크될 수도 있고,
+#    CMake 에서 명시적으로 걸 수도 있다. 빌드 산출물이 있으면 ldd 로 실측까지 한다.
+# ------------------------------------------------------------------
+cmake_violations=$(python3 - "$SRC" << 'PYEOF'
+import pathlib, re, sys
+
+src = pathlib.Path(sys.argv[1])
+hits = []
+for cmake in sorted(src.rglob("CMakeLists.txt")):
+    lines = cmake.read_text().splitlines()
+    inside = False
+    depth = 0
+    for lineno, raw in enumerate(lines, start=1):
+        stripped = raw.strip()
+        if not inside:
+            if re.match(r'if\s*\(\s*BUILD_TESTING\s*\)', stripped):
+                inside = True
+                depth = 1
+            continue
+        if re.match(r'if\s*\(', stripped):
+            depth += 1
+        elif re.match(r'endif\s*\(', stripped):
+            depth -= 1
+            if depth == 0:
+                inside = False
+                continue
+        if stripped.startswith('#'):
+            continue
+        if re.search(r'(?<![A-Za-z0-9_])rclcpp(_lifecycle|_action|_components)?(?![A-Za-z0-9_])',
+                     stripped):
+            hits.append(f"{cmake}:{lineno}: {stripped}")
+
+for hit in hits:
+    print(hit)
+sys.exit(1 if hits else 0)
+PYEOF
+)
+if [ -n "$cmake_violations" ]; then
+  fail "[7] unit 티어 위반 — BUILD_TESTING 블록이 rclcpp 를 참조/링크함"
+  echo "$cmake_violations" | sed 's/^/    /'
+else
+  pass "[7] unit 티어 — BUILD_TESTING 블록에 rclcpp 링크 없음"
+fi
+
+# 빌드 산출물이 있으면 실측한다(없으면 건너뛴다 — 클린 체크아웃에서도 스크립트가 돌아야 한다).
+BUILD_DIR="$ROOT/build"
+if [ -d "$BUILD_DIR" ] && command -v ldd > /dev/null 2>&1; then
+  linked=""
+  while IFS= read -r binary; do
+    if ldd "$binary" 2>/dev/null | grep -qE 'librclcpp|librcl\.so|librmw'; then
+      linked="${linked}${binary}\n"
+    fi
+  done < <(find "$BUILD_DIR" -maxdepth 2 -type f -executable -name 'test_*' 2>/dev/null)
+  if [ -n "$linked" ]; then
+    fail "[7b] unit 티어 위반(실측) — 테스트 바이너리가 rclcpp/rcl/rmw 에 링크됨"
+    printf '%b' "$linked" | sed 's/^/    /'
+  else
+    pass "[7b] unit 티어(실측) — 빌드된 테스트 바이너리에 rclcpp/rcl/rmw 링크 없음"
+  fi
+else
+  info "[7b] 건너뜀 — build/ 산출물이 없어 링크 실측 불가 (colcon build 후 재실행 권장)"
+fi
+
+# ------------------------------------------------------------------
 # 보너스 A/B — 주석·Doxygen 산문은 제외하고 "코드 라인"만 검사한다(오탐 방지: 이 코드베이스는
 # CLAUDE.md 규율 4에 따라 근거 설명 주석이 길어 "isaac"·"slack" 같은 단어가 산문에 자연스럽게
 # 등장한다 — 예: "isaac 미부착 지표는 OPEN(pending-isaac)" 설명, "slack_estimate 를 넣지 마라"
