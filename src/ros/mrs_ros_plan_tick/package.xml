@@ -21,6 +21,12 @@
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <!--
+    ament_cmake_gtest: unit 티어 회귀 테스트(`test/unit/test_tick_scheduler.cpp`)용.
+    대상은 `TickScheduler` 순수 로직뿐이며 **rclcpp 를 링크하지 않는다** — 그래야 이 방어선이
+    ROS 기동 없이 결정론적으로 돈다(architecture §6, check_boundaries [6][7]).
+  -->
+  <test_depend>ament_cmake_gtest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

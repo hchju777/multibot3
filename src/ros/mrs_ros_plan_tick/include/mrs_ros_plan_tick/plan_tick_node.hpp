@@ -19,10 +19,22 @@
  * **결번으로 드러나는 것**이 이 정의의 요점이며, 수신자가 유실을 탐지할 수 있는 유일한 근거다.
  * `tick_seq` 감소는 수신자가 **재동기**로 해석한다(계약 L-15).
  *
+ * ## 타이머는 발행 주체가 아니라 **샘플러**다 (R-20 정정)
+ * R-A1 은 번호에만 적용되고 **발행 시점**에는 적용되지 않았다 — 번호는 시계에서 나오는데 발행은
+ * 독립적인 타이머가 정했고, 그 타이머가 공칭보다 잦게 발화하면(실측 ~11.4 Hz vs 10 Hz) 중복이
+ * 억제되면서 스케줄이 밀려 **번호 하나가 영영 발행되지 않았다**([0a] 실측 결번 20~22 %).
+ * 정정 후:
+ * - 타이머 주기는 `tick_sample_period_s`(기본 = Δt_h/4)이며, **그 정확도가 틱 정확도를 좌우하지
+ *   않는다.** 발행 시점은 오직 인덱스가 정한다.
+ * - **인덱스가 직전 발행분보다 클 때에만 발행**한다 ⇒ 중복이 생기지 않으므로 중복 억제 로직도,
+ *   그것이 만들던 가짜 결번도 없다.
+ * - 판정 자체는 `mrs::TickScheduler`(ROS 무의존 순수 로직)가 하고 이 노드는 옮기기만 한다.
+ *
  * ## ⛔ 틱 외삽 금지 — 발행 측에서도 지킨다
- * 콜백이 늦어 여러 틱 경계를 건너뛰었더라도 **놓친 틱을 소급 발행하지 않는다.** 지어낸 틱은
+ * 시계가 Δt_h 넘게 점프해 번호가 사라졌더라도 **놓친 틱을 소급 발행하지 않는다.** 지어낸 틱은
  * 로봇마다 다른 스텝 지수 h 를 배포해 (A1) 지수 합의를 조용히 깨뜨린다(계약 L-15 S4).
- * 건너뛴 구간은 **결번 그대로** 두고 카운터로만 남긴다 — 그것이 [0a] 의 측정 대상이다.
+ * 사라진 구간은 **결번 그대로** 두고, 그때 시계가 실제로 얼마나 뛰었는지를 함께 경고로 남긴다 —
+ * 수리 후 관측되는 결번은 **전부 이 종류**여야 한다(R-20).
  *
  * ## 도메인 무의존
  * 이 패키지는 **어떤 도메인 패키지에도 의존하지 않는다**(architecture §2.2 통과 기준,
@@ -34,12 +46,13 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
+#include <optional>
 
 #include <rclcpp/rclcpp.hpp>
 
 #include "mrs_interfaces/msg/plan_tick.hpp"
 #include "mrs_msg_convert/convert_result.hpp"
+#include "mrs_ros_plan_tick/tick_scheduler.hpp"
 
 namespace mrs
 {
@@ -55,77 +68,50 @@ class PlanTickNode : public rclcpp::Node
 {
 public:
   /**
-   * @brief 노드를 생성하고 파라미터·발행자·타이머를 구성한다.
-   * @throws std::invalid_argument `replan_period_s` 가 유한한 양수가 아닐 때. 기동 시점의
-   *         정적 파라미터 정합 위반은 **조용한 폴백 대신 기동 실패**로 처리한다
-   *         (nav2-reference §2-B1: 정적 파라미터 정합은 기동 게이트에서 판정).
+   * @brief 노드를 생성하고 파라미터·발행자·샘플 타이머를 구성한다.
+   * @throws std::invalid_argument `replan_period_s` 가 유한한 양수가 아니거나,
+   *         `tick_sample_period_s` 가 비유한 또는 Δt_h/2 초과일 때. 기동 시점의 정적 파라미터
+   *         정합 위반은 **조용한 폴백 대신 기동 실패**로 처리한다(nav2-reference §2-B1).
    */
   PlanTickNode();
   ~PlanTickNode() override = default;
 
 private:
   /**
-   * @brief 주기 타이머 콜백 — 현재 시계로부터 틱을 계산해 최대 1건 발행한다.
+   * @brief 샘플 타이머 콜백 — 현재 시계를 한 번 재고, 새 인덱스일 때에만 발행한다.
    *
    * 예외는 전부 여기서 흡수한다(CLAUDE.md 규율 2). 안전 폴백은 **발행하지 않는 것**이다 —
    * 값이 의심스러운 틱을 내보내는 것보다 결번이 낫다(결번은 수신자가 탐지할 수 있고,
    * 틀린 틱은 탐지되지 않는다).
    * @return void
    */
-  void on_timer();
+  void on_sample_timer();
 
   /**
-   * @brief 현재 시각으로부터 `PlanTick` 메시지를 채운다 (R-A1 순수 산식 + 시각 변환 가드).
+   * @brief 발행 판정이 난 표본을 메시지로 만들어 `/plan_tick` 에 싣고, 성공 시 커밋한다.
    *
-   * @param[in] now_seconds 노드 시계의 현재 시각 [s]. 자료형 `double`.
-   *            `use_sim_time: true` 이면 `/clock` 기준, 실물이면 시스템 시계 기준이다.
-   * @param[out] out 채울 틱 메시지. 자료형 `mrs_interfaces::msg::PlanTick`.
-   *             실패 시 내용은 변경되지 않는다.
-   * @return `bool` — 채우기에 성공하면 true. 시각이 비유한·음수이거나, `tick_seq` 가
-   *         `uint32` 표현 범위를 넘거나, 시각 변환 가드에 걸리면 false(발행 금지).
-   */
-  [[nodiscard]] bool compute_tick_message(double now_seconds, mrs_interfaces::msg::PlanTick & out);
-
-  /**
-   * @brief 현재 시각으로부터 `tick_seq` 를 구한다 (R-A1 의 `floor((t - t0)/Δt_h)`).
+   * 변환에 실패하면 **커밋하지 않는다** — 그 인덱스는 소모되지 않고 다음 표본에서 다시
+   * 시도되므로, 변환 가드가 새 결번을 만들어내지 않는다.
    *
-   * @param[in] now_seconds 노드 시계의 현재 시각 [s]. 자료형 `double`.
-   * @param[out] out_seq 계산된 틱 번호. 자료형 `std::uint32_t`.
-   *             실패 시 내용은 변경되지 않는다.
-   * @return `bool` — 성공하면 true. 시각이 비유한·음수이거나 결과가 `uint32` 범위를
-   *         벗어나면 false.
-   */
-  [[nodiscard]] bool tick_seq_from_clock(double now_seconds, std::uint32_t & out_seq);
-
-  /**
-   * @brief R-A1 의 기준 시각 t0 를 고정하거나(최초) 시계 역행 시 다시 고정한다.
-   *
-   * 생성자 시점에 고정하지 않는 이유: `use_sim_time` 에서 `/clock` 도착 전 시계는 0 이고,
-   * 그 0 을 t0 로 삼으면 첫 틱 번호가 폭주한다. 시계 역행(시뮬 재시작)은 t0 를 다시 고정하며,
-   * 그 결과 감소한 `tick_seq` 를 수신자는 결번이 아니라 **재동기**로 해석한다(계약 L-15).
-   *
-   * @param[in] now_seconds 유효성 검사를 통과한 현재 시각 [s]. 자료형 `double`.
+   * @param[in] sample 발행 판정(`TickAction::PUBLISH`)이 난 표본. 자료형 `const mrs::TickSample &`.
    * @return void
    */
-  void anchor_epoch(double now_seconds);
+  void publish_tick(const TickSample & sample);
 
   /**
-   * @brief 계산된 `tick_seq` 를 발행해도 되는지 판정하고 중복·재동기를 계측한다.
-   *
-   * 중복(같은 seq 재발행)만 막는다. **결번은 막지 않는다** — 결번을 메우는 것이 곧 틱 외삽이다.
-   *
-   * @param[in] tick_seq 이번에 계산된 틱 번호. 자료형 `std::uint32_t`.
-   * @return `bool` — 발행해야 하면 true, 직전과 같은 번호라 억제해야 하면 false.
-   */
-  [[nodiscard]] bool accept_sequence(std::uint32_t tick_seq);
-
-  /**
-   * @brief 직전 발행 번호와의 간격을 보고 결번을 계측한다 (메우지 않는다).
-   * @param[in] tick_seq 이번에 발행할 틱 번호. 자료형 `std::uint32_t`.
-   *            `last_published_seq_` 보다 크다고 전제한다.
+   * @brief 거부된 표본(시계 값 불량·인덱스 범위 초과)을 스로틀 로그로 남긴다.
+   * @param[in] sample 거부 판정이 난 표본. 자료형 `const mrs::TickSample &`.
+   * @param[in] now_seconds 그 판정을 낳은 시계 값 [s]. 자료형 `double`. 로그에만 쓴다.
    * @return void
    */
-  void note_sequence_gap(std::uint32_t tick_seq);
+  void report_rejection(const TickSample & sample, double now_seconds);
+
+  /**
+   * @brief 발행 직후 재동기·**실재 결번**을 경고로 남긴다 (계측을 지우지 않는다).
+   * @param[in] sample 방금 발행한 표본. 자료형 `const mrs::TickSample &`.
+   * @return void
+   */
+  void report_publish_anomalies(const TickSample & sample);
 
   /**
    * @brief 변환 실패를 사유별로 적립한다 (계약 §0.2 — 사유를 뭉개지 않는다).
@@ -134,29 +120,35 @@ private:
    */
   void count_convert_failure(mrs::convert::ConvertStatus status);
 
+  /**
+   * @brief `tick_sample_period_s` 파라미터를 읽어 실제로 쓸 샘플 주기를 정한다.
+   *
+   * @return `double` — 샘플 타이머 주기 [s]. 파라미터가 0 이하이면 권장값(Δt_h/4)을 쓴다.
+   * @throws std::invalid_argument 값이 비유한이거나 Δt_h/2 를 넘을 때. Δt_h/2 를 넘는 샘플
+   *         주기는 콜백 한 번만 늦어도 인덱스를 건너뛰어 **가짜 결번을 구조적으로 재도입**한다 —
+   *         그것이 바로 R-20 이 없앤 결함이므로 기동 시점에 거부한다.
+   */
+  [[nodiscard]] double resolve_sample_period_s();
+
   /** @brief `ConvertStatus` 열거자 개수 (계약 §0.2 정본표 7행 — 사유별 폐기 카운터의 길이). */
   static constexpr std::size_t CONVERT_STATUS_COUNT = 7U;
-  /** @brief `tick_seq`(`uint32`)가 담을 수 있는 최대값의 실수 표현 — 범위 가드 상한. */
-  static constexpr double MAX_TICK_SEQ_AS_DOUBLE =
-    static_cast<double>(std::numeric_limits<std::uint32_t>::max());
-  /** @brief 반복 경고의 스로틀 주기 [ms]. 10 Hz 루프의 로그 폭주를 막는다(계약 §0.2 THROTTLE). */
+  /** @brief 반복 경고의 스로틀 주기 [ms]. 샘플 루프의 로그 폭주를 막는다(계약 §0.2 THROTTLE). */
   static constexpr std::uint32_t LOG_THROTTLE_MS = 5000U;
+  /** @brief 허용하는 샘플 주기의 상한 배수 — Δt_h 의 이 배수를 넘으면 기동을 거부한다. */
+  static constexpr double MAX_SAMPLE_PERIOD_RATIO = 0.5;
 
   rclcpp::CallbackGroup::SharedPtr timer_callback_group_; ///< MutuallyExclusive (nav2 §2-A1)
   rclcpp::Publisher<mrs_interfaces::msg::PlanTick>::SharedPtr tick_pub_; ///< `/plan_tick` 발행자
-  rclcpp::TimerBase::SharedPtr timer_;                                   ///< 주기 타이머(노드 시계)
+  rclcpp::TimerBase::SharedPtr sample_timer_;                            ///< 샘플 타이머(노드 시계)
 
-  double replan_period_s_{0.1}; ///< Δt_h [s]. 계약 L-15 기본값 0.1 (theory T1 §6.1)
-  double t0_seconds_{0.0};      ///< R-A1 의 t0 [s] — 첫 유효 콜백 시각에 고정된다
-  bool t0_initialized_{false};  ///< t0 가 고정됐는지 여부
+  double replan_period_s_{0.1};      ///< Δt_h [s]. 계약 L-15 기본값 0.1 (theory T1 §6.1)
+  double tick_sample_period_s_{0.0}; ///< 샘플 주기 [s] — 발행 정확도와 무관한 관측 주기
 
-  std::uint32_t last_published_seq_{0U}; ///< 마지막으로 발행한 `tick_seq`
-  bool has_published_{false};            ///< 1건이라도 발행했는지 여부
-
-  std::uint64_t skipped_seq_count_{0U};          ///< 발행 측 결번 누적 — [0a] 측정 대상
-  std::uint64_t duplicate_suppressed_count_{0U}; ///< 같은 seq 중복 억제 횟수 — [0a] 측정 대상
-  std::uint64_t resync_count_{0U};               ///< 시계 역행으로 t0 를 재고정한 횟수
-  std::uint64_t range_guard_reject_count_{0U};   ///< 시각·범위 가드로 발행을 포기한 횟수
+  /**
+   * @brief 발행 판정을 내리는 순수 로직 (R-20). `optional` 인 이유는 Δt_h 를 파라미터로 읽은
+   *        **뒤에야** 생성할 수 있기 때문이다 — 힙 할당 없이 생성 시점만 늦춘다.
+   */
+  std::optional<TickScheduler> scheduler_;
 
   /** @brief `ConvertStatus` 사유별 변환 실패 누적 카운터 (인덱스 = 열거값). */
   std::array<std::uint64_t, CONVERT_STATUS_COUNT> convert_failure_counts_{};

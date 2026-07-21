@@ -1,16 +1,15 @@
 /**
  * @file plan_tick_node.cpp
- * @brief `PlanTickNode` 구현 — R-A1 틱 산식 + QoS 정본 + 결번·중복 계측.
+ * @brief `PlanTickNode` 구현 — 시계 샘플러 + QoS 정본 + 실재 결번 계측 (R-05, R-20).
  *
- * ⚠ 이 파일에 **알고리즘은 없다.** `floor((t - t0)/Δt_h)` 는 계약 L-15 가 문언으로 못박은
- *   정의이며, 이 노드는 그 정의를 그대로 옮긴 얇은 I/O 어댑터다.
+ * ⚠ 이 파일에 **알고리즘은 없다.** 틱 번호·발행 여부의 판정은 전부 `mrs::TickScheduler`(순수
+ *   로직)가 하고, 여기 있는 것은 시계를 읽어 넘기고 결과를 와이어에 싣는 얇은 I/O 어댑터다.
  */
 
 #include <chrono>
 #include <cmath>
 #include <exception>
 #include <functional>
-#include <limits>
 #include <stdexcept>
 
 #include "mrs_msg_convert/common_convert.hpp"
@@ -31,9 +30,13 @@ PlanTickNode::PlanTickNode() : rclcpp::Node("plan_tick_node")
     // 조용히 깨뜨리고, 조용한 위반은 F5 결과를 무효화한다(계약 L-15).
     throw std::invalid_argument("replan_period_s must be a finite positive number");
   }
+  scheduler_.emplace(replan_period_s_); // 같은 조건을 순수 로직 쪽에서도 다시 검사한다
+  tick_sample_period_s_ = resolve_sample_period_s();
 
   // QoS 정본(contract-registry §3): reliable / volatile / depth 1 /
   // deadline 2*Δt_h / liveliness AUTOMATIC lease 3*Δt_h.
+  // ⚠ deadline·lease 는 **Δt_h** 기준이다. 샘플 주기가 아니다 — 와이어에 나가는 것은 여전히
+  //    Δt_h 마다 한 건이고, 샘플러는 그 시점을 놓치지 않기 위한 내부 관측 수단일 뿐이다.
   // liveliness 를 거는 토픽은 `/plan_tick` **하나뿐**이다(계약 Q-9) — 이 노드의 유일한
   // 실패 모드인 정지를 전 구독자가 DDS 층에서 즉시 관측하기 위함이다.
   rclcpp::QoS qos(1);
@@ -57,164 +60,160 @@ PlanTickNode::PlanTickNode() : rclcpp::Node("plan_tick_node")
   //    돌아야 틱이 "시계의 순수 함수"라는 R-A1 이 성립한다. 벽시계로 돌리면 시뮬 배속에서
   //    틱과 시뮬 시각이 어긋난다. (`/clock` **발행자**만 벽시계 타이머를 쓴다 —
   //    nav2-reference §2-C2 의 부팅 데드락 회피는 `sim_bridge` 의 규율이며 여기가 아니다.)
-  timer_ = this->create_timer(
-    std::chrono::duration<double>(replan_period_s_), std::bind(&PlanTickNode::on_timer, this),
-    timer_callback_group_);
+  // ⚠ 이 타이머는 **샘플러**다(R-20). 주기가 흔들려도 틱 번호·발행 시점은 흔들리지 않는다.
+  sample_timer_ = this->create_timer(
+    std::chrono::duration<double>(tick_sample_period_s_),
+    std::bind(&PlanTickNode::on_sample_timer, this), timer_callback_group_);
 
   RCLCPP_INFO(
-    this->get_logger(), "plan_tick_node started — replan_period_s=%.6f, use_sim_time=%s",
-    replan_period_s_, this->get_parameter("use_sim_time").as_bool() ? "true" : "false");
+    this->get_logger(),
+    "plan_tick_node started — replan_period_s=%.6f, tick_sample_period_s=%.6f (sampler only), "
+    "use_sim_time=%s",
+    replan_period_s_, tick_sample_period_s_,
+    this->get_parameter("use_sim_time").as_bool() ? "true" : "false");
 }
 
-void PlanTickNode::on_timer()
+double PlanTickNode::resolve_sample_period_s()
+{
+  // 샘플 주기는 param 으로 노출한다(R-20). 0 이하 = "자동" — 권장값 Δt_h/4 를 쓴다.
+  // 근거: 한 틱 구간을 4 회 관측하면 콜백을 한 번 놓쳐도 인덱스를 건너뛰지 않는다(여유 3 회).
+  // 더 잦게 돌려도 틱 정확도는 좋아지지 않는다 — 정확도를 정하는 것은 `floor` 산식이다.
+  const double requested = this->declare_parameter<double>("tick_sample_period_s", 0.0);
+  if (!std::isfinite(requested))
+  {
+    throw std::invalid_argument("tick_sample_period_s must be a finite number");
+  }
+  if (requested <= 0.0)
+  {
+    return TickScheduler::recommended_sample_period_s(replan_period_s_);
+  }
+  if (requested > replan_period_s_ * MAX_SAMPLE_PERIOD_RATIO)
+  {
+    // Δt_h/2 를 넘는 샘플 주기는 콜백 한 번만 늦어도 인덱스를 건너뛴다 = 가짜 결번의 재도입.
+    // 그것이 R-20 이 없앤 결함이므로 기동 시점에 거부한다(조용한 성능 저하로 두지 않는다).
+    throw std::invalid_argument("tick_sample_period_s must not exceed replan_period_s / 2");
+  }
+  if (requested > TickScheduler::recommended_sample_period_s(replan_period_s_))
+  {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "tick_sample_period_s=%.6f exceeds the recommended %.6f (= replan_period_s/4) — "
+      "a single late callback now has less margin before an index is skipped",
+      requested, TickScheduler::recommended_sample_period_s(replan_period_s_));
+  }
+  return requested;
+}
+
+void PlanTickNode::on_sample_timer()
 {
   try
   {
+    if (!scheduler_.has_value())
+    {
+      return; // 배선 오류 방어. 생성자가 타이머보다 먼저 스케줄러를 만들므로 도달 불가다.
+    }
     const double now_seconds = this->get_clock()->now().seconds();
-
-    mrs_interfaces::msg::PlanTick msg;
-    if (!compute_tick_message(now_seconds, msg))
+    const TickSample sample = scheduler_->peek(now_seconds);
+    switch (sample.action)
     {
-      return; // 안전 폴백: 의심스러운 틱을 내보내느니 결번으로 남긴다.
+      case TickAction::PUBLISH:
+        publish_tick(sample);
+        break;
+      case TickAction::HOLD:
+        // 아직 다음 틱 경계가 아니다 — 대다수의 표본이 여기다. 정상이므로 로그를 남기지 않는다.
+        scheduler_->commit(sample);
+        break;
+      case TickAction::CLOCK_REJECTED:
+      case TickAction::RANGE_REJECTED:
+        report_rejection(sample, now_seconds);
+        scheduler_->commit(sample);
+        break;
     }
-    if (!accept_sequence(msg.tick_seq))
-    {
-      return; // 같은 틱 번호의 중복 발행 억제.
-    }
-
-    tick_pub_->publish(msg);
   }
   catch (const std::exception & e)
   {
     RCLCPP_ERROR_THROTTLE(
       this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "on_timer failed (safe no-op, tick skipped): %s", e.what());
+      "sample timer failed (safe no-op, no tick published): %s", e.what());
   }
   catch (...)
   {
     RCLCPP_ERROR_THROTTLE(
       this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "on_timer failed with unknown exception (safe no-op, tick skipped)");
+      "sample timer failed with unknown exception (safe no-op, no tick published)");
   }
 }
 
 // R-18 구속: 시각 변환은 반드시 `seconds_to_time` 를 경유한다. 노드가 1e9 로 직접 나누면
 // 음수·NaN·범위 가드가 헬퍼 밖으로 새어 나간다.
-bool PlanTickNode::compute_tick_message(double now_seconds, mrs_interfaces::msg::PlanTick & out)
+void PlanTickNode::publish_tick(const TickSample & sample)
 {
-  std::uint32_t tick_seq = 0U;
-  if (!tick_seq_from_clock(now_seconds, tick_seq))
-  {
-    return false;
-  }
-
-  const double tick_time_s = t0_seconds_ + static_cast<double>(tick_seq) * replan_period_s_;
-
   builtin_interfaces::msg::Time tick_time;
-  const mrs::convert::ConvertResult result = mrs::convert::seconds_to_time(tick_time_s, tick_time);
+  const mrs::convert::ConvertResult result =
+    mrs::convert::seconds_to_time(sample.tick_time_s, tick_time);
   if (!result.ok)
   {
     count_convert_failure(result.reason);
     RCLCPP_ERROR_THROTTLE(
       this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "seconds_to_time rejected tick_time %f s (reason=%s) — tick skipped", tick_time_s,
-      mrs::convert::to_string(result.reason));
-    return false;
+      "seconds_to_time rejected tick_time %f s (reason=%s) — not published, index not consumed",
+      sample.tick_time_s, mrs::convert::to_string(result.reason));
+    return; // 커밋하지 않는다 ⇒ 이 인덱스는 다음 표본에서 다시 시도된다(새 결번을 만들지 않는다).
   }
 
-  out.tick_seq = tick_seq;
-  out.tick_time = tick_time;
-  out.replan_period_s = replan_period_s_;
-  return true;
+  mrs_interfaces::msg::PlanTick msg;
+  msg.tick_seq = sample.tick_seq;
+  msg.tick_time = tick_time;
+  msg.replan_period_s = replan_period_s_;
+
+  tick_pub_->publish(msg);
+  scheduler_->commit(sample);
+  report_publish_anomalies(sample);
 }
 
-bool PlanTickNode::tick_seq_from_clock(double now_seconds, std::uint32_t & out_seq)
+// ⛔ 결번을 메우지 않는다(틱 외삽 금지). 사라진 번호는 그대로 두고, **시계가 실제로 얼마나
+//    뛰었는지**를 같은 줄에 남긴다 — R-20 이후 관측되는 결번은 전부 이 종류여야 한다.
+void PlanTickNode::report_publish_anomalies(const TickSample & sample)
 {
-  if (!std::isfinite(now_seconds) || now_seconds < 0.0)
+  if (sample.resynced)
   {
-    ++range_guard_reject_count_;
-    RCLCPP_ERROR_THROTTLE(
-      this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "clock returned an unusable time (%f s) — tick skipped", now_seconds);
-    return false;
-  }
-
-  anchor_epoch(now_seconds);
-
-  const double raw_seq = std::floor((now_seconds - t0_seconds_) / replan_period_s_);
-  if (!std::isfinite(raw_seq) || raw_seq < 0.0 || raw_seq > MAX_TICK_SEQ_AS_DOUBLE)
-  {
-    ++range_guard_reject_count_;
-    RCLCPP_ERROR_THROTTLE(
-      this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "tick_seq out of uint32 range (raw=%f) — tick skipped", raw_seq);
-    return false;
-  }
-
-  out_seq = static_cast<std::uint32_t>(raw_seq);
-  return true;
-}
-
-void PlanTickNode::anchor_epoch(double now_seconds)
-{
-  if (!t0_initialized_ || now_seconds < t0_seconds_)
-  {
-    t0_initialized_ = true;
-    t0_seconds_ = now_seconds;
-  }
-}
-
-bool PlanTickNode::accept_sequence(std::uint32_t tick_seq)
-{
-  if (!has_published_)
-  {
-    has_published_ = true;
-    last_published_seq_ = tick_seq;
-    return true;
-  }
-
-  // 같은 틱 경계 안에서 콜백이 두 번 돌았다. 같은 seq 를 두 번 내보내면 수신자의 결번 판정이
-  // 흐려지므로 억제하고 계측만 남긴다.
-  if (tick_seq == last_published_seq_)
-  {
-    ++duplicate_suppressed_count_;
-    RCLCPP_WARN_THROTTLE(
-      this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-      "duplicate tick_seq %u suppressed (total=%llu)", tick_seq,
-      static_cast<unsigned long long>(duplicate_suppressed_count_));
-    return false;
-  }
-
-  if (tick_seq < last_published_seq_)
-  {
-    ++resync_count_;
     RCLCPP_WARN(
-      this->get_logger(), "clock went backwards — tick_seq %u -> %u (resync #%llu)",
-      last_published_seq_, tick_seq, static_cast<unsigned long long>(resync_count_));
-    last_published_seq_ = tick_seq;
-    return true;
+      this->get_logger(),
+      "clock went backwards (%.6f s) — t0 re-anchored, tick_seq restarts at %u (resync #%llu). "
+      "Receivers must treat this as re-sync, not as a gap (contract L-15)",
+      sample.clock_advance_s, sample.tick_seq,
+      static_cast<unsigned long long>(scheduler_->resync_count()));
+    return;
   }
 
-  note_sequence_gap(tick_seq);
-  last_published_seq_ = tick_seq;
-  return true;
-}
-
-// ⛔ 결번을 메우지 않는다(틱 외삽 금지). 건너뛴 번호는 그대로 두고 카운터만 올린다 —
-//    그 결번이 [0a] 의 측정 대상이다.
-void PlanTickNode::note_sequence_gap(std::uint32_t tick_seq)
-{
-  const std::uint32_t gap = tick_seq - last_published_seq_ - 1U;
-  if (gap == 0U)
+  if (sample.missed_seq_count == 0U)
   {
     return;
   }
 
-  skipped_seq_count_ += static_cast<std::uint64_t>(gap);
   RCLCPP_WARN_THROTTLE(
     this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-    "tick callback late: %u tick(s) skipped, not back-filled (total=%llu)", gap,
-    static_cast<unsigned long long>(skipped_seq_count_));
+    "REAL tick gap: clock advanced %.6f s (> replan_period_s %.6f) between samples — "
+    "%u tick(s) never existed, not back-filled (total=%llu)",
+    sample.clock_advance_s, replan_period_s_, sample.missed_seq_count,
+    static_cast<unsigned long long>(scheduler_->missed_seq_count()));
+}
+
+void PlanTickNode::report_rejection(const TickSample & sample, double now_seconds)
+{
+  if (sample.action == TickAction::CLOCK_REJECTED)
+  {
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
+      "clock returned an unusable time (%f s) — no tick published (total=%llu)", now_seconds,
+      static_cast<unsigned long long>(scheduler_->clock_reject_count() + 1U));
+    return;
+  }
+
+  RCLCPP_ERROR_THROTTLE(
+    this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
+    "tick_seq out of uint32 range at t=%f s — no tick published (total=%llu)", now_seconds,
+    static_cast<unsigned long long>(scheduler_->range_reject_count() + 1U));
 }
 
 void PlanTickNode::count_convert_failure(mrs::convert::ConvertStatus status)
