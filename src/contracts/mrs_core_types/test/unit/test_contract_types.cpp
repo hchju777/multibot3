@@ -95,10 +95,10 @@ TEST(ContractEnums, RevisionKindValuesMatchContract)
 
 TEST(ContractSentinels, IdSentinelsMatchContract)
 {
-  EXPECT_EQ(mrs::ROBOT_ID_NONE, 65535U);     // 2^16 - 1
-  EXPECT_EQ(mrs::NODE_ID_NONE, 4294967295U); // 2^32 - 1
-  EXPECT_EQ(mrs::EDGE_ID_NONE, 4294967295U); // 2^32 - 1
+  EXPECT_EQ(mrs::ROBOT_ID_NONE, 65535U); // 2^16 - 1
   EXPECT_EQ(mrs::EVENT_ID_UNASSIGNED, 0U);
+  // 노드·엣지 id 센티넬(2^32 - 1)은 뷰별 강타입 `*_NODE_ID_NONE`/`*_EDGE_ID_NONE` 로 이관됐고
+  // test_view_ids.cpp 가 검증한다(과도기 별칭 `NODE_ID_NONE`/`EDGE_ID_NONE` 는 파일 6 에서 삭제).
 }
 
 // 불변식 E1 — event_id 0 은 미할당이고 런타임에 금지된다(계측이 상관관계를 잃는다).

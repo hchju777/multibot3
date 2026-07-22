@@ -34,25 +34,16 @@ namespace mrs
 
 /** @brief 로봇 식별자. 65535 는 "해당 없음"을 뜻한다. */
 using RobotId = std::uint16_t;
-/** @brief roadmap 엣지 식별자. 4294967295 는 "해당 없음"을 뜻한다. */
-using EdgeId = std::uint32_t;
 /** @brief 교란 상관 키(theory T3-R3). 0 은 미할당이며 런타임에 금지된다. */
 using EventId = std::uint64_t;
 
-/**
- * @brief roadmap 노드 식별자 — **과도기 별칭. 신규 코드에서 사용 금지.**
- * @deprecated 뷰별 강타입(@ref PhysicalNodeId / @ref UniformNodeId / @ref SkeletonNodeId)으로
- *             대체됐다(R-14 (a) = B). 이 별칭이 남아 있는 곳이 곧 마이그레이션 잔여물 목록이며,
- *             전량 교체 시점은 [1](D-11 MapRegistry)이다.
- */
-using NodeId = std::uint32_t;
+// 노드·엣지 id 는 **뷰별 강타입**만 쓴다(@ref PhysicalNodeId / @ref UniformNodeId /
+// @ref SkeletonNodeId 및 대응 엣지 타입, @ref mrs/view_ids.hpp). 과도기 별칭 `NodeId`/`EdgeId`
+// 와 그 센티넬 `NODE_ID_NONE`/`EDGE_ID_NONE` 는 [1] 파일 6 에서 **삭제**됐다(R-14 (a) = B, 전량
+// 이관 완료). 뷰 컨테이너의 bare uint32 센티넬은 @ref mrs::ROADMAP_ID_NONE 을 쓴다.
 
 /** @brief "해당 없음"을 뜻하는 로봇 id 센티넬. */
 constexpr RobotId ROBOT_ID_NONE = std::numeric_limits<RobotId>::max();
-/** @brief "해당 없음"을 뜻하는 노드 id 센티넬 (과도기 별칭용 — 강타입은 `*_NODE_ID_NONE` 사용). */
-constexpr NodeId NODE_ID_NONE = std::numeric_limits<NodeId>::max();
-/** @brief "해당 없음"을 뜻하는 엣지 id 센티넬. */
-constexpr EdgeId EDGE_ID_NONE = std::numeric_limits<EdgeId>::max();
 /** @brief 미할당 상관 키. 런타임에 이 값이 실려 오면 계측이 상관관계를 잃는다. */
 constexpr EventId EVENT_ID_UNASSIGNED = 0U;
 
