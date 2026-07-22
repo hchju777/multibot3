@@ -64,15 +64,9 @@ MapResult<RoadmapValidationResult> MapRegistry::validate_map(
   std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
   double inflation_radius_m, double nid_offset_l_m, double v_max_mps, double omega_max_rps) const
 {
-  (void)view_id;
-  (void)robot_count;
-  (void)robot_radius_m;
-  (void)inflation_radius_m;
-  (void)nid_offset_l_m;
-  (void)v_max_mps;
-  (void)omega_max_rps;
-  // TODO(하위 B): 순수기하 3단 검사기 + 세분화 입도 + r_clear + 검사기 4 advisory.
-  return MapResult<RoadmapValidationResult>::fail(MapStatus::NOT_IMPLEMENTED);
+  return impl_->validate(
+    view_id, robot_count, robot_radius_m, inflation_radius_m, nid_offset_l_m, v_max_mps,
+    omega_max_rps);
 }
 
 std::uint64_t MapRegistry::roadmap_version() const noexcept

@@ -111,6 +111,25 @@ struct MapRegistry::Impl
    *         실패: MAP_NOT_LOADED / VIEW_NOT_FOUND.
    */
   [[nodiscard]] MapResult<RoadmapViewData> get_view(std::uint32_t view_id) const;
+
+  // ── 정적 검사기 (map_registry_validators.cpp) ──────────────────────────────────────
+  /**
+   * @brief 정적 검사기 1(well-formed)·3(순수기하 3단·입도·r_clear)·4(advisory)를 실행한다.
+   *        검사기 2(biconnected)는 [1] 미평가(U-23).
+   * @param[in] view_id 입도 검사 대상 균일 뷰 id (0 = 물리만, 입도 검사 생략). 자료형
+   * `std::uint32_t`.
+   * @param[in] robot_count well-formed 검사의 로봇 수. 자료형 `std::uint16_t`.
+   * @param[in] robot_radius_m 로봇 반경 r [m]. 자료형 `double`.
+   * @param[in] inflation_radius_m NID점 외접 반경 ρ [m]. 자료형 `double`.
+   * @param[in] nid_offset_l_m NID 오프셋 L* [m]. 자료형 `double`.
+   * @param[in] v_max_mps 최대 선속도 [m/s] (0 = 미측정 → 닫힌형 생략). 자료형 `double`.
+   * @param[in] omega_max_rps 최대 각속도 [rad/s]. 자료형 `double`.
+   * @return `MapResult<RoadmapValidationResult>` — 검사기가 돌면 ok(결과). 실패: MAP_NOT_LOADED /
+   * VIEW_NOT_FOUND.
+   */
+  [[nodiscard]] MapResult<RoadmapValidationResult> validate(
+    std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
+    double inflation_radius_m, double nid_offset_l_m, double v_max_mps, double omega_max_rps) const;
 };
 
 } // namespace mrs
