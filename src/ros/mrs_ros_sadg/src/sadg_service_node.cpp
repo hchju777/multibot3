@@ -1,10 +1,11 @@
 /**
  * @file sadg_service_node.cpp
- * @brief @ref mrs::SadgServiceNode 본문 — [0a] tracer bullet 더미 L3 노드.
+ * @brief @ref mrs::SadgServiceNode 본문 — L3 SADG 노드 (로드맵 [2] Split B: 실 depgraph 배선).
  *
  * ## 이 파일이 지키는 규율
- *  1. **콜백 안에 알고리즘 없음** — 릴리스는 "세그먼트 열의 다음 원소"를 꺼내는 것뿐이고,
- *     도메인↔메시지 변환은 `mrs_msg_convert` 가 단독으로 한다.
+ *  1. **콜백 안에 알고리즘 없음** — 릴리스 판정(의존성 충족)·세그먼트 선택은 `mrs_depgraph` 가,
+ *     도메인↔메시지 변환은 `mrs_msg_convert` 가 단독으로 한다. 이 노드는 배관(구독·타이머·발행·
+ *     봉투 스탬프·진행 이탈 판정)만 든다.
  *  2. **모든 콜백은 try/catch** — 노드가 죽지 않는다(CLAUDE.md 규율 2).
  *  3. **판정은 convert, 보고는 노드**(R-15 (b)) — 사유별 카운터 + 스로틀 로그 + 폐기.
  *  4. **시각 변환은 `mrs_msg_convert` 헬퍼 경유**(R-18) — 이 파일에 `1e9` 나눗셈이 없다.
@@ -20,6 +21,7 @@
 #include <cmath>
 #include <exception>
 #include <functional>
+#include <unordered_map>
 #include <utility>
 
 #include "mrs_msg_convert/common_convert.hpp"
@@ -65,75 +67,59 @@ constexpr int LOG_THROTTLE_MS = 5000;
 }
 
 /**
- * @brief 방문열을 세그먼트 열로 자른다.
+ * @brief 두 계획이 **릴리스 관점에서 동일**한지 판정한다 (build-once 판정의 핵심).
  *
- * 인접 방문 쌍이 곧 세그먼트이므로 계약 불변식 W2(`segments[k].node_to == segments[k+1].node_from`)
- * 가 **구성상 자동으로** 성립한다. 각 쌍이 균일 뷰에서 실제로 인접한지는 L2 가 엣지에서 경로를
- * 만들어 보장하며, [0a] 더미는 그 검사를 하지 않는다([1] 에서 MapRegistry 인접성 검사로 붙는다).
+ * ⚠ `arrival_time_s` 는 **비교하지 않는다**. `pp_service` 의 canned 솔버는 재발행마다 계획 시작
+ * 시각을 현재 시각으로 다시 잡아 방문 도착시각을 전부 갱신하므로(내용은 같은 왕복), 시각까지
+ * 비교하면 "동일한 계획"이 매번 달라 보여 build-once 가 무력화된다. depgraph 의 릴리스/진행
+ * 프론티어는 **로봇 집합 + 각 로봇의 방문 노드열**로만 결정되므로 그 둘만 비교한다.
  *
- * @param[in] visits 시각 부여 방문열. 자료형 `std::vector<mrs::TimedNodeVisit>`.
- *            원소가 2개 미만이면 세그먼트가 하나도 나오지 않는다(정상 — 빈 결과).
- * @return `std::vector<mrs::WindowSegment>` — 방문 수 −1 개의 세그먼트. 뷰는 UNIFORM 이다.
+ * 로봇 순서에 무관하다(로봇 id 로 대조). 노드 id 는 UNIFORM 강타입 동등성으로 비교한다.
+ *
+ * @param[in] a 이전 계획. 자료형 `std::vector<mrs::RobotPath>`.
+ * @param[in] b 새 계획. 자료형 `std::vector<mrs::RobotPath>`.
+ * @return `bool` — 로봇 집합과 각 로봇의 방문 노드열이 완전히 같으면 true.
  */
-[[nodiscard]] std::vector<WindowSegment> slice_visits_into_segments(
-  const std::vector<TimedNodeVisit> & visits)
+[[nodiscard]] bool plans_equivalent(
+  const std::vector<RobotPath> & a, const std::vector<RobotPath> & b)
 {
-  std::vector<WindowSegment> segments;
-  if (visits.size() < 2U)
+  if (a.size() != b.size())
   {
-    return segments;
+    return false;
   }
 
-  segments.reserve(visits.size() - 1U);
-  for (std::size_t k = 0; k + 1U < visits.size(); ++k)
+  std::unordered_map<std::uint16_t, const std::vector<TimedNodeVisit> *> a_by_id;
+  a_by_id.reserve(a.size());
+  for (const RobotPath & path : a)
   {
-    WindowSegment segment;
-    segment.node_from = visits[k].node_id;
-    segment.node_to = visits[k + 1U].node_id;
-    segments.push_back(segment);
+    a_by_id.emplace(path.robot_id, &path.visits);
   }
-  return segments;
-}
-
-/**
- * @brief 릴리스 상태로부터 다음 실행 창(도메인 표현)을 만든다.
- *
- * ⚠ **불변식 W3(첫 세그먼트 시작 == 커밋 경계 β_i)·W4(제동 여유)·W5(만료 안전)·W6(단조 정지선)은
- * 검사하지 않는다.** 검사에 필요한 입력(`CommitStatus`·동역학 상수·커밋 볼록포)이 [0a] 에
- * 존재하지 않기 때문이며, 검사 주체는 `mrs_depgraph` 로 [1]/[2] 대상이다. 여기서 검사하는 척하면
- * 감사에서 방어선이 있는 것으로 오독된다.
- *
- * ⚠ `predecessor_constraints` 는 **비운다**. [0a] 에는 의존성 판정(R1/R2/judge)이 없고, 근거 없는
- * 통행순서를 실으면 L4 가 존재하지 않는 정지선을 세운다. 계약 L-03 은 "발행 시점 미충족분만"을
- * 규정하므로 빈 목록 자체는 규약에 맞지만, 그것은 **판정 결과가 아니라 판정 부재**다.
- *
- * @param[in] state 대상 로봇의 릴리스 상태. 자료형 `mrs::RobotReleaseState`.
- * @param[in] scope 창이 쓸 뷰 스코프. 자료형 `mrs::ViewScope`. 종류는 UNIFORM.
- * @param[in] segment_count 이 창에 실을 세그먼트 수. 자료형 `std::size_t`. 1 이상이어야 한다.
- * @param[in] valid_until_s 창 만료 시각 [s]. 자료형 `double`. 시뮬 시계 절대시각.
- * @return `mrs::ExecutionWindow` — `revision_kind = NEW`, `valid_through_segment_index = -1`,
- *         `window_seq` 는 상태의 다음 값(단조증가)인 도메인 창.
- */
-[[nodiscard]] ExecutionWindow build_next_window(
-  const RobotReleaseState & state, const ViewScope & scope, std::size_t segment_count,
-  double valid_until_s)
-{
-  ExecutionWindow window;
-  window.robot_id = state.robot_id;
-  window.window_seq = state.window_seq + 1U; // 로봇별 단조증가 (불변식 W1)
-  window.plan_epoch = state.plan_epoch;
-  window.roadmap_version = scope.roadmap_version;
-  window.view_id = scope.view_id;
-  window.revision_kind = RevisionKind::NEW;
-  window.valid_through_segment_index = -1; // NEW 는 −1 고정 (개정 불변식)
-  window.window_valid_until_s = valid_until_s;
-
-  window.segments.reserve(segment_count);
-  for (std::size_t k = 0; k < segment_count; ++k)
+  if (a_by_id.size() != a.size())
   {
-    window.segments.push_back(state.segments[state.next_segment_index + k]);
+    return false; // 이전 계획에 로봇 id 중복 — 안전하게 "다름"으로 본다(재구축)
   }
-  return window;
+
+  for (const RobotPath & path : b)
+  {
+    const auto it = a_by_id.find(path.robot_id);
+    if (it == a_by_id.end())
+    {
+      return false; // 로봇 집합 불일치
+    }
+    const std::vector<TimedNodeVisit> & prev_visits = *it->second;
+    if (prev_visits.size() != path.visits.size())
+    {
+      return false;
+    }
+    for (std::size_t k = 0; k < path.visits.size(); ++k)
+    {
+      if (prev_visits[k].node_id != path.visits[k].node_id)
+      {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 } // namespace
@@ -150,7 +136,9 @@ SadgServiceNode::SadgServiceNode()
     "window_release_period_s", 0.5); // 문헌치 — 계약 Q-11 세그먼트 Δt = 0.5 s.
                                      // ⚠ [0a] 한정: 진행 이벤트원이 없어 타이머로 굴린다(헤더 주석)
   segments_per_window_ = this->declare_parameter<int>(
-    "segments_per_window", 1); // 배관 — 창 1개에 싣는 세그먼트 수. 1이면 릴리스 표본이 가장 많다
+    "segments_per_window", 1); // [2] 이후 **inert** — 창당 세그먼트 수는 depgraph 가 의존성
+                               // 프론티어(막힘 지점)까지로 결정한다. 파라미터는 하위호환 위해 유지
+                               // (더미 [0a] 릴리스에서만 실효했다)
   window_validity_horizon_s_ = this->declare_parameter<double>("window_validity_horizon_s", 2.0);
   // ⚠ **[0a] 실측 대상**: 계약 불변식 W5(A8)는 `window_valid_until − now ≥ u_max/a_max + Δt_h` 를
   // 요구하지만 u_max·a_max 는 로봇 동역학 상수가 확정돼야 나오고 그 확정은 미결이다
@@ -192,14 +180,9 @@ SadgServiceNode::SadgServiceNode()
       "노출하지 않는다 — 재조정 배선은 로드맵 [3] 대상이다");
   }
 
-  // ── 릴리스 상태 초기화 (window_seq 는 로봇별로 프로세스 수명 내내 단조증가 — 불변식 W1) ──
-  robot_states_.reserve(static_cast<std::size_t>(robot_count_));
-  for (int index = 0; index < robot_count_; ++index)
-  {
-    RobotReleaseState state;
-    state.robot_id = static_cast<RobotId>(index);
-    robot_states_.push_back(std::move(state));
-  }
+  // ── 진행 추적 초기화 — 로봇별 마지막 유효 점유 노드 (이탈 판정 기준). 기동 시 "미상"(센티넬).
+  //    릴리스 상태(프론티어·window_seq)는 depgraph 가 소유하므로 여기서 들지 않는다.
+  last_occupied_node_.assign(static_cast<std::size_t>(robot_count_), UNIFORM_NODE_ID_NONE);
 
   // ── 콜백그룹 (계약 Q-3 — 릴리스 경로를 무거운 경로에서 격리) ────────────
   release_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -226,7 +209,13 @@ SadgServiceNode::SadgServiceNode()
   escalation_qos.reliable();
   escalation_qos.durability_volatile();
 
+  // robot_state QoS 는 계약 §3 정본표 = best_effort / volatile / depth 1 (sim_bridge 발행과 정합).
+  rclcpp::QoS robot_state_qos(1);
+  robot_state_qos.best_effort();
+  robot_state_qos.durability_volatile();
+
   escalation_report_subs_.reserve(static_cast<std::size_t>(robot_count_));
+  robot_state_subs_.reserve(static_cast<std::size_t>(robot_count_));
   execution_window_pubs_.reserve(static_cast<std::size_t>(robot_count_));
   for (int index = 0; index < robot_count_; ++index)
   {
@@ -235,6 +224,14 @@ SadgServiceNode::SadgServiceNode()
 
     execution_window_pubs_.push_back(this->create_publisher<mrs_interfaces::msg::ExecutionWindow>(
       ns + "/execution_window", window_qos));
+
+    robot_state_subs_.push_back(this->create_subscription<mrs_interfaces::msg::RobotState>(
+      ns + "/robot_state", robot_state_qos,
+      [this, robot_index](const mrs_interfaces::msg::RobotState::SharedPtr msg)
+      {
+        this->on_robot_state(robot_index, msg);
+      },
+      ingest_options));
 
     escalation_report_subs_.push_back(
       this->create_subscription<mrs_interfaces::msg::EscalationReport>(
@@ -282,9 +279,9 @@ SadgServiceNode::SadgServiceNode()
 
   RCLCPP_INFO(
     this->get_logger(),
-    "sadg_service started ([0a] dummy) — robot_count=%d release_period_s=%.3f "
-    "segments_per_window=%d validity_horizon_s=%.3f",
-    robot_count_, release_period, segments_per_window_, window_validity_horizon_s_);
+    "sadg_service started ([2] depgraph 배선) — robot_count=%d release_period_s=%.3f "
+    "validity_horizon_s=%.3f (창당 세그먼트 수는 depgraph 의존성 프론티어가 결정)",
+    robot_count_, release_period, window_validity_horizon_s_);
 }
 
 double SadgServiceNode::now_seconds() const
@@ -494,40 +491,39 @@ void SadgServiceNode::log_receive_latency(
 void SadgServiceNode::apply_planned_paths(
   const std::vector<RobotPath> & paths, std::uint32_t plan_epoch)
 {
-  std::size_t updated_robots = 0;
-  std::size_t total_segments = 0;
+  const std::lock_guard<std::mutex> lock(state_mutex_);
 
+  // plan_epoch 는 창 스탬프용 — 내용이 같아 재구축을 건너뛰어도 최신 세대를 창에 실어야 한다.
+  current_plan_epoch_ = plan_epoch;
+
+  // build-once: 내용(로봇 집합 + 방문 노드열)이 마지막 구축과 같으면 재구축하지 않는다.
+  // 재구축하면 depgraph 의 릴리스/클리어 프론티어가 리셋돼 로봇이 영원히 처음부터 릴리스된다.
+  if (graph_built_ && plans_equivalent(last_built_paths_, paths))
   {
-    const std::lock_guard<std::mutex> lock(state_mutex_);
-    for (const RobotPath & path : paths)
-    {
-      const std::size_t robot_index = static_cast<std::size_t>(path.robot_id);
-      if (path.robot_id == ROBOT_ID_NONE || robot_index >= robot_states_.size())
-      {
-        RCLCPP_WARN_THROTTLE(
-          this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-          "계획에 실린 robot_id=%u 는 이 노드의 robot_count=%d 밖이다 — 그 경로만 무시한다",
-          static_cast<unsigned>(path.robot_id), robot_count_);
-        continue;
-      }
-
-      RobotReleaseState & state = robot_states_[robot_index];
-      state.segments = slice_visits_into_segments(path.visits);
-      state.next_segment_index = 0;
-      state.plan_epoch = plan_epoch;
-      state.exhausted_logged = false;
-      // ⚠ `window_seq` 는 **초기화하지 않는다** — 계약 불변식 W1 은 로봇별 단조증가를 요구하고,
-      // 재계획마다 0 으로 되돌리면 L4 가 새 창을 "역행 seq"로 보고 전량 폐기한다.
-
-      ++updated_robots;
-      total_segments += state.segments.size();
-    }
+    RCLCPP_INFO_THROTTLE(
+      this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
+      "[2] 계획 내용 동일 — depgraph 재구축 건너뜀(진행 보존), plan_epoch=%u 만 갱신", plan_epoch);
+    return;
   }
 
+  // build_from_paths 는 window_seq 를 재빌드 간 보존한다(W1). 스코프는 depgraph 에 그대로 넘긴다.
+  if (!graph_.build_from_paths(paths, view_scope_.roadmap_version, view_scope_.view_id))
+  {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "[2] build_from_paths 실패 (paths=%zu roadmap_version=%lu) — 구계획 유지(안전 폴백)",
+      paths.size(), static_cast<unsigned long>(view_scope_.roadmap_version));
+    return;
+  }
+
+  last_built_paths_ = paths;
+  graph_built_ = true;
+  // 새 내용으로 그래프가 프론티어를 리셋했으므로 진행 추적도 초기화한다 — 재구축 직후 첫 관측이
+  // 구계획 기준 이탈을 새 그래프에 잘못 흘리지 않게 한다.
+  std::fill(last_occupied_node_.begin(), last_occupied_node_.end(), UNIFORM_NODE_ID_NONE);
+
   RCLCPP_INFO(
-    this->get_logger(),
-    "[0a] 계획 반영: plan_epoch=%u robots=%zu segments=%zu — 릴리스 대기열 갱신", plan_epoch,
-    updated_robots, total_segments);
+    this->get_logger(), "[2] depgraph 재구축: plan_epoch=%u robots=%zu", plan_epoch, paths.size());
 }
 
 // `plan_epoch` 은 봉투 필드라 변환 결과에 실리지 않는다(계약 §0.3) — 메시지에서 직접 읽는다.
@@ -562,7 +558,7 @@ void SadgServiceNode::on_planned_paths(const mrs_interfaces::msg::PlannedPaths::
     }
 
     RCLCPP_INFO(
-      this->get_logger(), "[0a] /planned_paths 수신 plan_epoch=%u paths=%zu 지연=%.6f s",
+      this->get_logger(), "[2] /planned_paths 수신 plan_epoch=%u paths=%zu 지연=%.6f s",
       msg->plan_epoch, msg->paths.size(), latency_s);
     apply_planned_paths(paths, msg->plan_epoch);
   }
@@ -573,57 +569,57 @@ void SadgServiceNode::on_planned_paths(const mrs_interfaces::msg::PlannedPaths::
   }
 }
 
-bool SadgServiceNode::has_pending_segments(RobotReleaseState & state, std::size_t robot_index)
+bool SadgServiceNode::release_robot_window_locked(RobotId robot_id, double now_s)
 {
-  if (state.next_segment_index < state.segments.size())
+  // 의존성 판정·세그먼트 선택·window_seq 부여는 depgraph 소유다. 노드는 봉투 2건만 스탬프한다.
+  ExecutionWindow window;
+  if (!graph_.release_next_window(robot_id, window))
   {
-    return true;
+    return false; // 릴리스할 창 없음 — 막힘(선행 미충족) 또는 소진. 다음 틱 재시도(정상).
   }
 
-  if (!state.exhausted_logged && !state.segments.empty())
-  {
-    RCLCPP_INFO(
-      this->get_logger(), "robot_%zu: 세그먼트 %zu개를 모두 릴리스했다 — 새 계획이 올 때까지 대기",
-      robot_index, state.segments.size());
-    state.exhausted_logged = true;
-  }
-  return false;
-}
+  window.plan_epoch = current_plan_epoch_; // 봉투 (depgraph 는 0 으로 둔다)
+  window.window_valid_until_s =
+    now_s + window_validity_horizon_s_; // 봉투 (W5 입력게이트, [0b] 실측)
 
-bool SadgServiceNode::release_next_window_locked(RobotReleaseState & state, double now_s)
-{
-  const std::size_t robot_index = static_cast<std::size_t>(state.robot_id);
-  if (robot_index >= execution_window_pubs_.size() || !has_pending_segments(state, robot_index))
+  const std::size_t robot_index = static_cast<std::size_t>(robot_id);
+  if (robot_index >= execution_window_pubs_.size())
   {
-    return false;
+    return false; // robot_id 가 발행자 범위 밖 — 방어적(정상 경로에선 발생하지 않음)
   }
-
-  const std::size_t take = std::min(
-    static_cast<std::size_t>(segments_per_window_),
-    state.segments.size() - state.next_segment_index);
-  const ExecutionWindow window =
-    build_next_window(state, view_scope_, take, now_s + window_validity_horizon_s_);
 
   mrs_interfaces::msg::ExecutionWindow msg;
   const mrs::convert::ConvertResult result = mrs::convert::to_msg(window, now_s, msg);
   if (!result.ok)
   {
     report_convert_failure("to_msg(ExecutionWindow)", result);
-    return false; // 발행하지 않는다. 상태도 전진시키지 않아 다음 주기에 다시 시도된다.
+    return false; // 발행하지 않는다. depgraph 프론티어는 이미 전진했으므로 이 창은 유실된다.
   }
 
   execution_window_pubs_[robot_index]->publish(msg);
-  state.window_seq = window.window_seq;
-  state.next_segment_index += take;
   ++released_window_count_;
+  log_released_window(window, now_s);
+  return true;
+}
 
+void SadgServiceNode::log_released_window(const ExecutionWindow & window, double now_s)
+{
   RCLCPP_INFO(
     this->get_logger(),
-    "[0a] 창 릴리스 robot=%u window_seq=%u plan_epoch=%u segments=%zu (%zu/%zu) "
+    "[2] 창 릴리스 robot=%u window_seq=%u plan_epoch=%u segments=%zu preds=%zu "
     "valid_until_s=%.6f stamp_s=%.6f",
-    static_cast<unsigned>(state.robot_id), window.window_seq, window.plan_epoch, take,
-    state.next_segment_index, state.segments.size(), window.window_valid_until_s, now_s);
-  return true;
+    static_cast<unsigned>(window.robot_id), window.window_seq, window.plan_epoch,
+    window.segments.size(), window.predecessor_constraints.size(), window.window_valid_until_s,
+    now_s);
+  if (!window.predecessor_constraints.empty())
+  {
+    const PredecessorConstraint & pred = window.predecessor_constraints.front();
+    RCLCPP_INFO(
+      this->get_logger(),
+      "[2]   → robot=%u 는 노드 %u 앞에서 대기: 선행 robot=%u 가 그 노드를 클리어해야 진입",
+      static_cast<unsigned>(window.robot_id), pred.node_id.value(),
+      static_cast<unsigned>(pred.predecessor_robot_id));
+  }
 }
 
 void SadgServiceNode::on_release_timer()
@@ -633,17 +629,19 @@ void SadgServiceNode::on_release_timer()
     const double now_s = now_seconds();
 
     const std::lock_guard<std::mutex> lock(state_mutex_);
-    if (!scope_ready_)
+    if (!scope_ready_ || !graph_built_)
     {
       RCLCPP_WARN_THROTTLE(
         this->get_logger(), log_throttle_clock_, LOG_THROTTLE_MS,
-        "뷰 스코프 미확보 — 창을 릴리스하지 않는다(안전 폴백: 로봇은 정지 유지)");
+        "스코프/계획 미확보(scope=%d built=%d) — 릴리스하지 않는다(안전 폴백: 로봇 정지 유지)",
+        static_cast<int>(scope_ready_), static_cast<int>(graph_built_));
       return;
     }
 
-    for (RobotReleaseState & state : robot_states_)
+    // 타이머는 릴리스 트리거일 뿐 — 막힌 로봇은 false 를 돌려주고 다음 틱에 재시도된다.
+    for (int index = 0; index < robot_count_; ++index)
     {
-      (void)release_next_window_locked(state, now_s);
+      (void)release_robot_window_locked(static_cast<RobotId>(index), now_s);
     }
   }
   catch (const std::exception & e)
@@ -653,13 +651,78 @@ void SadgServiceNode::on_release_timer()
   }
 }
 
+void SadgServiceNode::advance_progress_locked(
+  std::size_t robot_index, RobotId robot_id, UniformNodeId occupied_node, double time_s)
+{
+  if (robot_index >= last_occupied_node_.size())
+  {
+    return; // 방어적 — 범위 밖 로봇 인덱스
+  }
+
+  const UniformNodeId prev = last_occupied_node_[robot_index];
+  // 이탈 판정: 직전에 유효 노드 X 를 점유하고 있었고, 이번 관측이 X 가 아니면(센티넬이든 다른
+  // 노드든) 로봇이 X 를 **클리어(이탈)**한 것이다. "도착"이 아니라 "이탈"이 진행의 정의다.
+  if (!prev.is_none() && occupied_node != prev)
+  {
+    graph_.on_progress_event(robot_id, prev, time_s);
+    RCLCPP_INFO(
+      this->get_logger(), "[2] 진행: robot=%u 노드 %u 이탈(clear) at sim_t=%.6f",
+      static_cast<unsigned>(robot_id), prev.value(), time_s);
+  }
+  last_occupied_node_[robot_index] = occupied_node;
+}
+
+void SadgServiceNode::on_robot_state(
+  std::size_t robot_index, const mrs_interfaces::msg::RobotState::SharedPtr msg)
+{
+  try
+  {
+    if (msg == nullptr)
+    {
+      return;
+    }
+
+    const std::lock_guard<std::mutex> lock(state_mutex_);
+    if (!scope_ready_ || !graph_built_)
+    {
+      return; // 스코프/그래프 미확보 — 진행을 반영할 대상이 없다(조용히 무시, 안전 폴백)
+    }
+
+    RobotObservation observation;
+    const mrs::convert::ConvertResult result =
+      mrs::convert::from_msg(*msg, view_scope_, observation);
+    if (!result.ok)
+    {
+      report_convert_failure("from_msg(RobotState)", result); // 스코프 불일치 포함 → skip
+      return;
+    }
+
+    // 시각은 RobotState.header.stamp(시뮬 시각). 변환 실패 시 진행을 이번엔 반영하지 않는다.
+    double sim_time_s = 0.0;
+    const mrs::convert::ConvertResult time_result =
+      mrs::convert::time_to_seconds(msg->header.stamp, sim_time_s);
+    if (!time_result.ok)
+    {
+      report_convert_failure("time_to_seconds(RobotState.header.stamp)", time_result);
+      return;
+    }
+
+    advance_progress_locked(
+      robot_index, static_cast<RobotId>(robot_index), observation.occupied_node, sim_time_s);
+  }
+  catch (const std::exception & e)
+  {
+    RCLCPP_ERROR(this->get_logger(), "on_robot_state 실패 (안전 폴백: 진행 미반영): %s", e.what());
+  }
+}
+
 void SadgServiceNode::log_escalation_report(
   std::size_t robot_index, EscalationReason reason,
   const mrs_interfaces::msg::EscalationReport & msg, double latency_s)
 {
   RCLCPP_INFO(
     this->get_logger(),
-    "[0a] 에스컬레이션 수신 robot=%zu reason=%s severity=%s event_id=%lu window_seq=%u "
+    "[2] 에스컬레이션 수신 robot=%zu reason=%s severity=%s event_id=%lu window_seq=%u "
     "지연=%.6f s (누적 %lu건, 라우팅 없음 — ladder 소관)",
     robot_index, escalation_reason_name(reason),
     severity_of(reason) == EscalationSeverity::HARD ? "HARD" : "SOFT",

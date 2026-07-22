@@ -2,32 +2,42 @@
 
 /**
  * @file sadg_service_node.hpp
- * @brief sadg_service — **[0a] tracer bullet 더미** L3 노드 (architecture §7-3).
+ * @brief sadg_service — L3 SADG 노드 (architecture §7-3). **로드맵 [2] Split B: 실 depgraph 배선.**
  *
- * ## 이 노드가 [0a] 에서 하는 일 / 하지 않는 일
- *  - 한다: `/planned_paths` 를 받아 경로를 세그먼트로 자르고, **실제 `ExecutionWindow` 스키마로**
- *    `/robot_{i}/execution_window` 에 순서대로 릴리스한다. 이것이 [0a] 의 핵심 계측 경로다
- *    (창 발행 → 로봇 수신 지연). `/robot_{i}/escalation_report` 를 받아 **로그만** 남긴다.
- *  - **하지 않는다**: 의존성 판정·R1(BTPG)·R2(MILP)·judge·접합(splice)·좀비 창 실효 판정.
- *    전부 로드맵 [1]~[3] 의 일이다. 사다리 라우팅은 `ladder_orchestrator` 소관이다.
+ * ## 이 노드가 [2] 에서 하는 일 / 하지 않는 일
+ *  - 한다: `/planned_paths` 를 받아 **실 `mrs::DependencyGraph` 를 구축**하고(ADG — Type-1
+ * 로봇순서· Type-2 통행순서), 의존성이 충족된 세그먼트를 `graph_.release_next_window()` 로 릴리스해
+ *    `/robot_{i}/execution_window` 에 발행한다(D-05). `/robot_{i}/robot_state` 를 구독해 로봇이
+ *    노드를 **이탈(클리어)**하면 `graph_.on_progress_event()` 로 Type-2 선행제약을 해소한다 —
+ *    이것이 창 릴리스를 앞으로 굴리는 진행 이벤트원이다. `/robot_{i}/escalation_report` 는
+ *    수신해 **로그만** 남긴다.
+ *  - **하지 않는다**: R1(BTPG)·R2(MILP)·judge·접합(splice)·좀비 창 실효(staleness repair, W5).
+ *    전부 로드맵 [1]/[3] 및 pending-[0b](v_max 미실측)의 일이다. 사다리 라우팅은
+ *    `ladder_orchestrator` 소관이다(D-08).
  *
- * ## 실행자 모델 (계약 Q-3 — [0a] 에 MILP 가 없어도 지금 구조를 잡는다)
+ * ## 정직성 경계 (pysim 티어)
+ * 이 배선이 검증하는 것은 **pysim 티어 seam 통합 로직**이다 — 더미 L4 의 합성 진행(RobotState
+ * 관측)이 depgraph 의 릴리스/클리어 프론티어를 실제로 굴리는가. **QP feasibility·무livelock·
+ * F1∧F5 는 isaac 필수(pending-isaac)** 이며 이 노드의 pysim 흐름 통과를 "연구 검증"으로
+ * 선언하지 않는다.
+ *
+ * ## 실행자 모델 (계약 Q-3)
  * 콜백그룹을 **둘**로 나눈다.
  *  - `release_cb_group_` : 릴리스 타이머. 노드 기본 실행자에서 돈다.
- *  - `ingest_cb_group_`  : 계획 수신·에스컬레이션 수신·MapRegistry 조회. **전용 스레드 + 전용
- *    단일 실행자**(@ref mrs::ros_sadg::CallbackGroupThread)에서 돈다.
+ *  - `ingest_cb_group_`  : 계획 수신·**진행(RobotState) 수신**·에스컬레이션 수신·MapRegistry 조회.
+ *    **전용 스레드 + 전용 단일 실행자**(@ref mrs::ros_sadg::CallbackGroupThread)에서 돈다.
  * 이유는 계약이 명시한다 — "릴리스 콜백이 MILP 에 막히면 **D-05 창 소비율 지표가 오염**된다".
- * [3] 에서 배선을 바꾸면 그때의 릴리스 지연 수치는 이미 오염된 뒤다. 두 그룹이 같은 상태를
- * 읽고 쓰므로 @ref state_mutex_ 가 그 경계다.
+ * [3] 에서 배선을 바꾸면 그때의 릴리스 지연 수치는 이미 오염된 뒤다. 두 그룹이 같은 상태
+ * (특히 @ref graph_)를 읽고 쓰므로 @ref state_mutex_ 가 그 경계다.
  *
- * ## 창 릴리스가 [0a] 에서 타이머 구동인 이유 (의도적 이탈, 실행 규약 변경 아님)
+ * ## 창 릴리스가 타이머 구동인 이유 (의도적 이탈, 실행 규약 변경 아님)
  * architecture §1.6 은 `sadg_service` 를 **타이머 없는 순수 이벤트 구동**으로 규정한다(진행
- * 이벤트가 릴리스를 굴린다 — `adg-2019`). 그러나 [0a] 에는 진행 이벤트의 출처가 없다:
- * 계약 §0.1.2 승인 기록이 "**[0a] 는 `CommitStatus` 를 발행하지 않는다**"를 명시했고,
- * `CommitStatus` → 도메인 변환 함수도 `mrs_msg_convert` 에 없다. 이벤트원이 없는 상태에서
- * 창을 하나만 내보내면 배관 실측이 표본 1개로 끝난다.
- * ⇒ [0a] 더미에 한해 **릴리스를 주기 타이머로 굴린다**. [1]/[3] 에서 `CommitStatus`·진행
- * 이벤트가 붙으면 이 타이머는 제거된다. 이것은 측정 장치이지 설계 결정이 아니다.
+ * 이벤트가 릴리스를 굴린다 — `adg-2019`). [2] 에는 진행 이벤트원(RobotState)이 붙었지만,
+ * 릴리스 트리거는 **여전히 주기 타이머**로 둔다: 진행 이벤트로 선행제약이 해소돼도 그 시점에
+ * 곧바로 릴리스를 밀지 않고, 다음 타이머 틱에서 `release_next_window` 가 재시도해 막힌 로봇을
+ * 전진시킨다(막힘=false 반환, 정상). 순수 이벤트 구동(진행 이벤트가 직접 릴리스를 호출)은
+ * `CommitStatus` 경로가 붙는 [3] 대상이다. 타이머는 릴리스 **트리거**이지 릴리스 **판정**이
+ * 아니다 — 판정(의존성 충족)은 depgraph 가 단독으로 한다.
  *
  * ## 뷰 규약 (계약 §0.1)
  * 창의 노드 id 는 전부 **UNIFORM** 이고 인스턴스 스코프는 `roadmap_version` + `view_id` 평면
@@ -57,6 +67,7 @@
 #include "mrs_interfaces/msg/execution_window.hpp"
 #include "mrs_interfaces/msg/judge_verdict.hpp"
 #include "mrs_interfaces/msg/planned_paths.hpp"
+#include "mrs_interfaces/msg/robot_state.hpp"
 #include "mrs_interfaces/msg/rung_event.hpp"
 #include "mrs_interfaces/srv/get_uniform_view.hpp"
 
@@ -64,23 +75,10 @@ namespace mrs
 {
 
 /**
- * @brief 로봇 1대분 릴리스 상태 — [0a] 더미의 "의존성 그래프" 대용.
+ * @brief L3 SADG 서비스 노드 — 실 `mrs::DependencyGraph` 를 소유·구동한다 (로드맵 [2] Split B).
  *
- * 실제 시스템에서 이 상태는 `mrs_depgraph::DependencyGraph` 안에 있고 릴리스는 의존성 충족
- * 판정의 결과다(D-05). [0a] 는 판정이 없으므로 **세그먼트 열 + 다음 인덱스**만 든다.
- */
-struct RobotReleaseState
-{
-  RobotId robot_id{ROBOT_ID_NONE};     ///< 로봇 id
-  std::vector<WindowSegment> segments; ///< 계획에서 잘라 낸 세그먼트 열 (뷰 UNIFORM)
-  std::size_t next_segment_index{0};   ///< 다음에 릴리스할 세그먼트 인덱스
-  std::uint32_t window_seq{0};         ///< 이 로봇에 마지막으로 실린 창 seq
-  std::uint32_t plan_epoch{0};         ///< 세그먼트가 유래한 계획 세대
-  bool exhausted_logged{false}; ///< 경로 소진 로그를 이미 남겼는지 (로그 폭주 방지)
-};
-
-/**
- * @brief L3 SADG 서비스 노드의 [0a] 더미 구현.
+ * 릴리스 상태(릴리스/클리어 프론티어·로봇별 window_seq)는 전부 @ref graph_ 가 소유한다 — 이 노드는
+ * 배관(구독·타이머·발행·변환)만 든다. 더미 세그먼트 열 상태는 제거됐다.
  */
 class SadgServiceNode : public rclcpp::Node
 {
@@ -96,7 +94,7 @@ public:
 
 private:
   /**
-   * @brief `/planned_paths` 수신 콜백 — 계획을 세그먼트 열로 잘라 릴리스 대기열에 넣는다.
+   * @brief `/planned_paths` 수신 콜백 — 계획을 도메인으로 변환해 depgraph 구축에 넘긴다.
    *
    * `ingest_cb_group_`(전용 스레드)에서 실행된다.
    *
@@ -104,6 +102,19 @@ private:
    * @return void
    */
   void on_planned_paths(const mrs_interfaces::msg::PlannedPaths::SharedPtr msg);
+
+  /**
+   * @brief 로봇 i 의 `/robot_i/robot_state` 수신 콜백 — 진행(노드 이탈) 이벤트를 depgraph 에 반영.
+   *
+   * `ingest_cb_group_`(전용 스레드)에서 실행된다. 관측을 도메인으로 변환(스코프 대조 포함)한 뒤
+   * 로봇이 유효 노드에서 **이탈**했는지 판정해 @ref advance_progress_locked 로 넘긴다.
+   *
+   * @param[in] robot_index 0-base 로봇 인덱스. 자료형 `std::size_t`.
+   * @param[in] msg 수신한 로봇 상태. 자료형 `mrs_interfaces::msg::RobotState::SharedPtr`.
+   * @return void
+   */
+  void on_robot_state(
+    std::size_t robot_index, const mrs_interfaces::msg::RobotState::SharedPtr msg);
 
   /**
    * @brief 로봇 i 의 `/robot_i/escalation_report` 수신 콜백 — **로그만** 남긴다.
@@ -196,7 +207,14 @@ private:
     const char * label, const builtin_interfaces::msg::Time & stamp, double & out_latency_s);
 
   /**
-   * @brief 변환된 계획을 로봇별 릴리스 대기열에 반영한다 (@ref state_mutex_ 를 내부에서 잡는다).
+   * @brief 변환된 계획으로 depgraph 를 (재)구축한다 (@ref state_mutex_ 를 내부에서 잡는다).
+   *
+   * **build-once 판정**: `pp_service` 는 `auto_plan_period_s` 마다 `plan_epoch` 만 올려 **내용이
+   * 동일한** canned 계획을 재발행한다. 매번 `build_from_paths` 로 재구축하면 depgraph 의 릴리스/
+   * 클리어 프론티어가 리셋돼 로봇이 영원히 처음부터 릴리스된다. 그래서 **마지막 구축한 계획과
+   * 노드열이 같으면 재구축을 건너뛴다**(진행 보존). 다르면 재구축한다. `plan_epoch` 은 창 스탬프용
+   * 으로 매번 갱신한다.
+   *
    * @param[in] paths 도메인 경로 목록. 자료형 `std::vector<mrs::RobotPath>`.
    * @param[in] plan_epoch 계획 세대 번호. 자료형 `std::uint32_t`. 메시지 봉투에서 읽은 값이다.
    * @return void
@@ -204,27 +222,47 @@ private:
   void apply_planned_paths(const std::vector<RobotPath> & paths, std::uint32_t plan_epoch);
 
   /**
-   * @brief 로봇 1대의 다음 창을 만들어 발행한다.
+   * @brief 로봇 1대의 다음 창을 depgraph 에서 릴리스해 발행한다.
    *
-   * @warning 호출자가 @ref state_mutex_ 를 **이미 잡고** 있어야 한다(이름의 `_locked` 접미가 그
-   * 뜻).
+   * @warning 호출자가 @ref state_mutex_ 를 **이미 잡고** 있어야 한다(`_locked` 접미의 뜻).
    *
-   * @param[in,out] state 대상 로봇의 릴리스 상태. 자료형 `mrs::RobotReleaseState`.
-   *                성공 시 `next_segment_index` 와 `window_seq` 가 전진한다.
+   * depgraph 가 릴리스한 창에 봉투 2건(`plan_epoch`·`window_valid_until_s`)만 노드가 스탬프하고
+   * 변환·발행한다. `window_seq`·`segments`·`predecessor_constraints`·스코프는 depgraph 소유값이다.
+   *
+   * @param[in] robot_id 대상 로봇 id. 자료형 `mrs::RobotId`.
    * @param[in] now_s 현재 시각 [s], 시뮬 시계 절대시각. 자료형 `double`.
-   * @return `bool` — 창을 실제로 발행했으면 true. 남은 세그먼트가 없거나 변환에 실패하면 false.
+   * @return `bool` — 창을 실제로 발행했으면 true. 릴리스할 창이 없거나(막힘/소진) 변환에 실패하면
+   *         false.
    */
-  bool release_next_window_locked(RobotReleaseState & state, double now_s);
+  bool release_robot_window_locked(RobotId robot_id, double now_s);
 
   /**
-   * @brief 아직 릴리스할 세그먼트가 남았는지 판정한다 (소진 시 1회만 로그).
-   * @warning 호출자가 @ref state_mutex_ 를 이미 잡고 있어야 한다.
-   * @param[in,out] state 대상 로봇의 릴리스 상태. 자료형 `mrs::RobotReleaseState`.
-   *                소진 로그를 남기면 `exhausted_logged` 가 true 가 된다.
-   * @param[in] robot_index 0-base 로봇 인덱스(로그용). 자료형 `std::size_t`.
-   * @return `bool` — 남은 세그먼트가 있으면 true.
+   * @brief 발행한 창 1건을 사람이 읽을 수 있게 기록한다 (막힘 지점 포함, seam 흐름 실측용).
+   * @param[in] window 발행한 도메인 창. 자료형 `mrs::ExecutionWindow`. 봉투 2건은 이미 스탬프됨.
+   * @param[in] now_s 릴리스 시각 [s], 시뮬 시계 절대시각. 자료형 `double`.
+   * @return void
    */
-  bool has_pending_segments(RobotReleaseState & state, std::size_t robot_index);
+  void log_released_window(const ExecutionWindow & window, double now_s);
+
+  /**
+   * @brief 로봇이 이전 관측의 유효 노드를 이탈했으면 depgraph 에 진행 이벤트를 낸다.
+   *
+   * @warning 호출자가 @ref state_mutex_ 를 이미 잡고 있어야 한다.
+   *
+   * 진행 semantics: 로봇별 마지막 유효 `occupied_node` 를 추적하고, 그 노드 X 가 **다른 값**
+   * (센티넬 또는 다른 노드)으로 바뀌면 로봇이 X 를 **클리어(이탈)**한 것이다("도착"이 아니라
+   * "이탈" — 선행 로봇이 공유 노드를 비워야 후속이 진입한다). 매 관측마다 마지막 노드를 갱신한다.
+   *
+   * @param[in] robot_index 0-base 로봇 인덱스(추적 배열 첨자). 자료형 `std::size_t`.
+   * @param[in] robot_id 대상 로봇 id. 자료형 `mrs::RobotId`.
+   * @param[in] occupied_node 이번 관측의 점유 노드. 자료형 `mrs::UniformNodeId`. 센티넬은 "엣지
+   * 위".
+   * @param[in] time_s 이벤트 시각 [s](RobotState.header.stamp). 자료형 `double`. 시뮬 시계
+   * 절대시각.
+   * @return void
+   */
+  void advance_progress_locked(
+    std::size_t robot_index, RobotId robot_id, UniformNodeId occupied_node, double time_s);
 
   /**
    * @brief 변환 실패 1건을 사유별로 적립하고 스로틀 로그를 남긴다 (R-15 (b) = b3).
@@ -240,17 +278,22 @@ private:
    */
   [[nodiscard]] double now_seconds() const;
 
-  // ── 도메인 소유물 ([0a] 미사용 — [1]/[3] 에서 이 노드가 단일 소유자가 된다) ─────
-  mrs::DependencyGraph graph_; ///< ADG/SADG 단일 소유 (D-05). [0a] 는 호출하지 않는다
-  mrs::BtpgAttemptTracker btpg_tracker_; ///< R1 (seam e). [0a] 미사용
-  mrs::MilpJobTracker milp_tracker_;     ///< R2 (seam d). [0a] 미사용
-  mrs::SlackRecursionEstimator judge_;   ///< judge (seam f). [0a] 미사용
+  // ── 도메인 소유물 ─────────────────────────────────────────────────────
+  mrs::DependencyGraph graph_; ///< ADG/SADG 단일 소유 (D-05). [2] 릴리스/진행의 단일 소유자
+  mrs::BtpgAttemptTracker btpg_tracker_; ///< R1 (seam e). [2] 미사용
+  mrs::MilpJobTracker milp_tracker_;     ///< R2 (seam d). [2] 미사용
+  mrs::SlackRecursionEstimator judge_;   ///< judge (seam f). [2] 미사용
 
-  // ── 릴리스 상태 (두 콜백그룹이 공유 — state_mutex_ 가 경계) ─────────────
-  mutable std::mutex state_mutex_;              ///< 아래 상태 전부를 보호한다
-  std::vector<RobotReleaseState> robot_states_; ///< 인덱스 = 0-base 로봇 인덱스
-  ViewScope view_scope_{}; ///< 균일 뷰 스코프 (MapRegistry 가 유일 출처)
+  // ── 릴리스·진행 상태 (두 콜백그룹이 공유 — state_mutex_ 가 경계) ─────────────
+  mutable std::mutex state_mutex_; ///< 아래 상태 전부(특히 graph_)를 보호한다
+  ViewScope view_scope_{};         ///< 균일 뷰 스코프 (MapRegistry 가 유일 출처)
   bool scope_ready_{false}; ///< 스코프 확보 여부. false 면 아무것도 릴리스하지 않는다
+
+  bool graph_built_{false}; ///< depgraph 구축 여부. false 면 릴리스하지 않는다
+  std::vector<RobotPath> last_built_paths_; ///< 마지막으로 구축한 계획 (build-once 판정용)
+  std::uint32_t current_plan_epoch_{0};     ///< 마지막 수신 계획 세대 (창 스탬프용)
+  std::vector<UniformNodeId>
+    last_occupied_node_; ///< 로봇별 마지막 유효 점유 노드 (진행 이탈 판정용)
 
   // ── 콜백그룹·실행자 (계약 Q-3) ──────────────────────────────────────────
   rclcpp::CallbackGroup::SharedPtr release_cb_group_; ///< 릴리스 경로 (노드 기본 실행자)
@@ -258,6 +301,7 @@ private:
 
   // ── ROS 배선 ────────────────────────────────────────────────────────────
   rclcpp::Subscription<mrs_interfaces::msg::PlannedPaths>::SharedPtr planned_paths_sub_;
+  std::vector<rclcpp::Subscription<mrs_interfaces::msg::RobotState>::SharedPtr> robot_state_subs_;
   std::vector<rclcpp::Subscription<mrs_interfaces::msg::EscalationReport>::SharedPtr>
     escalation_report_subs_;
   std::vector<rclcpp::Publisher<mrs_interfaces::msg::ExecutionWindow>::SharedPtr>
