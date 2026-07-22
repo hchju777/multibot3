@@ -1,21 +1,32 @@
-# GetUniformView.srv — L2용 세분화 균일 뷰 조회 (MapRegistry, D-11 v2)
+# GetUniformView.srv — L2용 세분화 균일 뷰 조회 (MapRegistry, D-11 v2/v6)
 #
-# 계약 버전: 1.0.0
+# 계약 버전: 1.1.0  (1.0.0 → 1.1.0 — minor, 재잠금 8차 (d)·(m). 실효 입도 메타 추가 + 유일성 명문화)
 # 서비스명: /map_registry/get_uniform_view
-# 근거: D-11 v2(물리 불균일 + L2 균일 뷰), theory T1 §4.2 파생(세분화 입도 하한
-#       l_unit >= 2(r + L)) — Q-7 답: **입도 메타데이터를 계약에 노출한다**.
-#       L2 해가 어느 입도의 뷰에서 나왔는지 L3 가 알아야 collapse 가 정합하기 때문이다.
+# 근거: D-11 v2(물리 불균일 + L2 균일 뷰), T1-R6(입도 하한 2(ρ+L*)) — Q-7 답: **입도 메타데이터를
+#       계약에 노출한다**. L2 해가 어느 입도의 뷰에서 나왔는지 L3 가 알아야 collapse 가 정합한다.
+#
+# ── 유일성 (재잠금 8차 (d), Q6) ────────────────────────────────────────────────────────
+#  한 roadmap_version 에 **유효 균일 뷰는 정확히 1개**다. 입도를 바꾸는 것은 재구성이며
+#  roadmap_version 증가를 동반한다(이전 뷰 폐기). 그래서 요청은 roadmap_version 만으로 뷰를
+#  유일하게 지목한다 — view_id 요청 필드가 없는 이유다(WindowSegment 캐시 키 규약과 정합).
 
-uint64 roadmap_version   # 기준 물리 지도 버전. 0 = 최신
+uint64 roadmap_version   # 기준 물리 지도 버전. 0 = 최신 (version 당 균일 뷰 유일 — 위 참조)
 ---
 uint8 RESULT_OK=0
 uint8 RESULT_STALE_VERSION=1
 uint8 result
 uint64 roadmap_version
-uint32 view_id                    # 이 뷰의 식별자. 입도가 바뀌면 반드시 새 view_id
-float64 unit_length_m             # 세분화 입도 (가상 노드 간 간격) [m]
-float64 unit_length_lower_bound_m # 이론 하한 2(r + L) [m] (T1). unit_length_m 은 이 값 이상이어야
-                                  # 하며, 미만이면 ValidateMap 이 거부한다
+uint32 view_id                    # 이 뷰의 식별자. 입도가 바뀌면 반드시 새 view_id(+ version 증가)
+float64 unit_length_m             # 요청 세분화 입도 (분할 규칙의 목표 간격) [m]
+float64 unit_length_lower_bound_m # 이론 하한 2(ρ + L*) [m] (T1-R6, iw.hub = 2.211518). unit_length_m
+                                  # 은 이 값 이상이어야 하며, 미만이면 ValidateMap 이 거부한다
+# ── 실효 입도 메타 (재잠금 8차 (m), v6 준균일) ─────────────────────────────────────────
+#  floor 균등분할은 엣지별 실효 입도를 [unit, 2·unit) 로 흩뜨린다(준균일). 논문에서 근사 크기를
+#  수치로 보고하려면 이 메타가 필요하다 — 없으면 '단위시간 충족'의 실제 왜곡을 계량할 수단이 없다.
+float64 effective_unit_min_m      # 실측 최소 실효 입도 [m] (분할된 엣지들 중)
+float64 effective_unit_max_m      # 실측 최대 실효 입도 [m]. max/min 이 1 에 가까울수록 균일에 근접
+float64 subdivided_edge_ratio     # 분할된(가상 노드가 삽입된) 물리 엣지 비율 [0,1]. 0 에 가까우면
+                                  # 세분화가 사실상 항등 = D-11 의 L2 균일 뷰 이득이 없다는 경고
 RoadmapNode[] nodes               # 가상 노드 포함 (is_virtual = true)
 RoadmapEdge[] edges
 NodeMapping[] subdivision_map     # 가상 노드 → 물리 엣지 위 위치 (왕복 무손실의 표현체)

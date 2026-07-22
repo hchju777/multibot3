@@ -23,8 +23,13 @@ Pose2D[] poses           # MODE_POSE_TO_NODE 일 때 사용 (theta 는 무시)
 ---
 uint8 RESULT_OK=0
 uint8 RESULT_STALE_VERSION=1
-uint8 RESULT_NOT_FOUND=2     # 대응 노드/좌표 없음 — 부분 결과는 반환하지 않는다
+uint8 RESULT_NOT_FOUND=2       # 대응 노드/좌표 없음 — 부분 결과는 반환하지 않는다
+uint8 RESULT_UNSUPPORTED_VIEW=3 # view_scope 의 뷰 종류를 이 서비스가 지원하지 않음(재잠금 8차 (i))
 uint8 result
 Pose2D[] poses           # MODE_NODE_TO_POSE 결과 [m], map. theta 는 0
 uint32[] node_ids        # MODE_POSE_TO_NODE 결과 (최근접 노드)
-float64[] residual_m     # MODE_POSE_TO_NODE 의 잔차 거리 [m]. 무손실 검증 지표(통과 기준 0)
+float64[] residual_m     # MODE_POSE_TO_NODE 의 잔차 거리 [m].
+                         # ⚠ 무손실 통과 기준 0 은 **node→pose→node 방향에서만** 성립한다
+                         #   (재잠금 8차 (i) 정정). pose→node 는 연속 좌표를 최근접 노드로 보내는
+                         #   **다대일 부분함수**라 임의 pose 의 잔차 0 은 원리적으로 불가하며,
+                         #   node→pose(MODE_NODE_TO_POSE)로 얻은 pose 를 되돌릴 때만 0 을 요구한다

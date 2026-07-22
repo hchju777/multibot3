@@ -16,6 +16,7 @@ find_package(builtin_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CommitState.msg"
   "msg/CommitStatus.msg"
+  "msg/CorridorFlipEvent.msg"
   "msg/EscalationReport.msg"
   "msg/ExecutionWindow.msg"
   "msg/FrozenOrder.msg"
