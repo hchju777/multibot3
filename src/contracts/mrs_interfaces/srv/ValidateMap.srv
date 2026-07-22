@@ -1,58 +1,92 @@
-# ValidateMap.srv — roadmap 정적 검사기 3종 (MapRegistry, D-11 + theory T1-R5)
+# ValidateMap.srv — roadmap 정적 검사기 (MapRegistry, D-11 + theory T1-R5/T1-R6/T5/T6)
 #
-# 계약 버전: 2.0.0  (1.0.0 → 2.0.0 — **major**. 위반 목록을 **뷰별로 분리**. R-14 (a) 탈출구 #1)
+# 계약 버전: 3.0.0  (2.0.0 → 3.0.0 — **major**, 재잠금 8차. 검사기 3 을 순수기하 **3단**으로
+#                    재사양(v_max-free) + 검사기 1·2 위반 노드 배열 분리 + **검사기 4 advisory**
+#                    (통로 mutex-후보 태깅) + 엣지 강타입 정합)
 # 서비스명: /map_registry/validate_map
 #
-# ── v2.0.0 변경 사유 (탈출구 #1 처리) ──────────────────────────────────────────────────
-#  v1.0.0 의 `violating_node_ids`/`violating_edge_ids` 는 **요청 인자에 따라 뷰가 달라졌다**:
-#  well-formed·biconnected·통로 폭 위반은 **물리 뷰** 원소이고, 세분화 입도 위반은 **균일 뷰**
-#  원소다. 한 배열에 두 뷰가 섞이면 강타입으로 표현할 수 없고(어느 tag 로 랩할지 결정 불가),
-#  수신자가 잘못된 뷰에서 조회해도 값이 유효해 조용히 오독된다.
-#  ⇒ **뷰별로 분리**한다. 각 배열은 단일 뷰만 담으므로 msg_convert 가 배열마다 다른 강타입으로
-#     랩할 수 있다. 도메인 헤더 `RoadmapValidationResult`(mrs_map_registry) 도 같은 형태로
-#     맞춰야 한다 — 이 계약이 그 구조를 규정한다.
-# 호출 시점: **맵 로드 시점**(bringup) 및 R3 부분 재계획 후 재검사(T3-R4, O-T3-3 대비).
+# ── v3.0.0 변경 사유 (iw.hub 편심 기하 실측 → T1-R6/T5/T6) ──────────────────────────────
+#  로봇 정본 iw.hub 실측으로 T1-R5 의 단일 통로 폭 검사(W_min > 2(r + v_max/omega_max), v_max
+#  의존)를 **순수기하 3단**으로 갈랐다. v_max·omega_max 가 자산에서 미발견(pending-[0b])이라
+#  실측 상수만으로 강제 가능한 부분(교행·회전 기하)과 v_max 의존부(동역학 폭·디레이팅)를
+#  분리해야 [1] 에서 착지한다. 3단·검사기 4 는 전부 순수기하라 [0b] 없이 지금 검증된다.
+#  또 v2.0.0 의 `violating_physical_node_ids` 가 검사기 1(well-formed)과 2(biconnected) 위반을
+#  **한 배열에 섞어** 어느 노드가 어느 검사에 걸렸는지 복원 불가였다 ⇒ 분리한다.
+# 호출 시점: **맵 로드 시점**(bringup) 및 R3 부분 재계획·통로 flip 후 재검사(T3-R4, O-C5).
 #
-# 검사기 3종:
+# 검사기:
 #  1. well-formed   — 비작업 엔드포인트 >= 로봇 수, 엔드포인트 간 타 엔드포인트 회피 경로 존재
 #                     (lifelong-mapd-2017 Def.1) = 완주 분해 조건 ①
-#  2. biconnected류 — 인접 노드쌍이 단순 사이클에 속함(막다른 골목 금지)
-#                     (pibt-2019 Thm 2 reachability 전제) = 완주 분해 조건 ②'
-#  3. 통로 폭       — W_min > 2(r + v_max/omega_max)  [theory T1 §4.2 조건 N2, v3 신설]
-#                     + 세분화 입도 하한 l_unit >= 2(r + L)
-#  ⚠ 3번을 강제하지 않은 채 F5 를 돌리면 **그 실험은 T1 이론을 검증하지 않는다**(theory §9).
+#  2. biconnected류 — 인접 노드쌍이 단순 사이클(막다른 골목·절단점 금지)
+#                     (pibt-2019 Thm 2 reachability 전제) = 완주 분해 조건 ②′
+#                     ⚠ **[1] 미구현(U-23 보류)** — pibt-2019 카드 내 무다리 vs 절단점 상충
+#                     (`:39` vs `:42`)이 원문 대조 전이라 성질 확정 금지. [2] 전 확정.
+#                     [1] 에서 이 검사는 실행되지 않으며 아래 `biconnected`/위반 배열은 예약이다.
+#  3. 통로 폭 (순수기하 3단, v_max-free — T1-R6/T5/T6):
+#       · 통과   W_pass   > 2ρ        = 1.575808  [**하드** — 180° 전환/통과 물리 하한]
+#       · 90°점턴 W_turn90 >= 2ρ + L*  = 1.893663  [정보성 — 제자리 >=90° 회전 여유]
+#       · U턴    W_uturn  >= 2(ρ+L*)  = 2.211518 = l_unit  [정보성 — 360° 무후진]
+#     + 세분화 입도 하한 l_unit >= 2(ρ + L*)  [균일 뷰, 하드]
+#     + r_clear >= r  [정지선 반경 하한, 하드]
+#  4. 통로 mutex-후보 (advisory, T6/T7) — 폭 < 4ρ = 3.151615(교행 불가) 물리 엣지를 태깅.
+#     **RESULT_PASS 를 막지 않는다**(하드 하류 제약 미방출). D-12/D-13 통로 자원의 후보 입력원.
+#  ⚠ 검사기 3 을 강제하지 않은 채 F5 를 돌리면 **그 실험은 T1 이론을 검증하지 않는다**(theory §9).
+#
+# 임계 상수는 ρ 와 L* 에서 계산한다(2ρ / 2ρ+L* / 2(ρ+L*) / 4ρ). ρ 는 편심 몸체에서 r 로부터
+# 유도되지 않으므로(NID점 기준 외접 반경) **요청에 별도로 싣는다**.
 
 uint64 roadmap_version    # 물리 뷰 스코프 (view_kind = PHYSICAL, view_id = 0 과 함께)
 uint32 view_id            # 입도 검사 대상 **균일 뷰** id. 0 = 물리 roadmap 만 검사(입도 검사 생략)
 uint16 robot_count        # well-formed 검사의 로봇 수
-float64 robot_radius_m    # r [m]
-float64 v_max_mps         # v_max [m/s]
-float64 omega_max_rps     # omega_max [rad/s]
-float64 nid_offset_l_m    # NID 오프셋 L [m]. R_min <= L < W_min/2 − r 이어야 한다
+float64 robot_radius_m    # r [m] — r_clear 하드 검사·닫힌형(pending-[0b])용
+float64 inflation_radius_m # ρ [m] — NID점 기준 몸체 외접 반경(max‖p−z‖). 3단·검사기4 임계의 근거.
+                          # 편심 몸체라 r 에서 유도 불가 — 별도 입력 (T1-R6)
+float64 nid_offset_l_m    # L* [m] — 3단 임계(2ρ+L*, 2(ρ+L*))·N2′ 용. R_min <= L* 이어야 한다
+float64 v_max_mps         # v_max [m/s] — **pending-[0b]. 0 = 미측정 → 동역학 폭 닫힌형 검사 생략**
+float64 omega_max_rps     # omega_max [rad/s] — 동일. 순수기하 3단은 이 둘 없이 돈다
 ---
 uint8 RESULT_PASS=0
 uint8 RESULT_FAIL=1
 uint8 RESULT_STALE_VERSION=2
-uint8 result
+uint8 result              # PASS = well_formed ∧ pass_width_ok ∧ unit_granularity_ok ∧ r_clear_ok
+                          # ([1] 에서 biconnected 는 미구현(U-23)이라 result 판정에 넣지 않는다)
 
+# ── 검사기별 하드 판정 (bool) ──────────────────────────────────────────────────────────
 bool well_formed              # 검사기 1
-bool biconnected              # 검사기 2
-bool corridor_width_ok        # 검사기 3 (통로 폭)
-bool unit_granularity_ok      # 검사기 3 (세분화 입도 하한)
+bool biconnected              # 검사기 2 — **[1] 미구현(U-23)**. false 는 '실패'가 아니라 '미평가'다.
+                              # U-23 확정 전까지 result 판정에 넣지 않으며 소비자도 하드 실패로 읽지 말 것
+bool pass_width_ok            # 검사기 3 통과폭 — 모든 물리 엣지 폭 > 2ρ (하드)
+bool unit_granularity_ok      # 검사기 3 세분화 입도 하한 l_unit >= 2(ρ+L*) (균일 뷰, 하드)
+bool r_clear_ok               # 검사기 3 정지선 반경 하한 r_clear >= r (하드)
 
-# ── 위반 목록 — **뷰별로 분리**(v2.0.0). 각 배열은 단일 뷰만 담는다 ────────────────────
-uint64 roadmap_version              # 응답 스코프 에코 (요청과 동일해야 한다)
-uint32 view_id                      # 입도 검사에 사용한 균일 뷰 id (미검사 시 0)
+uint64 roadmap_version        # 응답 스코프 에코 (요청과 동일해야 한다)
+uint32 view_id                # 입도 검사에 사용한 균일 뷰 id (미검사 시 0)
 
-uint32[] violating_physical_node_ids # **물리 뷰(PhysicalNodeId)** — 검사기 1·2 위반 노드
-                                     # (well-formed 미달 엔드포인트 / 막다른 골목·절단점)
-uint32[] violating_physical_edge_ids # **물리 뷰(EdgeId@Physical)** — 검사기 3-a 통로 폭 미달 구간
-uint32[] violating_uniform_node_ids  # **균일 뷰(UniformNodeId)** — 검사기 3-b 입도 하한 미달에
-                                     # 관여한 가상 노드. view_id = 0 이면 항상 비어 있다
-uint32[] violating_uniform_edge_ids  # **균일 뷰(EdgeId@Uniform)** — 입도 하한 미달 구간
-                                     # (엣지 길이가 unit 의 정수배가 아닐 때 생기는 잔여 구간 포함)
+# ── 위반 목록 — **뷰별·엔티티별 분리**(5 배열, 각 배열 단일 강타입) ─────────────────────
+uint32[] violating_wellformed_node_ids  # **물리(PhysicalNodeId)** — 검사기 1 위반(well-formed 미달)
+uint32[] violating_biconnected_node_ids # **물리(PhysicalNodeId)** — 검사기 2 위반(절단점·막다른 골목).
+                                        # [1] 에서는 U-23 보류로 항상 비어 있다(예약)
+uint32[] narrow_pass_edge_ids           # **물리(PhysicalEdgeId)** — 검사기 3 통과폭 하드 위반(폭 < 2ρ)
+uint32[] violating_uniform_node_ids     # **균일(UniformNodeId)** — 검사기 3 입도 하한 미달 가상 노드.
+                                        # view_id = 0 이면 항상 비어 있다
+uint32[] violating_uniform_edge_ids     # **균일(UniformEdgeId)** — 입도 하한 미달 구간
 
-float64 required_min_width_m  # 2(r + v_max/omega_max) [m] — 요구 최소 통로 폭
-float64 derated_v_max_mps     # 위반 구간에 적용될 디레이팅 속도 (W_min/2 − r)*omega_max [m/s].
-                              # 정책상 '거부' 대신 '디레이팅'을 택할 때 사용
-string[] messages             # 사람이 읽을 위반 설명
+# ── 정보성 3단 분류 (하드 아님 — 사다리·D-13 복구 라우팅 입력, T6 §9) ────────────────────
+uint32[] turn90_incapable_edge_ids      # **물리(PhysicalEdgeId)** — 폭 < 2ρ+L*, 제자리 90° 회전 불가
+uint32[] uturn_incapable_edge_ids       # **물리(PhysicalEdgeId)** — 폭 < 2(ρ+L*), 360° 무후진 U턴 불가
+
+# ── 검사기 4 advisory (통로 mutex-후보 — RESULT_PASS 를 막지 않는다, T6/T7) ───────────────
+uint32[] mutex_candidate_edge_ids       # **물리(PhysicalEdgeId)** — 폭 < 4ρ, 교행 불가 → D-12 통로 자원 후보
+
+# ── 계산된 임계 에코 (골든 회귀 대상 — ρ·L* 기하에서 계산, v_max 입력 없음) ──────────────
+float64 pass_width_min_m      # 2ρ            (iw.hub = 1.575808)
+float64 turn90_width_min_m    # 2ρ + L*       (iw.hub = 1.893663)
+float64 uturn_width_min_m     # 2(ρ + L*)     (iw.hub = 2.211518 = l_unit)
+float64 meet_pass_width_min_m # 4ρ            (iw.hub = 3.151615, 검사기 4 임계)
+float64 required_r_clear_m    # r             (r_clear 하드 하한. iw.hub = 1.084724)
+
+# ── v_max 의존 닫힌형 (pending-[0b] — v_max = 0 이면 미산출) ──────────────────────────────
+float64 required_min_width_m  # 2(r + v_max/omega_max) [m]. v_max = 0(미측정)이면 -1 = 미산출(pending-[0b])
+float64 derated_v_max_mps     # 디레이팅 속도 (W_min/2 − r)*omega_max [m/s]. v_max = 0 이면 -1 = 미산출
+
+string[] messages             # 사람이 읽을 위반 설명 (기계 판정 금지 — 판정은 위 bool·배열)
