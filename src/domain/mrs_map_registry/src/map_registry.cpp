@@ -31,18 +31,15 @@ MapResult<std::uint64_t> MapRegistry::load_physical_roadmap(const std::string & 
   return impl_->load(map_file_path);
 }
 
-MapResult<std::uint32_t> MapRegistry::build_uniform_view(double unit_length_m)
+MapResult<std::uint32_t> MapRegistry::build_uniform_view(
+  double unit_length_m, double unit_length_lower_bound_m)
 {
-  (void)unit_length_m;
-  // TODO(하위 C): 입도 하한 강제 + 엣지 세분화 + 균일 뷰 발급.
-  return MapResult<std::uint32_t>::fail(MapStatus::NOT_IMPLEMENTED);
+  return impl_->build_uniform(unit_length_m, unit_length_lower_bound_m);
 }
 
 MapResult<std::uint32_t> MapRegistry::build_dependency_skeleton(std::uint32_t uniform_view_id)
 {
-  (void)uniform_view_id;
-  // TODO(하위 C): 차수 2 체인 collapse + 골격 뷰 발급.
-  return MapResult<std::uint32_t>::fail(MapStatus::NOT_IMPLEMENTED);
+  return impl_->build_skeleton(uniform_view_id);
 }
 
 MapResult<RoadmapViewData> MapRegistry::get_view(std::uint32_t view_id) const
@@ -53,11 +50,7 @@ MapResult<RoadmapViewData> MapRegistry::get_view(std::uint32_t view_id) const
 MapResult<std::uint32_t> MapRegistry::transform_node(
   std::uint32_t from_view_id, std::uint32_t from_node, std::uint32_t to_view_id) const
 {
-  (void)from_view_id;
-  (void)from_node;
-  (void)to_view_id;
-  // TODO(하위 C): 뷰 간 대응표 기반 노드 변환.
-  return MapResult<std::uint32_t>::fail(MapStatus::NOT_IMPLEMENTED);
+  return impl_->transform(from_view_id, from_node, to_view_id);
 }
 
 MapResult<RoadmapValidationResult> MapRegistry::validate_map(

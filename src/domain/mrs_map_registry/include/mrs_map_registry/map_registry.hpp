@@ -55,12 +55,16 @@ public:
 
   /**
    * @brief 물리 roadmap 의 긴 엣지를 unit 길이로 세분화해 L2 균일 뷰를 만든다 (D-11 v2).
-   * @param[in] unit_length_m 세분화 입도 [m]. 이론 하한 2(ρ+L*) 미만이면 거부한다(§6.3). 자료형
-   * `double`.
+   * @param[in] unit_length_m 세분화 입도 [m] (분할 규칙의 목표 간격). 자료형 `double`.
+   * @param[in] unit_length_lower_bound_m 이론 하한 2(ρ+L*) [m] (T1-R6). unit_length_m 이 이 값
+   *            미만이면 거부한다(§6.3). 호출자가 ρ·L* 에서 계산해 넘긴다(registry 는 bare 하한만
+   *            강제, ρ/L* 의미는 모른다). 자료형 `double`.
    * @return `MapResult<std::uint32_t>` — 성공 시 생성된 균일 뷰 id.
-   *         실패 사유: MAP_NOT_LOADED / UNIT_LENGTH_BELOW_BOUND.
+   *         실패 사유: MAP_NOT_LOADED / UNIT_LENGTH_BELOW_BOUND(입도가 하한 미만이거나 하한보다
+   *         짧은 물리 엣지 존재).
    */
-  [[nodiscard]] MapResult<std::uint32_t> build_uniform_view(double unit_length_m);
+  [[nodiscard]] MapResult<std::uint32_t> build_uniform_view(
+    double unit_length_m, double unit_length_lower_bound_m);
 
   /**
    * @brief 균일 뷰의 차수 2 체인 가상 노드를 collapse 해 L3 의존성 골격을 만든다 (D-11 v2).

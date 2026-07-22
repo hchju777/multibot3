@@ -86,12 +86,16 @@ MapResult<std::uint64_t> MapRegistry::Impl::ingest(RoadmapViewData physical_in)
   physical = std::move(physical_in);
   physical_index = build_graph_index(physical);
 
-  // ④ 재로드는 파생 뷰를 무효화한다 — id 공간이 갱신되기 때문(GetUniformView 유일성 규약).
+  // ④ 재로드는 파생 뷰·대응 맵을 무효화한다 — id 공간이 갱신되기 때문(GetUniformView 유일성 규약).
   has_uniform = false;
   uniform = RoadmapViewData{};
   has_skeleton = false;
   skeleton = RoadmapViewData{};
   next_view_id = 1U;
+  phys_to_uniform_node.clear();
+  uniform_to_phys_node.clear();
+  phys_to_skeleton_node.clear();
+  skeleton_to_phys_node.clear();
 
   roadmap_version = issued_version;
   loaded = true;

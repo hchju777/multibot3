@@ -82,9 +82,15 @@ struct MapRegistry::Impl
   mapreg_detail::GraphIndex physical_index; ///< 물리 뷰 인접 인덱스
 
   bool has_uniform{false};  ///< 균일 뷰 존재 여부
-  RoadmapViewData uniform;  ///< 균일 뷰 (view_kind = UNIFORM) — 하위 C 에서 채움
+  RoadmapViewData uniform;  ///< 균일 뷰 (view_kind = UNIFORM)
   bool has_skeleton{false}; ///< 골격 뷰 존재 여부
-  RoadmapViewData skeleton; ///< 골격 뷰 (view_kind = SKELETON) — 하위 C 에서 채움
+  RoadmapViewData skeleton; ///< 골격 뷰 (view_kind = SKELETON) = 물리 토폴로지(가상 노드 collapse)
+
+  // ── 뷰 간 노드 대응 (transform 용, bare id) — 저장 상태의 단일 소유(C4) ────────────────
+  std::unordered_map<std::uint32_t, std::uint32_t> phys_to_uniform_node; ///< 물리 → 균일 (전단사)
+  std::unordered_map<std::uint32_t, std::uint32_t> uniform_to_phys_node; ///< 균일(물리상) → 물리
+  std::unordered_map<std::uint32_t, std::uint32_t> phys_to_skeleton_node; ///< 물리 → 골격 (전단사)
+  std::unordered_map<std::uint32_t, std::uint32_t> skeleton_to_phys_node; ///< 골격 → 물리 (전단사)
 
   // ── 로더 (map_registry_loader.cpp — yaml-cpp 격리) ──────────────────────────────────
   /**
@@ -130,6 +136,35 @@ struct MapRegistry::Impl
   [[nodiscard]] MapResult<RoadmapValidationResult> validate(
     std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
     double inflation_radius_m, double nid_offset_l_m, double v_max_mps, double omega_max_rps) const;
+
+  // ── 세분화·collapse·변환 (map_registry_subdivision.cpp) ─────────────────────────────
+  /**
+   * @brief 물리 뷰를 unit 길이로 floor 균등분할해 균일 뷰(가상 노드 포함)를 만든다 (준균일).
+   * @param[in] unit_length_m 목표 입도 [m]. 자료형 `double`.
+   * @param[in] unit_length_lower_bound_m 이론 하한 2(ρ+L*) [m]. 자료형 `double`.
+   * @return `MapResult<std::uint32_t>` — 성공 시 균일 뷰 id.
+   *         실패: MAP_NOT_LOADED / UNIT_LENGTH_BELOW_BOUND.
+   */
+  MapResult<std::uint32_t> build_uniform(double unit_length_m, double unit_length_lower_bound_m);
+
+  /**
+   * @brief 균일 뷰의 차수 2 가상 노드를 collapse 해 골격 뷰(= 물리 토폴로지)를 만든다.
+   * @param[in] uniform_view_id 원본 균일 뷰 id. 자료형 `std::uint32_t`.
+   * @return `MapResult<std::uint32_t>` — 성공 시 골격 뷰 id.
+   *         실패: MAP_NOT_LOADED / VIEW_NOT_FOUND.
+   */
+  MapResult<std::uint32_t> build_skeleton(std::uint32_t uniform_view_id);
+
+  /**
+   * @brief 뷰 간 노드 변환 (물리 ↔ 균일 ↔ 골격). 가상 노드는 대응 물리 노드가 없다.
+   * @param[in] from_view_id 원본 뷰 id. 자료형 `std::uint32_t`.
+   * @param[in] from_node 원본 노드 id (bare). 자료형 `std::uint32_t`.
+   * @param[in] to_view_id 목적 뷰 id. 자료형 `std::uint32_t`.
+   * @return `MapResult<std::uint32_t>` — 성공 시 대응 노드 id.
+   *         실패: MAP_NOT_LOADED / VIEW_NOT_FOUND / NODE_NOT_FOUND / NO_MAPPING.
+   */
+  [[nodiscard]] MapResult<std::uint32_t> transform(
+    std::uint32_t from_view_id, std::uint32_t from_node, std::uint32_t to_view_id) const;
 };
 
 } // namespace mrs
