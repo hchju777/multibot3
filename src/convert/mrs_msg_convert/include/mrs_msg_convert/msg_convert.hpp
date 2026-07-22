@@ -61,10 +61,12 @@
  *       `plan_epoch`·`roadmap_version`·`view_id`)은 인자로 중복해 받지 않는다. 같은 값에
  *       정본이 둘 생기면 불일치 시 어느 쪽을 믿을지 정할 근거가 계약 어디에도 없다.
  *
- * ## 유예 항목 (계약 U-18)
- * `mrs::RoadmapViewData` 에 뷰 종류 판별자가 없고 `mrs::RoadmapValidationResult` 가 뷰별 4배열로
- * 분리돼 있지 않다. 계약 U-18 이 "뷰 강타입 적용은 [1](D-11 MapRegistry) 시점"으로 유예했으므로
- * 도메인 헤더를 고치지 않고 **[0a] 는 현행 형태로** 둔다. 해당 함수에 `@note` 로 표시했다.
+ * ## U-18 해소 ([1] D-11)
+ * `mrs::RoadmapViewData` 에 뷰 종류 판별자 `view_kind` 가, `mrs::RoadmapValidationResult` 에
+ * 뷰별·엔티티별 5배열(각 단일 강타입)이 생겼다(파일 3). 이로써 map 3뷰 변환의 V1 종류 대조와
+ * ValidateMap 응답의 뷰별 위반 목록이 실제로 채워진다. V1 대조는 **담은 응답을 채우는
+ * `fill_response(...)`** 가 지고(각 응답이 계약상 종류를 고정), `nodes_to_msg`/`edges_to_msg`/
+ * `mappings_to_msg` 는 종류 불가지론 배열 변환기로 남는다 — 각 함수 `@note` 참조.
  */
 
 #include <cstdint>
@@ -104,7 +106,9 @@
 #include "mrs_interfaces/msg/sim_capabilities.hpp"
 #include "mrs_interfaces/msg/sim_metric_sample.hpp"
 #include "mrs_interfaces/msg/task_assignment.hpp"
+#include "mrs_interfaces/srv/get_dependency_skeleton.hpp"
 #include "mrs_interfaces/srv/get_roadmap.hpp"
+#include "mrs_interfaces/srv/get_uniform_view.hpp"
 #include "mrs_interfaces/srv/partial_replan.hpp"
 #include "mrs_interfaces/srv/plan_paths.hpp"
 #include "mrs_interfaces/srv/reassign_request.hpp"
@@ -784,11 +788,9 @@ namespace mrs::convert
  * @param[out] out 변환된 노드 배열. 자료형 `std::vector<mrs_interfaces::msg::RoadmapNode>`.
  * @return `ConvertResult` — 성공이면 `ok`. 지도 버전 미지정·센티넬·중복·불변식 위반·비유한
  *         값이면 @ref ConvertStatus::FIELD_RANGE_VIOLATION.
- * @note [0a] tracer bullet 경로 (`map_registry/GetRoadmap`).
- * @note **뷰 종류 대조(V1)를 수행하지 못한다** — `mrs::RoadmapViewData` 에 종류 판별자가 없어
- *       세 뷰가 같은 시그니처를 쓴다. 계약 U-18 유예를 적용해 [0a] 는 현행 형태로 두며
- *       `@note [1](D-11)에서 해소 예정`. 그때까지 "어느 뷰인가"는 호출 노드가 어느 서비스
- *       핸들러에서 부르는가로만 보장된다.
+ * @note **종류 불가지론 배열 변환기다** — 어느 뷰(PHYSICAL/UNIFORM/SKELETON)든 노드 배열을
+ *       변환한다. V1 종류 대조(이 뷰가 이 응답에 맞는 종류인가)는 담은
+ *       `fill_response(...)` 가 `view.view_kind` 로 수행한다(U-18 해소 — 판별자가 이제 존재한다).
  */
 [[nodiscard]] ConvertResult nodes_to_msg(
   const mrs::RoadmapViewData & view, std::vector<mrs_interfaces::msg::RoadmapNode> & out);
@@ -796,7 +798,8 @@ namespace mrs::convert
 /**
  * @brief 도메인 뷰 데이터를 `RoadmapEdge.msg` 배열로 변환한다.
  *
- * 뷰 종류: @ref nodes_to_msg 와 동일 규칙(담은 응답이 고정). 엣지 id 는 아직 강타입이 아니다.
+ * 뷰 종류: @ref nodes_to_msg 와 동일 — 종류 불가지론 배열 변환기이고 V1 대조는 래퍼가 진다.
+ * 뷰 컨테이너 엣지 id 는 bare `uint32`(뷰 종류는 컨테이너 `view_kind` 가 고정).
  *
  * 필수 검사:
  *  - `view.roadmap_version != 0`.
@@ -807,10 +810,8 @@ namespace mrs::convert
  * @param[out] out 변환된 엣지 배열. 자료형 `std::vector<mrs_interfaces::msg::RoadmapEdge>`.
  * @return `ConvertResult` — 성공이면 `ok`. 지도 버전 미지정·센티넬·범위 위반이면
  *         @ref ConvertStatus::FIELD_RANGE_VIOLATION.
- * @note [0a] tracer bullet 경로.
  * @note 참조 무결성(`node_a`/`node_b` 가 `nodes[]` 안)·퇴화 엣지·자기루프·중복 엣지 검사는
  *       **ValidateMap 검사기 1·2 의 소관**이며 여기서 재구현하지 않는다.
- * @note 뷰 종류 판별자 부재는 @ref nodes_to_msg 와 동일 — [1](D-11)에서 해소 예정.
  */
 [[nodiscard]] ConvertResult edges_to_msg(
   const mrs::RoadmapViewData & view, std::vector<mrs_interfaces::msg::RoadmapEdge> & out);
@@ -822,20 +823,23 @@ namespace mrs::convert
  * `from_node_id` 는 **항상 UNIFORM**, `to_node_id` 는 **SKELETON**(collapse 용례),
  * `to_edge_id` 는 **PHYSICAL 엣지**(subdivision 용례)다(정본표 2행).
  *
- * 필수 검사:
- *  - `to_node_id` 와 `to_edge_id` 의 **배타성** — 정확히 하나만 유효하고 다른 하나는 센티넬.
- *  - `to_edge_id` 가 유효하면 `s ∈ [0, 1]` 이고 유한.
- *  - `from_node_id` 센티넬 미포함, 중복 없음(대응이 함수여야 한다).
- *  - **방향 역전 금지** — 세 필드가 전부 `std::uint32_t` 라 뒤바꿔도 컴파일된다. 뒤집히면
- *    D-11 왕복 무손실 테스트가 "항등 테스트인 척"하게 되므로 여기서 막아야 한다.
+ * 필수 검사 (원소마다 `NodeMappingView::kind` 로 용례 분기 — U-18 해소):
+ *  - 용례 1 SUBDIVISION: `to_physical_edge_id` 유효, 골격 대상 2건 센티넬, `s ∈ [0,1]` 유한,
+ *    `denominator >= 1` 이고 `index <= denominator`(k=0..n).
+ *  - 용례 2 COLLAPSE_NODE: `to_skeleton_node_id` 유효, 나머지 2 대상 센티넬(서수 미사용).
+ *  - 용례 3 COLLAPSE_CHAIN: `to_skeleton_edge_id` 유효, 나머지 2 대상 센티넬, `denominator >= 1`
+ *    이고 `index <= denominator`(체인 서수, `s` 미사용).
+ *  - 공통: `from_node_id` 센티넬 미포함·중복 없음(대응이 함수여야 왕복이 성립).
+ *  - **방향 역전 금지** — 세 `to_*` 가 계약상 전부 bare `uint32` 로 나가므로, kind 가 지목하는
+ *    강타입 대상 하나만 유효하고 나머지가 센티넬인지의 **배타성 검사만이** 방향을 지킨다. 뒤집히면
+ *    D-11 왕복 무손실 테스트가 "항등 테스트인 척"한다.
  *
- * @param[in] view 도메인 뷰 데이터. 자료형 `mrs::RoadmapViewData`.
+ * @param[in] view 도메인 뷰 데이터. 자료형 `mrs::RoadmapViewData`. `mappings` 각 원소가 `kind` 를
+ *            나른다(균일 뷰 = SUBDIVISION만 / 골격 뷰 = COLLAPSE_NODE·COLLAPSE_CHAIN).
  * @param[out] out 변환된 대응표 배열. 자료형 `std::vector<mrs_interfaces::msg::NodeMapping>`.
  * @return `ConvertResult` — 성공이면 `ok`. 배타성·범위·중복 위반이면
- *         @ref ConvertStatus::FIELD_RANGE_VIOLATION.
- * @note `mrs::RoadmapViewData.mappings` 가 세분화(subdivision)와 collapse 를 **한 필드에** 담아
- *       어느 불변식을 걸지 결정할 판별자가 없다. 계약 U-18 유예를 적용해 [0a] 는 현행 형태로
- *       두며 `@note [1](D-11)에서 해소 예정`. 그때까지는 원소별 배타성으로만 용례를 유추한다.
+ *         @ref ConvertStatus::FIELD_RANGE_VIOLATION, `kind` 가 집합 밖이면
+ *         @ref ConvertStatus::ENUM_OUT_OF_RANGE.
  * @note 세분화 격자·collapse 왕복 무손실 검증은 **MapRegistry(C4)** 의 소관이다. 이 함수 밖에서
  *       세분화·collapse 를 재구현하지 않는다.
  */
@@ -870,33 +874,79 @@ namespace mrs::convert
   mrs_interfaces::srv::GetRoadmap::Response & resp);
 
 /**
- * @brief 도메인 검증 결과를 `ValidateMap.srv` 응답 필드로 변환해 채운다.
+ * @brief 도메인 균일 뷰 데이터로 `GetUniformView.srv` 응답을 채운다 (계약 결손 해소, [1] D-11).
  *
- * 뷰 종류: 응답의 `violating_physical_*` 는 **PHYSICAL**, `violating_uniform_*` 는 **UNIFORM**
- * 이다(계약 §0.1 정본표, `ValidateMap 응답` 행).
+ * 뷰 종류: 이 응답의 `nodes[].node_id`·`edges[]`·`subdivision_map[].from_node_id` 는 **UNIFORM**
+ * 이다(계약 §0.1 정본표, `GetUniformView 응답` 행). 그래서 이 함수는 `view.view_kind == UNIFORM`
+ * 을 V1 대조한다(U-18 해소 — 판별자가 이제 존재한다).
  *
  * 필수 검사:
- *  - 4 bool 이 전부 true 일 때만 `RESULT_PASS`, 하나라도 false 면 `RESULT_FAIL`.
+ *  - `view.view_kind == UNIFORM`(V1). 어긋나면 @ref ConvertStatus::VIEW_KIND_MISMATCH.
+ *  - `view.roadmap_version != 0`.
+ *  - 노드·엣지·대응표는 @ref nodes_to_msg / @ref edges_to_msg / @ref mappings_to_msg 결과를
+ *    싣고, 그 실패 사유를 **그대로** 전달한다.
+ *  - 봉투 스칼라(result·roadmap_version·view_id·unit_length_*·effective_*·subdivided_edge_ratio)를
+ *    이 함수가 직접 채운다 — 노드 id 가 아니므로 V3 위반이 아니다.
+ *
+ * @param[in] view 도메인 균일 뷰 데이터. 자료형 `mrs::RoadmapViewData`. `view_kind` 는 UNIFORM.
+ * @param[out] resp 채울 응답. 자료형 `mrs_interfaces::srv::GetUniformView::Response`.
+ *             실패 시 내용은 정의되지 않는다.
+ * @return `ConvertResult` — 성공이면 `ok`. 종류 불일치이면 @ref ConvertStatus::VIEW_KIND_MISMATCH,
+ *         지도 버전 미지정, 또는 하위 배열 변환이 낸 사유(주로
+ *         @ref ConvertStatus::FIELD_RANGE_VIOLATION)를 그대로 전달한다.
+ * @note 스코프 대조(요청 roadmap_version ↔ 뷰)와 `RESULT_STALE_VERSION` 판정은 **노드**의 몫이다
+ *       — 이 함수는 뷰가 주어졌다는 전제에서 응답을 채운다(캐시/스코프는 노드 소관, R-15 (b)).
+ */
+[[nodiscard]] ConvertResult fill_response(
+  const mrs::RoadmapViewData & view, mrs_interfaces::srv::GetUniformView::Response & resp);
+
+/**
+ * @brief 도메인 골격 뷰 데이터로 `GetDependencySkeleton.srv` 응답을 채운다 ([1] D-11).
+ *
+ * 뷰 종류: 이 응답의 `nodes`/`edges` 는 **SKELETON**, `collapse_map[].from_node_id` 는 UNIFORM
+ * → `to_node_id` 는 SKELETON 이다(계약 §0.1 정본표 + `GetDependencySkeleton.srv` 뷰 규약).
+ * 그래서 `view.view_kind == SKELETON` 을 V1 대조한다. 골격 뷰의 스코프는 유래 균일 뷰의
+ * `(roadmap_version, view_id)` 와 같다(종류만 다르다) — 뷰가 그 값을 이미 나른다.
+ *
+ * 필수 검사: @ref fill_response (GetUniformView) 와 같되 종류는 SKELETON, 대응표는 `collapse_map`.
+ *
+ * @param[in] view 도메인 골격 뷰 데이터. 자료형 `mrs::RoadmapViewData`. `view_kind` 는 SKELETON.
+ * @param[out] resp 채울 응답. 자료형 `mrs_interfaces::srv::GetDependencySkeleton::Response`.
+ * @return `ConvertResult` — 성공이면 `ok`. 종류 불일치이면 @ref ConvertStatus::VIEW_KIND_MISMATCH,
+ *         지도 버전 미지정, 또는 하위 배열 변환 사유를 그대로 전달한다.
+ */
+[[nodiscard]] ConvertResult fill_response(
+  const mrs::RoadmapViewData & view, mrs_interfaces::srv::GetDependencySkeleton::Response & resp);
+
+/**
+ * @brief 도메인 검증 결과를 `ValidateMap.srv` 응답 필드로 변환해 채운다.
+ *
+ * 뷰 종류: 응답의 위반 목록은 뷰별·엔티티별 5배열이다 — `violating_wellformed_node_ids`·
+ * `violating_biconnected_node_ids`·`narrow_pass_edge_ids`(PHYSICAL) / `violating_uniform_node_ids`·
+ * `violating_uniform_edge_ids`(UNIFORM)(계약 §0.1 정본표, `ValidateMap 응답` 행). U-18 이 해소되어
+ * `mrs::RoadmapValidationResult` 가 이미 뷰별 강타입 5배열을 나르므로 그대로 옮겨 담는다.
+ *
+ * 필수 검사:
+ *  - 하드 4 검사기 bool 이 전부 true 일 때만 `RESULT_PASS`, 하나라도 false 면 `RESULT_FAIL`
+ *    (판정은 도메인 `result_pass()` 가 정본 — biconnected 는 U-23 제외).
  *    ⚠ 채우지 않으면 실패가 `RESULT_PASS=0` 으로 나간다 — 기본값이 곧 오탐이다.
  *  - `roadmap_version` != 0, 응답 스코프는 요청과 같은 값을 에코한다.
  *  - @p view_id 가 0 이면 입도 검사를 하지 않았다는 뜻이므로 균일 뷰 위반 목록은 비어야 한다.
- *  - `required_min_width_m`·`derated_v_max_mps` 유한·비음.
+ *  - 계산된 임계 에코 5건(`pass_width_min_m` 등)은 유한·비음.
+ *  - `required_min_width_m`·`derated_v_max_mps` 는 유한이고 **-1(미산출, pending-[0b]) 또는 비음**.
+ *    ⚠ -1 은 v6 의 유효 센티넬(v_max 미측정 → 미산출, `ValidateMap.srv`)이므로 비음 검사로 거르지
+ *    않는다. 그 밖의 음수만 도메인 오류로 폐기한다.
  *
  * @param[in] result 도메인 검증 결과. 자료형 `mrs::RoadmapValidationResult`.
  * @param[in] roadmap_version 응답 스코프로 에코할 지도 버전. 자료형 `std::uint64_t`.
  *            요청의 값과 같아야 한다.
  * @param[in] view_id 입도 검사에 사용한 균일 뷰 id. 자료형 `std::uint32_t`. 0 = 미검사.
  * @param[out] resp 채울 응답. 자료형 `mrs_interfaces::srv::ValidateMap::Response`.
- * @return `ConvertResult` — 성공이면 `ok`. 지도 버전 미지정·뷰 규약 위반·비유한 값이면
- *         @ref ConvertStatus::FIELD_RANGE_VIOLATION.
- * @note **뷰별 4배열을 채우지 못한다.** 응답은 위반 목록을 뷰별 4배열로 분리해 요구하는데
- *       `mrs::RoadmapValidationResult` 는 뷰가 섞인 2배열(`violating_node_ids`·
- *       `violating_edge_ids`)만 갖고 있어 어느 원소가 어느 뷰인지 판별할 정보가 없다.
- *       계약 U-18 유예를 적용해 [0a] 는 현행 형태로 두며(위반 목록은 비운 채 bool 판정만 싣는다)
- *       `@note [1](D-11)에서 해소 예정`. 억지로 한 배열에 몰아넣으면 v2.0.0 major 변경으로
- *       분리한 목적(뷰 혼합 배열 제거)이 그대로 무효화된다.
+ * @return `ConvertResult` — 성공이면 `ok`. 지도 버전 미지정·뷰 규약 위반(view_id 0 인데 균일 위반
+ *         존재)·비유한/부정 임계값이면 @ref ConvertStatus::FIELD_RANGE_VIOLATION.
  * @note `required_min_width_m`·`derated_v_max_mps` 를 이 함수가 **재계산하지 않는다** — T1 공식의
  *       소유자는 검사기 3이며 경계 계층이 도메인 출력을 재유도해 채점하는 배치는 소관 밖이다.
+ *       -1(미산출)도 그대로 옮긴다.
  */
 [[nodiscard]] ConvertResult fill_response(
   const mrs::RoadmapValidationResult & result, std::uint64_t roadmap_version, std::uint32_t view_id,

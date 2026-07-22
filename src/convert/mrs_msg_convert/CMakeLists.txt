@@ -57,7 +57,8 @@ if(BUILD_TESTING)
     test/unit/test_common_convert.cpp
     test/unit/test_convert_roundtrip.cpp
     test/unit/test_convert_rejects.cpp
-    test/unit/test_convert_out_untouched.cpp)
+    test/unit/test_convert_out_untouched.cpp
+    test/unit/test_map_registry_convert.cpp)
   if(TARGET test_mrs_msg_convert)
     target_include_directories(test_mrs_msg_convert PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/test/unit")
     target_link_libraries(test_mrs_msg_convert ${PROJECT_NAME})
