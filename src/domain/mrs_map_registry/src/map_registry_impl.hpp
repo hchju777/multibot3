@@ -165,6 +165,34 @@ struct MapRegistry::Impl
    */
   [[nodiscard]] MapResult<std::uint32_t> transform(
     std::uint32_t from_view_id, std::uint32_t from_node, std::uint32_t to_view_id) const;
+
+  // ── 노드 ↔ 좌표 (map_registry_coords.cpp) ────────────────────────────────────────────
+  /**
+   * @brief view_id 를 저장된 뷰(물리=0/균일/골격)로 해석한다.
+   * @param[in] view_id 해석할 뷰 id. 자료형 `std::uint32_t`.
+   * @return `const RoadmapViewData *` — 해당 뷰의 관측 포인터. 없으면 nullptr.
+   */
+  [[nodiscard]] const RoadmapViewData * resolve_view(std::uint32_t view_id) const noexcept;
+
+  /**
+   * @brief 뷰 안 노드 id 의 좌표를 조회한다 (TransformNode MODE_NODE_TO_POSE).
+   * @param[in] view_id 조회 대상 뷰 id (물리 = 0). 자료형 `std::uint32_t`.
+   * @param[in] node_id 노드 id (bare). 자료형 `std::uint32_t`.
+   * @return `MapResult<Pose2D>` — 성공 시 좌표(theta = 0).
+   *         실패: MAP_NOT_LOADED / VIEW_NOT_FOUND / NODE_NOT_FOUND.
+   */
+  [[nodiscard]] MapResult<Pose2D> node_to_pose(std::uint32_t view_id, std::uint32_t node_id) const;
+
+  /**
+   * @brief 좌표에 가장 가까운 뷰 노드를 찾는다 (TransformNode MODE_POSE_TO_NODE).
+   * @param[in] view_id 조회 대상 뷰 id. 자료형 `std::uint32_t`.
+   * @param[in] x_m 질의 x [m]. 자료형 `double`.
+   * @param[in] y_m 질의 y [m]. 자료형 `double`.
+   * @return `MapResult<NearestNode>` — 성공 시 최근접 노드 id + 잔차.
+   *         실패: MAP_NOT_LOADED / VIEW_NOT_FOUND / NODE_NOT_FOUND.
+   */
+  [[nodiscard]] MapResult<NearestNode> pose_to_node(
+    std::uint32_t view_id, double x_m, double y_m) const;
 };
 
 } // namespace mrs

@@ -49,7 +49,8 @@ if(BUILD_TESTING)
     test/unit/test_map_loader.cpp
     test/unit/test_map_validators.cpp
     test/unit/test_map_subdivision.cpp
-    test/unit/test_map_transform.cpp)
+    test/unit/test_map_transform.cpp
+    test/unit/test_map_coords.cpp)
   if(TARGET test_mrs_map_registry)
     target_link_libraries(test_mrs_map_registry ${PROJECT_NAME})
     # 공용 픽스처 헤더(test/unit/map_registry_test_fixtures.hpp) 인용 경로.

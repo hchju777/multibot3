@@ -18,11 +18,25 @@
 #include <memory>
 #include <string>
 
+#include "mrs/contract_types.hpp" // Pose2D (node_to_pose/pose_to_node)
 #include "mrs_map_registry/map_error.hpp"
 #include "mrs_map_registry/roadmap_types.hpp"
 
 namespace mrs
 {
+
+/**
+ * @brief pose→node 최근접 조회 결과 (`TransformNode` MODE_POSE_TO_NODE).
+ *
+ * pose→node 는 연속 좌표를 최근접 노드로 보내는 **다대일 부분함수**라 임의 좌표의 잔차 0 은
+ * 원리적으로 불가하다 — 무손실(잔차 0)은 node→pose(@ref MapRegistry::node_to_pose)로 얻은
+ * 좌표를 되돌릴 때만 성립한다(`TransformNode.srv` 재잠금 8차 (i)).
+ */
+struct NearestNode
+{
+  std::uint32_t node_id{ROADMAP_ID_NONE}; ///< 최근접 노드 id (bare — 조회 대상 뷰 안에서 유효)
+  double residual_m{0.0}; ///< 질의 좌표와 그 노드 사이 유클리드 거리 [m] (>= 0)
+};
 
 /**
  * @brief MapRegistry — 3뷰 정합의 단일 소유자 (D-11).
@@ -121,6 +135,35 @@ public:
   [[nodiscard]] MapResult<RoadmapValidationResult> validate_map(
     std::uint32_t view_id, std::uint16_t robot_count, double robot_radius_m,
     double inflation_radius_m, double nid_offset_l_m, double v_max_mps, double omega_max_rps) const;
+
+  /**
+   * @brief 뷰 안 노드 id 의 연속 좌표를 조회한다 (`TransformNode` MODE_NODE_TO_POSE).
+   *
+   * 단일 뷰 내부의 id→좌표 조회일 뿐 뷰 간 변환(@ref transform_node)이 아니다. 노드가 어느 뷰에
+   * 속하는지는 호출자가 @p view_id 로 지목한다(경계에서 노드가 `ViewScope` 종류를 내부 view_id 로
+   * 해석해 넘긴다 — 골격 wire view_id 는 유래 균일 뷰 값과 같다, D-j 경계 변환).
+   *
+   * @param[in] view_id 조회 대상 뷰 id (물리 = 0). 자료형 `std::uint32_t`.
+   * @param[in] node_id 좌표를 구할 노드 id (bare — @p view_id 안에서 유효). 자료형 `std::uint32_t`.
+   * @return `MapResult<Pose2D>` — 성공 시 노드 좌표(@ref Pose2D, `theta_rad = 0`).
+   *         실패 사유: MAP_NOT_LOADED / VIEW_NOT_FOUND / NODE_NOT_FOUND.
+   */
+  [[nodiscard]] MapResult<Pose2D> node_to_pose(std::uint32_t view_id, std::uint32_t node_id) const;
+
+  /**
+   * @brief 연속 좌표에 가장 가까운 뷰 노드를 찾는다 (`TransformNode` MODE_POSE_TO_NODE).
+   *
+   * 최근접 노드와 잔차(질의점–노드 거리)를 반환한다. 다대일 부분함수라 잔차 0 은 보장되지 않는다
+   * (@ref NearestNode 참조).
+   *
+   * @param[in] view_id 조회 대상 뷰 id. 자료형 `std::uint32_t`.
+   * @param[in] x_m 질의 x [m], map. 자료형 `double`.
+   * @param[in] y_m 질의 y [m], map. 자료형 `double`.
+   * @return `MapResult<NearestNode>` — 성공 시 최근접 노드 id + 잔차.
+   *         실패 사유: MAP_NOT_LOADED / VIEW_NOT_FOUND / NODE_NOT_FOUND(빈 뷰·비유한 질의).
+   */
+  [[nodiscard]] MapResult<NearestNode> pose_to_node(
+    std::uint32_t view_id, double x_m, double y_m) const;
 
   /**
    * @brief 현재 지도 버전을 반환한다 (Q-6 캐시 무효화 키).

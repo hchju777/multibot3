@@ -62,6 +62,17 @@ MapResult<RoadmapValidationResult> MapRegistry::validate_map(
     omega_max_rps);
 }
 
+MapResult<Pose2D> MapRegistry::node_to_pose(std::uint32_t view_id, std::uint32_t node_id) const
+{
+  return impl_->node_to_pose(view_id, node_id);
+}
+
+MapResult<NearestNode> MapRegistry::pose_to_node(
+  std::uint32_t view_id, double x_m, double y_m) const
+{
+  return impl_->pose_to_node(view_id, x_m, y_m);
+}
+
 std::uint64_t MapRegistry::roadmap_version() const noexcept
 {
   return impl_->roadmap_version;
