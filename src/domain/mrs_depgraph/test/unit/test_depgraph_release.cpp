@@ -151,6 +151,20 @@ TEST(DepgraphRelease, ProgressUnblocksSuccessorAndSeqIsMonotone)
   EXPECT_TRUE(second.predecessor_constraints.empty());
 }
 
+// invalidate_stale_windows 는 [0b] 입력게이트 안전 no-op — 상태를 건드리지 않는다(후속 릴리스
+// 정상).
+TEST(DepgraphRelease, InvalidateStaleWindowsIsSafeNoOp)
+{
+  mrs::DependencyGraph graph;
+  ASSERT_TRUE(graph.build_from_paths({make_path(0, {{10, 0.0}, {11, 1.0}, {12, 2.0}})}, 7U, 1U));
+
+  graph.invalidate_stale_windows(5.0); // 크래시·상태 손상 없어야 한다
+  mrs::ExecutionWindow window;
+  ASSERT_TRUE(graph.release_next_window(mrs::RobotId{0}, window)); // 여전히 정상 릴리스
+  EXPECT_EQ(window.window_seq, 1U);
+  EXPECT_EQ(window.segments.size(), 2U);
+}
+
 // 순서 외 클리어는 진행 상태를 앞당기지 않는다 — 후속은 여전히 막힌다.
 TEST(DepgraphRelease, OutOfOrderClearDoesNotUnblock)
 {

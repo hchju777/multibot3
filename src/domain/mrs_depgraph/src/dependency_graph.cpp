@@ -245,9 +245,16 @@ bool DependencyGraph::splice_partial_plan(
 
 void DependencyGraph::invalidate_stale_windows(double now_s)
 {
+  // ⛔ **[0b] 입력 게이트 — 안전 no-op.** staleness repair(NF7, W5)는 릴리스된 창의 만료 시각
+  //    (`window_valid_until_s`)이 지났는지로 판정하는데, 그 만료 시각의 **마진**은 동역학 상수
+  //    `u_max/a_max + Δt_h`(v_max 의존)로 정해지고 v_max 는 iw.hub 자산에서 **미실측**이다
+  //    (pending-[0b]). 또한 `release_next_window` 가 `now_s` 를 받지 않아 depgraph 는 만료 시각을
+  //    보유하지 않는다(현재는 발행 노드가 now+마진으로 스탬프). 따라서 여기서 **의미 있는 실효를
+  //    수행할 근거가 없다** — 지어낸 마진으로 창을 실효시키면 T1 I-QP 전제(커밋 경계 보호)를 깰
+  //    위험이 있으므로, [0b] v_max 실측 + release 의 시간 입력 배선 전까지 **아무 것도 하지
+  //    않는다**. (예외를 던지지 않는다 — 규율 #2. 조용한 부분 구현 대신 명시적 no-op + 게이트
+  //    기록.)
   (void)now_s;
-  throw std::logic_error("not implemented: DependencyGraph::invalidate_stale_windows — Phase 5 "
-                         "(coordination-builder) 대상");
 }
 
 } // namespace mrs
