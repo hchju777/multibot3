@@ -349,11 +349,17 @@ def _collect_overrides(context) -> dict:
             sim_bridge[parameter_name] = values
             pysim_backend[parameter_name] = values
 
+    # map_registry 의 roadmap_file 은 **설치된 절대 경로**라 기준 YAML 에 둘 수 없다(빌드 머신
+    # 의존). launch 가 share 디렉터리에서 계산해 주입한다. 파일 자체는 config/ 에 함께 설치된다.
+    roadmap_file = os.path.join(
+        get_package_share_directory('mrs_bringup'), 'config', 'roadmap_fixture.yaml')
+
     overrides = {
         'bringup_startup_check': {
             'replan_period_s': replan_period_s,
             'sim_step_s': sim_step_s,
         },
+        'map_registry': {'roadmap_file': roadmap_file},
         'pp_service': {'robot_count': robot_count},
         'sadg_service': {'robot_count': robot_count},
         'ladder_orchestrator': {'robot_count': robot_count},

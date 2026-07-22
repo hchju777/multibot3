@@ -28,30 +28,28 @@
     #    시계의 소유자가 자기 시계를 기다리면 부팅 데드락이다.
     use_sim_time: true
 
-# ── 뷰 스코프의 단일 발급처 ────────────────────────────────────────────────────────────
+# ── 뷰 스코프의 단일 발급처 ([1] 실 MapRegistry — YAML 로드) ─────────────────────────────
 #
-# ⚠ 이 블록의 두 값은 **map_registry 가 발급**하고 나머지 노드가 그것을 기대한다. 통합 전에는
-#   각 노드가 자기 기본값을 들고 있었고 "우연히 맞은" 상태였다 — 한쪽만 바꾸면 수신 측 convert 가
-#   VIEW_SCOPE_MISMATCH 로 **전량 폐기**하고, 그 증상은 "아무 일도 일어나지 않음"이라 진단이 어렵다.
-#   그래서 값을 한 곳에 모으고, 소비자 섹션마다 "= map_registry 발급값" 주석을 달았다.
+# ⚠ 지도 버전·균일 뷰 id 는 **map_registry 가 발급**하고 나머지 노드가 그것을 기대한다. 실 배선
+#   ([1])에서는 노드가 로드·세분화로 **발급**한다(더 이상 파라미터로 읽지 않는다):
+#     roadmap_version : 첫 로드 = 1 (단조증가, 0 은 계약이 런타임 금지). 소비자는 latched 토픽
+#                       `/map_registry/roadmap_version` 에서 학습하거나 1 을 기대한다.
+#     uniform_view_id : 첫 build_uniform = 1 (물리 뷰 0 예약과 충돌 회피). 골격 wire view_id 도
+#                       1 이다(종류만 SKELETON — D-j 경계 변환). 소비자 블록의 view_uniform_view_id
+#                       = 1 과 정합해야 VIEW_SCOPE_MISMATCH 전량 폐기를 피한다.
 #
-#   roadmap_version = 1 : 0 은 계약이 런타임에 금지한다(수신자 100% 폐기).
-#   uniform_view_id = 1 : **0 을 쓰지 않는다.** 0 은 물리 뷰의 예약값(VIEW_ID_PHYSICAL)이라,
-#                         균일 뷰가 0 이면 두 뷰의 (roadmap_version, view_id) 평면 쌍이 같아져
-#                         런타임 스코프 대조가 물리↔균일 혼동을 못 잡는다.
+# roadmap_file 은 **설치된 절대 경로**라 여기 두지 않는다 — launch(_common.launch.py)가 share
+# 디렉터리(config/roadmap_fixture.yaml)에서 계산해 주입한다. 노드를 launch 없이 직접 띄우면
+# roadmap_file 이 비어 **기동 실패**한다(YAML 필수, tracer 폴백 없음 — 사용자 결정).
 map_registry:
   ros__parameters:
-    # [구성] 발급 지도 버전. 1 이상 강제(노드가 기동 시 검사).
-    roadmap_version: 1
-    # [구성] 발급 균일 뷰 id. 1 이상 강제(노드가 기동 시 검사).
-    uniform_view_id: 1
-    # [구성] 픽스처 격자 간격 [m]. ⚠ sim_bridge.initial_x_m 이 이 격자 위 노드 좌표에 얹혀
-    #   있으므로 **두 값을 함께** 바꿔야 한다(2.0 기준 n0=(0,0), n2=(4,0)).
-    grid_spacing_m: 2.0
-    # [0a 실측] 검사기 3(W_min > 2(r + v_max/omega_max))은 r·v_max·omega_max 가 미정이라
-    #   [1] 대상이다. 아래 두 값이 그 조건을 만족한다는 주장이 아니다 — placeholder 다.
-    corridor_width_m: 1.5
-    speed_limit_mps: 0.5
+    # [구성] 세분화 입도 [m]. iw.hub 하한 2(ρ+L*) = 2.211518 이상. 픽스처 엣지 길이 2.4 > 2.30 이라
+    #   세분화는 항등(seg = floor(2.4/2.3) = 1, 가상 노드 0개 — tracer 와 같은 균일 뷰 구조).
+    unit_length_m: 2.30
+    # [iw.hub 실측] NID점 기준 몸체 외접 반경 ρ [m]. 세분화 하한 2(ρ+L*) 계산에 쓴다(창작 금지).
+    inflation_radius_m: 0.787904
+    # [iw.hub 실측] NID 오프셋 L* [m]. 하한 2(ρ+L*) 의 나머지 항.
+    nid_offset_l_m: 0.317855
 
 # ── L2 더미 (고정 경로) ────────────────────────────────────────────────────────────────
 pp_service:

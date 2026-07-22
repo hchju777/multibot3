@@ -1,0 +1,44 @@
+# roadmap_fixture.yaml — [1] map_registry 실 배선용 물리 roadmap 픽스처.
+#
+# ⚠ 이것은 **창고 도면 자동 추출의 산물이 아니다** — 손선언 격자다(추출 알고리즘은 여전히 open).
+#   로더(map_registry_loader.cpp)가 읽는 스키마: nodes {id,x,y,claim_radius,is_endpoint,
+#   is_task_endpoint}, edges {id,a,b,width,speed_limit?}. 엣지 length 는 파일에 두지 않고 두 노드
+#   좌표에서 계산한다(물리 엣지 직선 전제, 재잠금 8차 (g)).
+#
+# ## 형상 — 4x2 사다리 격자 (tracer 픽스처와 동일 위상, 간격만 iw.hub 정합)
+#   n0..n3 = 하단 통로(y=0), n4..n7 = 상단 통로(y=2.4). 엔드포인트는 네 모서리(n0·n3·n4·n7),
+#   그중 작업 엔드포인트는 대각선(n0·n7) ⇒ 비작업 엔드포인트 {n3,n4} 2개 = 로봇 수 2.
+#   하단 통로 3 + 상단 통로 3 + 가로대 4 = 10 엣지(가로대가 4개라 교행 경로가 항상 존재).
+#
+# ## 왜 간격 2.4 인가 (tracer 의 2.0 과 다른 이유)
+#   실 MapRegistry 는 세분화 입도 하한 2(ρ+L*) = 2.211518 (iw.hub) 을 **강제**한다. tracer 는
+#   lower_bound=0 으로 그 강제를 우회했지만 [1] 실 배선은 우회하지 않는다. 엣지 길이 2.4 > unit
+#   2.30 ≥ 2.211518 이라 세분화는 seg=floor(2.4/2.3)=1 → **항등**(가상 노드 0개, tracer 와 같은
+#   균일 뷰 구조). robot 스폰 좌표는 sim_bridge 가 노드 부착을 하지 않으므로(config.node_anchors
+#   .clear()) 이 격자와 기능적으로 결합하지 않는다 — cosmetic 정합만 launch 에서 맞춘다.
+#
+# ## claim_radius / width 근거
+#   claim_radius 1.20 >= r(1.084724) ⇒ r_clear_ok. width 3.2 > 4ρ(3.151616) ⇒ 통과폭·교행 전부
+#   여유(검사기 3·4 완전 통과). 로봇 반경·NID 오프셋 등 기하 상수는 노드 파라미터로 넘긴다.
+
+nodes:
+  - {id: 0, x: 0.0, y: 0.0, claim_radius: 1.20, is_endpoint: true,  is_task_endpoint: true}   # n0 하단 좌 · 작업
+  - {id: 1, x: 2.4, y: 0.0, claim_radius: 1.20, is_endpoint: false, is_task_endpoint: false}  # n1
+  - {id: 2, x: 4.8, y: 0.0, claim_radius: 1.20, is_endpoint: false, is_task_endpoint: false}  # n2
+  - {id: 3, x: 7.2, y: 0.0, claim_radius: 1.20, is_endpoint: true,  is_task_endpoint: false}  # n3 하단 우
+  - {id: 4, x: 0.0, y: 2.4, claim_radius: 1.20, is_endpoint: true,  is_task_endpoint: false}  # n4 상단 좌
+  - {id: 5, x: 2.4, y: 2.4, claim_radius: 1.20, is_endpoint: false, is_task_endpoint: false}  # n5
+  - {id: 6, x: 4.8, y: 2.4, claim_radius: 1.20, is_endpoint: false, is_task_endpoint: false}  # n6
+  - {id: 7, x: 7.2, y: 2.4, claim_radius: 1.20, is_endpoint: true,  is_task_endpoint: true}   # n7 상단 우 · 작업
+
+edges:
+  - {id: 0, a: 0, b: 1, width: 3.2, speed_limit: 0.5}  # 하단 통로
+  - {id: 1, a: 1, b: 2, width: 3.2, speed_limit: 0.5}
+  - {id: 2, a: 2, b: 3, width: 3.2, speed_limit: 0.5}
+  - {id: 3, a: 4, b: 5, width: 3.2, speed_limit: 0.5}  # 상단 통로
+  - {id: 4, a: 5, b: 6, width: 3.2, speed_limit: 0.5}
+  - {id: 5, a: 6, b: 7, width: 3.2, speed_limit: 0.5}
+  - {id: 6, a: 0, b: 4, width: 3.2, speed_limit: 0.5}  # 가로대(교행 지점)
+  - {id: 7, a: 1, b: 5, width: 3.2, speed_limit: 0.5}
+  - {id: 8, a: 2, b: 6, width: 3.2, speed_limit: 0.5}
+  - {id: 9, a: 3, b: 7, width: 3.2, speed_limit: 0.5}
