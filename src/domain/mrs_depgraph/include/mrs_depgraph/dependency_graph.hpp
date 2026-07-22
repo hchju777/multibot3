@@ -9,7 +9,9 @@
  * 알고리즘 본문은 Phase 5(coordination-builder)가 채운다.
  */
 
+#include <cstddef>
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 #include "mrs/contract_types.hpp"
@@ -84,7 +86,43 @@ public:
   }
 
 private:
-  std::uint64_t roadmap_version_{0}; ///< 현재 그래프가 참조하는 지도 버전
+  /**
+   * @brief ADG 정점 참조 — 어느 로봇의 몇 번째 방문인가 (Type-2 통행순서 목록의 원소).
+   *
+   * 정점 자체(노드·시각)는 @ref paths_ 가 소유하고, 이 참조는 그 안의 위치만 가리킨다 — 좌표·시각
+   * 을 복제하지 않아 재계획 시 한 곳만 갱신하면 된다.
+   */
+  struct VisitRef
+  {
+    std::size_t robot_index{0}; ///< @ref paths_ 내 로봇 인덱스
+    std::size_t visit_index{0}; ///< 그 로봇 경로(@ref RobotPath::visits) 내 방문 인덱스
+  };
+
+  std::uint64_t roadmap_version_{0}; ///< 현재 그래프가 참조하는 지도 버전 (0 = 미구축)
+  std::uint32_t view_id_{0};         ///< 계획이 사용한 균일 뷰 id (창 스코프 에코)
+  bool built_{false};                ///< build_from_paths 성공 여부
+
+  std::vector<RobotPath> paths_; ///< 로봇별 시각 부여 경로. Type-1 간선(로봇 내 시간순)은 방문열의
+                                 ///< 연속 원소로 암묵 표현된다. 인덱스 = @ref robot_index_ 의 값
+
+  /**
+   * @brief 균일 노드 id(raw) → 그 노드를 방문하는 (로봇, 방문) 목록 (arrival_time_s 오름차순, 동
+   *        시각은 robot_id tie-break). **Type-2 간선(통행순서/충돌 선행)의 표현체**다 — 목록의 앞
+   *        원소가 뒤 원소보다 먼저 그 노드를 통과해야 한다(adg-2019, 순서는 공간으로 표현).
+   */
+  std::unordered_map<std::uint32_t, std::vector<VisitRef>> node_visit_order_;
+
+  std::unordered_map<std::uint16_t, std::size_t> robot_index_; ///< robot_id → @ref paths_ 인덱스
+
+  // ── 릴리스·진행 프론티어 (@ref paths_ 병렬 — build 에서 초기화, D-05b 릴리스/진행이 사용) ──────
+  std::vector<std::size_t> released_count_; ///< 로봇별 릴리스된 방문 수 (0 = 미릴리스, W3 프론티어)
+  std::vector<std::size_t> cleared_count_; ///< 로봇별 클리어된 방문 수 (on_progress_event 가 전진)
+
+  /**
+   * @brief robot_id → 다음 발급할 window_seq (W1 로봇별 단조증가). **재빌드 간 보존**한다 — 재계획
+   *        이 seq 를 되돌리면 수신 L4 가 신·구 창을 구별하지 못한다(W1 위반).
+   */
+  std::unordered_map<std::uint16_t, std::uint32_t> next_window_seq_;
 };
 
 } // namespace mrs

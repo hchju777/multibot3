@@ -35,8 +35,13 @@ ament_export_dependencies(mrs_core_types mrs_map_registry)
 
 
 if(BUILD_TESTING)
-  # gtest 골격은 Phase 5(test-author)가 내용과 함께 생성한다 (design-decision v5 build_policy).
-  # 빈 테스트 파일을 두지 않는다 — 자리만 남긴다.
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_mrs_depgraph
+    test/unit/test_depgraph_build.cpp)
+  if(TARGET test_mrs_depgraph)
+    target_link_libraries(test_mrs_depgraph ${PROJECT_NAME})
+  endif()
 endif()
 
 ament_package()
