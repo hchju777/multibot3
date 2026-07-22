@@ -40,8 +40,22 @@ ament_export_dependencies(mrs_core_types yaml-cpp)
 
 
 if(BUILD_TESTING)
-  # gtest 골격은 Phase 5(test-author)가 내용과 함께 생성한다 (design-decision v5 build_policy).
-  # 빈 테스트 파일을 두지 않는다 — 자리만 남긴다.
+  # unit 티어 회귀 테스트 (test-author). 공개 헤더 map_registry.hpp 만 include 하고
+  # 내부 src/map_registry_impl.hpp 는 인용하지 않는다 — 파사드 계약만 검증한다.
+  # rclcpp 에 링크하지 않는다(순수 도메인 패키지, unit 티어 규약).
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_mrs_map_registry
+    test/unit/test_map_loader.cpp
+    test/unit/test_map_validators.cpp
+    test/unit/test_map_subdivision.cpp
+    test/unit/test_map_transform.cpp)
+  if(TARGET test_mrs_map_registry)
+    target_link_libraries(test_mrs_map_registry ${PROJECT_NAME})
+    # 공용 픽스처 헤더(test/unit/map_registry_test_fixtures.hpp) 인용 경로.
+    target_include_directories(test_mrs_map_registry PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/unit")
+  endif()
 endif()
 
 ament_package()
