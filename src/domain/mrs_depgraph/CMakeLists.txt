@@ -38,7 +38,8 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
   ament_add_gtest(test_mrs_depgraph
-    test/unit/test_depgraph_build.cpp)
+    test/unit/test_depgraph_build.cpp
+    test/unit/test_depgraph_release.cpp)
   if(TARGET test_mrs_depgraph)
     target_link_libraries(test_mrs_depgraph ${PROJECT_NAME})
   endif()

@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -97,6 +98,22 @@ private:
     std::size_t robot_index{0}; ///< @ref paths_ 내 로봇 인덱스
     std::size_t visit_index{0}; ///< 그 로봇 경로(@ref RobotPath::visits) 내 방문 인덱스
   };
+
+  /**
+   * @brief 한 방문의 Type-2 통행순서 직전 로봇이 그 노드를 아직 클리어하지 않았는지 검사한다.
+   *
+   * `node_visit_order_[node]` 에서 이 방문(@p robot_index, @p visit_index)의 바로 앞 원소가
+   * **다른 로봇**이고 그 로봇이 해당 노드를 아직 클리어하지 않았으면(그 로봇의 `cleared_count_` 가
+   * 통과 예정 방문에 못 미치면) 미충족 선행제약이다. 같은 로봇(Type-1 자기순서)은 방문열이
+   * 순서대로 진행되므로 자동 충족 — 건너뛴다.
+   *
+   * @param[in] robot_index @ref paths_ 내 로봇 인덱스. 자료형 `std::size_t`.
+   * @param[in] visit_index 그 로봇 경로 내 방문 인덱스(진입하려는 노드). 자료형 `std::size_t`.
+   * @return `std::optional<PredecessorConstraint>` — 미충족이면 `{선행 로봇 id, 그 노드}`, 충족·
+   *         선행 없음이면 nullopt.
+   */
+  [[nodiscard]] std::optional<PredecessorConstraint> unmet_predecessor(
+    std::size_t robot_index, std::size_t visit_index) const;
 
   std::uint64_t roadmap_version_{0}; ///< 현재 그래프가 참조하는 지도 버전 (0 = 미구축)
   std::uint32_t view_id_{0};         ///< 계획이 사용한 균일 뷰 id (창 스코프 에코)
