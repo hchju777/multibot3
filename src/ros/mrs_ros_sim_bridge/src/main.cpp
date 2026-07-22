@@ -26,11 +26,15 @@ int main(int argc, char ** argv)
   try
   {
     auto node = std::make_shared<mrs::SimBridgeNode>();
-    if (!node->backend_ready())
+    // ⚠ 기동 게이트는 startup_accepted() 다 — backend_ready() 가 아니다. 실제 백엔드 구성은
+    //   MapRegistry 균일 뷰(부착 표) 도착까지 미뤄지므로 생성 직후 backend_ready() 는 false 이고,
+    //   /clock 발행은 스핀이 뷰를 받은 뒤 시작된다(시한 초과 시 계약 L-16 대로 부착 없이 시작).
+    if (!node->startup_accepted())
     {
       RCLCPP_FATAL(
         node->get_logger(),
-        "sim_bridge 기동 거부 — 백엔드가 준비되지 않았습니다. 위의 FATAL 로그를 확인하십시오.");
+        "sim_bridge 기동 거부 — 동기 기동 검사(백엔드 선택·초기 배치) 실패. 위의 FATAL 로그를 "
+        "확인하십시오.");
       rclcpp::shutdown();
       return 1;
     }

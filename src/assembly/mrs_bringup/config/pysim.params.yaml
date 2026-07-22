@@ -109,9 +109,12 @@ sim_bridge:
     # [구성] actuate → 상태 반영 지연 [s]. 0 = 즉시 반영. architecture §5.2 누수 조기 발견용
     #   스윕축이다 — 0 보다 크게 올려 코어가 "즉시 반영"을 전제하는지 확인할 수 있다.
     actuate_to_state_latency_s: 0.0
-    # [구성] 초기 배치. 로봇 2대를 x축 위에서 마주보게 둔다(로봇 1이 -x 방향을 향한다).
+    # [구성] 초기 배치. ⚠ [2] 부착 배선: 로봇을 **균일 뷰 격자 노드 위**에 얹어야 sim_bridge 가
+    #   그 노드에 부착하고 RobotState.occupied_node 가 유효값을 보고한다(격자 간격 2.4). 로봇 0 =
+    #   (0,0)=n0, 로봇 1 = (2.4,0)=n1 — pp_service 가 로봇 i 에게 주는 route 시작 노드와 정합한다.
+    #   부착 반경은 node_attach_radius_m(0.25)이므로 노드에서 그보다 멀면 부착되지 않는다.
     #   ⚠ 길이가 robot_count 와 다르면 sim_bridge 는 **기동을 거부**한다(자세를 추측하지 않는다).
-    initial_x_m: [0.0, 4.0]
+    initial_x_m: [0.0, 2.4]
     initial_y_m: [0.0, 0.0]
     initial_theta_rad: [0.0, 3.141592653589793]
     # [구성] **= map_registry 발급값**. sim_bridge 는 MapRegistry 서비스를 호출하지 않으므로
@@ -150,7 +153,8 @@ pysim_backend:
     sim_step_s: 0.05
     seed: 0
     robot_radius_m: 0.3
-    initial_x_m: [0.0, 4.0]
+    # [구성] = sim_bridge 블록과 같은 격자-노드 배치(로봇 0=n0(0,0), 로봇 1=n1(2.4,0)).
+    initial_x_m: [0.0, 2.4]
     initial_y_m: [0.0, 0.0]
     initial_theta_rad: [0.0, 3.141592653589793]
     # [구성] = map_registry 발급값 (위 sim_bridge 블록과 같은 이유·같은 값).

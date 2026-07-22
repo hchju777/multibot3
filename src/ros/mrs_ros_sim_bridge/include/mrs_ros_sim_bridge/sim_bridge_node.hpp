@@ -18,9 +18,19 @@
  * 백엔드는 **`FakeSimBackend`(C++ 인프로세스, 결정론)** 로 시작한다 — 이미 구현·검증됐다.
  * pysim 프로세스 백엔드(`mrs_sim_pysim`)는 프로세스 **형태**만 고정돼 있고 C++ 어댑터가 아직
  * 없으므로, `sim_backend:=pysim` 으로 기동하면 이 노드는 **조용히 fake 로 대체하지 않고 기동을
- * 거부**한다(@ref SimBridgeNode::backend_ready). 조용한 대체는 kill-gate 정직성을 깬다 —
+ * 거부**한다(@ref SimBridgeNode::startup_accepted). 조용한 대체는 kill-gate 정직성을 깬다 —
  * `SimCapabilities.backend_name` 이 실제와 달라지면 sim-runner 의 `OPEN(pending-isaac)` 자동
  * 태깅이 근거를 잃는다.
+ *
+ * ## [2] 노드 부착 (이 파일이 [0a] 거동을 의도적으로 바꾼다)
+ * [0a] 에서는 MapRegistry 균일 뷰가 더미라 부착 표를 **비워** 두고 로봇이 항상 센티넬
+ * (`occupied_node = 4294967295`)을 보고했다(계약 L-16 — 백엔드가 뷰를 모르면 부착 금지).
+ * [1] 에서 실 MapRegistry 가 배선돼 균일 뷰가 실체가 됐으므로, 이제 이 노드는 기동 시
+ * `/map_registry/get_uniform_view` 를 **비동기·재시도**로 조회해 균일 뷰 노드 좌표로
+ * `FakeSimConfig::node_anchors` 를 채운다. `FakeSimBackend` 는 부착 표를 `configure()` 시점에만
+ * 받으므로(런타임 세터 없음), 백엔드 구성 자체를 뷰 도착 시점까지 **미룬다** — 그때까지 `/clock`
+ * 발행도 보류된다(뷰 조회는 `/clock` 에 의존하지 않아 데드락이 없다). 시한 내에 뷰를 얻지 못하면
+ * 계약 L-16 대로 **부착하지 않고**(센티넬 보고) 계속 진행한다 — 침묵 실패가 아니라 경고 로그다.
  *
  * ## pending_isaac 전파 (architecture §5.3)
  * 백엔드가 신고한 `SimMetricSample.pending_isaac` 을 **그대로** 실어 보낸다. 여기서 떨어뜨리면
@@ -52,6 +62,7 @@
 #include "mrs/view_ids.hpp"
 #include "mrs_interfaces/msg/robot_state.hpp"
 #include "mrs_interfaces/msg/sim_metric_sample.hpp"
+#include "mrs_interfaces/srv/get_uniform_view.hpp"
 #include "mrs_interfaces/srv/sim_inject.hpp"
 #include "mrs_interfaces/srv/sim_query_capabilities.hpp"
 #include "mrs_interfaces/srv/sim_step.hpp"
@@ -89,6 +100,21 @@ public:
   [[nodiscard]] bool backend_ready() const noexcept
   {
     return backend_ready_;
+  }
+
+  /**
+   * @brief 동기 기동 검사(백엔드 선택·초기 배치 배열 길이·관측 스코프)를 통과했는지 알려준다.
+   *
+   * `main()` 의 기동 게이트는 이 값이다 — **`backend_ready()` 가 아니다.** 실제 백엔드 구성은
+   * MapRegistry 균일 뷰(부착 표)를 얻은 뒤로 미뤄지므로 생성 직후 `backend_ready()` 는 false 다.
+   * 이 값이 false 라는 것은 `sim_backend` 가 미지원(pysim/isaac)이거나 배치 배열이 `robot_count`
+   * 와 어긋난다는 뜻으로, **기동 거부 대상**이다(조용한 fake 대체 없음 — §5.3 정직성).
+   *
+   * @return `bool` — 동기 검사를 통과해 스핀을 시작해도 되면 true, 기동 거부면 false.
+   */
+  [[nodiscard]] bool startup_accepted() const noexcept
+  {
+    return startup_accepted_;
   }
 
 private:
@@ -159,21 +185,114 @@ private:
   [[nodiscard]] bool validate_spawn_parameters() const;
 
   /**
-   * @brief `sim_backend` 파라미터가 지시한 백엔드를 만들어 구성·리셋한다.
+   * @brief MapRegistry 균일 뷰 조회를 비동기로 개시한다(클라이언트 + 벽시계 재시도 타이머).
    *
-   * [0a] 는 `"fake"` 만 실제로 만들 수 있다. `"pysim"`·`"isaac"` 은 프로세스 어댑터가 아직
-   * 없으므로 **fake 로 대체하지 않고 실패를 반환**한다(조용한 대체 금지 — §5.3 정직성).
+   * **블로킹하지 않는다.** `/clock` 이 아직 흐르지 않는 동안이라 노드 시계 기반 타이머는 발화하지
+   * 않으므로 재시도 타이머는 **벽시계**로 돈다(nav2-reference §2 C2 와 같은 이유). 뷰가 도착하거나
+   * 시한을 넘기면 @ref finalize_backend 가 백엔드를 구성하고 `/clock` 발행을 시작한다.
    *
-   * @return `bool` — 백엔드가 구성·리셋까지 성공하면 true, 그 밖에는 false(기동 거부).
+   * @return `void`
    */
-  [[nodiscard]] bool create_and_configure_backend();
+  void configure_backend_async();
 
   /**
-   * @brief 파라미터로 받은 초기 배치·뷰 스코프로 `FakeSimConfig` 를 조립한다.
+   * @brief 균일 뷰 조회 재시도 타이머 콜백(벽시계) — 재시도·시한초과 폴백을 관리한다.
+   *
+   * 백엔드가 이미 구성됐으면 타이머를 멈춘다. `map_query_give_up_s` 를 넘도록 뷰를 얻지 못하면
+   * 계약 L-16 대로 **부착 없이** 백엔드를 구성한다(센티넬 보고 + 경고 로그). 서비스가 아직 안
+   * 떠 있으면 다음 주기로 미룬다.
+   *
+   * @return `void`
+   */
+  void on_map_query_timer();
+
+  /**
+   * @brief 조회 개시 후 `map_query_give_up_s` 를 넘겼으면 부착 없이 백엔드를 확정한다(L-16).
+   *
+   * 넘겼으면 경고 로그 후 @ref finalize_backend 를 빈 부착 표로 호출한다 — 세계가 영원히 멈추는
+   * 것보다 부착 없이(센티넬 보고) 도는 편이 낫다.
+   *
+   * @return `bool` — 시한을 넘겨 부착 없이 확정했으면 true(호출자는 즉시 반환), 아니면 false.
+   */
+  [[nodiscard]] bool map_query_gave_up();
+
+  /**
+   * @brief 응답 없는 조회 요청을 시한 초과 시 회수한다 (nav2-reference §A2 pending 누수 방지).
+   * @return `bool` — 새 요청을 보내도 되면 true, 아직 응답을 기다리는 중이면 false.
+   */
+  [[nodiscard]] bool reclaim_stale_map_query();
+
+  /**
+   * @brief `GetUniformView` 요청을 비동기로 보낸다(블로킹하지 않는다).
+   *
+   * 요청은 `view_roadmap_version_` 를 기준 물리 지도 버전으로 싣는다(GetUniformView.srv 는
+   * roadmap_version 만으로 균일 뷰를 유일 지목한다 — view_id 요청 필드 없음).
+   *
+   * @return `void`
+   */
+  void send_uniform_view_request();
+
+  /**
+   * @brief `GetUniformView` 비동기 응답 콜백 — 부착 표를 만들어 백엔드를 확정한다.
+   *
+   * RESULT_OK 응답을 받으면 재시도를 끝내고 **최종 결정**을 내린다: 부착 표 변환에 성공하면
+   * 그 표로, 실패(스코프 불일치·노드 id 센티넬 등)하면 계약 L-16 대로 부착 없이 백엔드를 구성한다.
+   *
+   * @param[in] future 응답 future. 자료형
+   *            `rclcpp::Client<mrs_interfaces::srv::GetUniformView>::SharedFuture`.
+   * @return `void`
+   */
+  void on_uniform_view_response(
+    rclcpp::Client<mrs_interfaces::srv::GetUniformView>::SharedFuture future);
+
+  /**
+   * @brief 균일 뷰 응답의 노드 목록을 `FakeNodeAnchor` 부착 표로 변환한다(규칙 V3 — convert 경유).
+   *
+   * 응답의 (roadmap_version, view_id) 가 관측 스코프와 다르면 **부착하지 않는다**(false) — 다른
+   * 스코프의 노드 id 를 관측 스코프로 실으면 오태깅이 되어 수신자가 조용히 폐기한다. `uint32`
+   * → `UniformNodeId` 랩은 `mrs::convert::node_id_from_msg` 단독 소유다(맨 uint32 우회 금지).
+   *
+   * @param[in] response 균일 뷰 응답. 자료형 `mrs_interfaces::srv::GetUniformView::Response`.
+   * @param[out] anchors 채울 부착 표. 자료형 `std::vector<mrs::FakeNodeAnchor>`.
+   *             실패 시 내용은 정의되지 않는다.
+   * @return `bool` — 스코프 정합 + 전 노드 랩 성공 + 1개 이상이면 true, 그 밖에는 false.
+   */
+  [[nodiscard]] bool build_anchors_from_view(
+    const mrs_interfaces::srv::GetUniformView::Response & response,
+    std::vector<FakeNodeAnchor> & anchors) const;
+
+  /**
+   * @brief 주어진 부착 표로 백엔드를 구성·리셋하고 스텝 구동을 시작한다(멱등 — 1회만 확정).
+   *
+   * 부착 표로 구성에 실패하면 계약 L-16 대로 **부착 없이** 재시도한다(세계가 멈추는 것보다 부착
+   * 없이 도는 편이 낫다). 두 경로 모두 실패하면 기동 거부(FATAL) 상태로 남는다.
+   *
+   * @param[in] anchors 부착 표. 자료형 `std::vector<mrs::FakeNodeAnchor>`. 비면 부착하지 않는다.
+   * @return `void`
+   */
+  void finalize_backend(const std::vector<FakeNodeAnchor> & anchors);
+
+  /**
+   * @brief 부착 표를 주입한 `FakeSimConfig` 로 백엔드를 만들어 구성·리셋한다(부작용: 멤버 갱신).
+   * @param[in] anchors 부착 표. 자료형 `std::vector<mrs::FakeNodeAnchor>`.
+   * @return `bool` — 구성·리셋까지 성공하면 true(이때 @ref backend_ 가 교체된다), 실패면 false.
+   */
+  [[nodiscard]] bool try_build_backend(const std::vector<FakeNodeAnchor> & anchors);
+
+  /**
+   * @brief `/clock`·자동 스텝 타이머를 만들고 초기 `/clock` 을 발행한다(백엔드 확정 직후 1회).
+   * @return `void`
+   */
+  void start_stepping();
+
+  /**
+   * @brief 파라미터로 받은 초기 배치·뷰 스코프·부착 표로 `FakeSimConfig` 를 조립한다.
    * @param[out] config 채울 구성. 자료형 `mrs::FakeSimConfig`. 실패 시 내용은 정의되지 않는다.
+   * @param[in] anchors 노드 부착 표. 자료형 `std::vector<mrs::FakeNodeAnchor>`. 비면 부착 없음.
    * @return `bool` — 배열 길이 정합·뷰 스코프 유효성까지 통과하면 true.
    */
-  [[nodiscard]] bool build_fake_config(FakeSimConfig & config) const;
+  [[nodiscard]] bool build_fake_config(
+    FakeSimConfig & config, const std::vector<FakeNodeAnchor> & anchors) const;
 
   // ── 주기 구동 (전부 벽시계 타이머) ──────────────────────────────────────────
   /**
@@ -356,8 +475,10 @@ private:
 
   // ── 백엔드·상태 ─────────────────────────────────────────────────────────────
   std::shared_ptr<ISimBackend> backend_; ///< 활성 백엔드 (seam c). 미구성이면 nullptr
-  bool backend_ready_{false}; ///< 구성·리셋까지 성공했는가 (기동 거부 판정)
-  double sim_time_s_{0.0};    ///< 시뮬 시각 정본 [s]. `step()` out 파라미터만이 갱신
+  bool backend_ready_{false}; ///< 구성·리셋까지 성공했는가 (스텝 구동 가능 판정)
+  bool startup_accepted_{false}; ///< 동기 기동 검사 통과 여부 (main 의 기동 게이트)
+  std::size_t attached_anchor_count_{0}; ///< 확정된 백엔드에 실린 부착 노드 수(로그·검증 가시성)
+  double sim_time_s_{0.0}; ///< 시뮬 시각 정본 [s]. `step()` out 파라미터만이 갱신
   std::uint64_t step_count_{0}; ///< `reset()` 이후 누적 스텝 수 (결정론 재현 키)
   double last_realtime_report_sim_s_{0.0};  ///< 직전 배속 보고 시점의 시뮬 시각 [s]
   double last_realtime_report_wall_s_{0.0}; ///< 직전 배속 보고 시점의 벽시계 시각 [s]
@@ -389,6 +510,9 @@ private:
   std::vector<double> initial_theta_rad_; ///< 로봇별 초기 방위각 [rad], `[-pi, pi]`
   std::int64_t view_roadmap_version_{1}; ///< 관측이 실을 지도 버전 (0 = 런타임 금지값)
   std::int64_t view_uniform_view_id_{0}; ///< 관측이 실을 균일 뷰 id
+  double map_query_retry_period_s_{1.0}; ///< 균일 뷰 조회 재시도 주기 [s] (벽시계, 배관 상수)
+  double map_query_timeout_s_{2.0}; ///< 조회 응답 대기 시한 [s]. 초과 시 pending 요청 회수
+  double map_query_give_up_s_{8.0}; ///< 이 시간 안에 뷰를 못 얻으면 부착 없이 기동 [s] (L-16)
 
   ViewScope observation_scope_; ///< 관측·주입에 쓰는 뷰 스코프(종류 UNIFORM)
   ViewScope physical_scope_;    ///< `SimInject.target_edge_id` 랩용 스코프(종류 PHYSICAL)
@@ -404,6 +528,16 @@ private:
   rclcpp::Service<mrs_interfaces::srv::SimStep>::SharedPtr step_srv_;
   rclcpp::Service<mrs_interfaces::srv::SimInject>::SharedPtr inject_srv_;
   rclcpp::Service<mrs_interfaces::srv::SimQueryCapabilities>::SharedPtr capabilities_srv_;
+
+  /// MapRegistry 균일 뷰 조회 클라이언트 — 부착 표의 유일 출처(계약 §0.1 뷰 변환은 MapRegistry 몫)
+  rclcpp::Client<mrs_interfaces::srv::GetUniformView>::SharedPtr uniform_view_client_;
+  rclcpp::TimerBase::SharedPtr map_query_timer_; ///< 벽시계 재시도 (백엔드 확정 후 정지)
+
+  // ── MapRegistry 조회 진행 상태 (전부 벽시계 기준 — /clock 이 아직 흐르지 않는 동안 돈다) ──
+  double map_query_started_wall_s_{0.0}; ///< 조회 개시 벽시계 시각 [s] (give-up 판정 기준)
+  double map_query_sent_at_wall_s_{0.0}; ///< 마지막 요청 발신 벽시계 시각 [s] (timeout 판정 기준)
+  std::int64_t map_query_request_id_{0}; ///< 대기 중 요청 id (`remove_pending_request` 인자)
+  bool map_query_pending_{false};        ///< 응답 대기 중 여부 (중복 요청 방지)
 
   rclcpp::TimerBase::SharedPtr clock_timer_; ///< 벽시계 구동 (C2 — 부팅 데드락 회피)
   rclcpp::TimerBase::SharedPtr step_timer_;  ///< 벽시계 구동 (`auto_step` 일 때만 생성)

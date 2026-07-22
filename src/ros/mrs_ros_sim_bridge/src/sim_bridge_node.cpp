@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 
+#include "mrs_interfaces/msg/roadmap_node.hpp"
 #include "mrs_msg_convert/common_convert.hpp"
 #include "mrs_msg_convert/msg_convert.hpp"
 #include "mrs_ros_sim_bridge/sim_bridge_node.hpp"
@@ -33,6 +34,9 @@ constexpr const char * BACKEND_ISAAC = "isaac";
 
 /** @brief 로그 스로틀 간격 [ms]. 20 Hz × N 로봇 스트림이 로그를 덮지 않게 한다. */
 constexpr int LOG_THROTTLE_MS = 2000;
+
+/** @brief MapRegistry 균일 뷰 조회 서비스의 계약 이름 (계약 §3 정본표). */
+constexpr const char * UNIFORM_VIEW_SERVICE = "/map_registry/get_uniform_view";
 
 } // namespace
 
@@ -103,46 +107,24 @@ SimBridgeNode::SimBridgeNode() : rclcpp::Node("sim_bridge")
       &SimBridgeNode::on_query_capabilities, this, std::placeholders::_1, std::placeholders::_2),
     rclcpp::ServicesQoS(), backend_group_);
 
-  backend_ready_ = create_and_configure_backend();
-  if (!backend_ready_)
+  // 동기 기동 검사 — pysim/isaac kill-gate 와 초기 배치 배열 길이·관측 스코프는 여기서 즉시
+  // 막는다(조용한 fake 대체 없음). 실제 백엔드 구성은 부착 표(균일 뷰)를 얻은 뒤로 미룬다.
+  if (!is_backend_selection_supported() || !validate_spawn_parameters())
   {
-    // 타이머를 만들지 않는다 — 구성되지 않은 백엔드를 두드리며 도는 것보다 정지가 안전하다.
     RCLCPP_FATAL(
       this->get_logger(),
-      "백엔드 구성 실패 (sim_backend='%s') — 기동을 거부합니다. 조용히 fake 로 대체하지 "
+      "기동 거부 — 백엔드 선택·초기 배치 검사 실패 (sim_backend='%s'). 조용히 fake 로 대체하지 "
       "않습니다(§5.3 kill-gate 정직성).",
       sim_backend_.c_str());
-    return;
+    return; // startup_accepted_ 는 false 로 남아 main 이 기동을 거부한다.
   }
+  startup_accepted_ = true;
 
-  last_realtime_report_sim_s_ = sim_time_s_;
-  last_realtime_report_wall_s_ = steady_clock_.now().seconds();
-
-  // ⚠ nav2-reference §2 C2 (필수 채택): /clock 발행 타이머는 **벽시계**다.
-  //   use_sim_time 으로 돌리면 자기가 발행하지 않은 시계를 기다리며 부팅 데드락에 빠진다.
-  clock_timer_ = this->create_wall_timer(
-    std::chrono::duration<double>(clock_publish_wall_period_s_),
-    std::bind(&SimBridgeNode::on_clock_timer, this), backend_group_);
-
-  if (auto_step_)
-  {
-    // 자동 스텝 타이머도 **벽시계**여야 한다 — 시뮬 시각을 전진시키는 주체가 그 시각을
-    // 기다리면 세계가 영원히 멈춘다(같은 부팅 데드락의 다른 얼굴).
-    step_timer_ = this->create_wall_timer(
-      std::chrono::duration<double>(step_wall_period_s_),
-      std::bind(&SimBridgeNode::on_step_timer, this), backend_group_);
-  }
-
-  publish_clock();
-
-  const SimCapabilities capabilities = backend_->capabilities();
-  RCLCPP_INFO(
-    this->get_logger(),
-    "sim_bridge 기동 — backend=%s, robot_count=%d, sim_step_s=%.6f, auto_step=%s, "
-    "deterministic=%s, fidelity=%u",
-    capabilities.backend_name.c_str(), robot_count_, sim_step_s_, auto_step_ ? "true" : "false",
-    capabilities.deterministic_with_seed ? "true" : "false",
-    static_cast<unsigned>(capabilities.physics_fidelity));
+  // ⚠ 백엔드 구성을 MapRegistry 균일 뷰 도착까지 미룬다: FakeSimBackend 는 부착 표를
+  //   configure() 시점에만 받고(런타임 세터 없음), 그 표는 균일 뷰가 유일 출처다(계약 §0.1).
+  //   구성 전까지는 clock/step 타이머를 만들지 않으므로 /clock 발행도 보류된다 — 균일 뷰 조회는
+  //   /clock 에 의존하지 않아 데드락이 없다(map_registry 는 사전 구축된 뷰를 즉시 응답한다).
+  configure_backend_async();
 }
 
 SimBridgeNode::~SimBridgeNode()
@@ -228,6 +210,12 @@ void SimBridgeNode::declare_scenario_parameters()
   //   0 을 쓰지 않는 이유: roadmap_version 0 은 계약이 런타임 금지, view_id 0 은 물리 뷰 예약값.
   view_roadmap_version_ = this->declare_parameter<std::int64_t>("view_roadmap_version", 1);
   view_uniform_view_id_ = this->declare_parameter<std::int64_t>("view_uniform_view_id", 1);
+
+  // 균일 뷰 조회 배관값. 재시도·시한은 map_registry 기동 대기 흡수용이고, give-up 은 뷰를
+  // 끝내 못 얻을 때 계약 L-16(부착 없이 진행)으로 수렴시켜 세계가 영원히 멈추는 것을 막는다.
+  map_query_retry_period_s_ = this->declare_parameter<double>("map_query_retry_period_s", 1.0);
+  map_query_timeout_s_ = this->declare_parameter<double>("map_query_timeout_s", 2.0);
+  map_query_give_up_s_ = this->declare_parameter<double>("map_query_give_up_s", 8.0);
 }
 
 void SimBridgeNode::build_view_scopes()
@@ -277,30 +265,240 @@ bool SimBridgeNode::is_backend_selection_supported() const
   return true;
 }
 
-bool SimBridgeNode::create_and_configure_backend()
+void SimBridgeNode::configure_backend_async()
 {
-  if (!is_backend_selection_supported())
+  uniform_view_client_ = this->create_client<mrs_interfaces::srv::GetUniformView>(
+    UNIFORM_VIEW_SERVICE, rclcpp::ServicesQoS(), backend_group_);
+
+  map_query_started_wall_s_ = steady_clock_.now().seconds();
+
+  // 재시도 타이머는 **벽시계**로 돈다 — /clock 이 아직 흐르지 않으므로 노드 시계 기반 타이머는
+  // 영원히 발화하지 않는다(이 노드의 모든 타이머가 벽시계인 것과 같은 이유, nav2-reference §2 C2).
+  const double period =
+    (std::isfinite(map_query_retry_period_s_) && map_query_retry_period_s_ > 0.0)
+      ? map_query_retry_period_s_
+      : 1.0;
+  map_query_timer_ = this->create_wall_timer(
+    std::chrono::duration<double>(period), std::bind(&SimBridgeNode::on_map_query_timer, this),
+    backend_group_);
+}
+
+void SimBridgeNode::on_map_query_timer()
+{
+  try
+  {
+    if (backend_ready_)
+    {
+      if (map_query_timer_ != nullptr)
+      {
+        map_query_timer_->cancel();
+      }
+      return;
+    }
+
+    if (map_query_gave_up())
+    {
+      return;
+    }
+    if (!reclaim_stale_map_query())
+    {
+      return;
+    }
+    if (!uniform_view_client_->service_is_ready())
+    {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), steady_clock_, LOG_THROTTLE_MS,
+        "%s 서비스 대기 중 — 부착 표 확보 전까지 /clock 발행을 보류합니다.", UNIFORM_VIEW_SERVICE);
+      return;
+    }
+    send_uniform_view_request();
+  }
+  catch (const std::exception & e)
+  {
+    RCLCPP_ERROR(
+      this->get_logger(), "on_map_query_timer 예외 (안전 폴백: 다음 주기 재시도): %s", e.what());
+  }
+}
+
+bool SimBridgeNode::map_query_gave_up()
+{
+  const double waited_s = steady_clock_.now().seconds() - map_query_started_wall_s_;
+  if (waited_s <= map_query_give_up_s_)
   {
     return false;
   }
 
+  RCLCPP_WARN(
+    this->get_logger(),
+    "MapRegistry 균일 뷰를 %.1f s 안에 얻지 못했습니다 — 계약 L-16 대로 **부착 없이** 기동합니다"
+    "(로봇은 occupied_node 센티넬을 보고합니다).",
+    waited_s);
+  finalize_backend({});
+  return true;
+}
+
+bool SimBridgeNode::reclaim_stale_map_query()
+{
+  if (!map_query_pending_)
+  {
+    return true;
+  }
+
+  const double waited_s = steady_clock_.now().seconds() - map_query_sent_at_wall_s_;
+  if (waited_s < map_query_timeout_s_)
+  {
+    return false; // 아직 기다릴 시간이다 — 중복 요청을 보내지 않는다.
+  }
+
+  (void)uniform_view_client_->remove_pending_request(map_query_request_id_);
+  map_query_pending_ = false;
+  RCLCPP_WARN_THROTTLE(
+    this->get_logger(), steady_clock_, LOG_THROTTLE_MS,
+    "GetUniformView 응답이 %.1f s 안에 오지 않아 요청을 회수했습니다 — 재시도합니다.", waited_s);
+  return true;
+}
+
+void SimBridgeNode::send_uniform_view_request()
+{
+  auto request = std::make_shared<mrs_interfaces::srv::GetUniformView::Request>();
+  request->roadmap_version =
+    static_cast<std::uint64_t>(std::max<std::int64_t>(view_roadmap_version_, 0));
+
+  auto future_and_id = uniform_view_client_->async_send_request(
+    request, std::bind(&SimBridgeNode::on_uniform_view_response, this, std::placeholders::_1));
+  map_query_request_id_ = future_and_id.request_id;
+  map_query_sent_at_wall_s_ = steady_clock_.now().seconds();
+  map_query_pending_ = true;
+}
+
+void SimBridgeNode::on_uniform_view_response(
+  rclcpp::Client<mrs_interfaces::srv::GetUniformView>::SharedFuture future)
+{
+  using Resp = mrs_interfaces::srv::GetUniformView::Response;
+  try
+  {
+    map_query_pending_ = false;
+    if (backend_ready_)
+    {
+      return; // 이미 확정됐다(시한초과 폴백 등). 늦게 온 응답은 버린다.
+    }
+
+    const auto response = future.get();
+    if (response == nullptr || response->result != Resp::RESULT_OK)
+    {
+      RCLCPP_WARN(
+        this->get_logger(), "GetUniformView 실패/미OK (result=%u) — 재시도합니다.",
+        response != nullptr ? static_cast<unsigned>(response->result) : 0U);
+      return;
+    }
+
+    // RESULT_OK 는 권위 있는 뷰다 — 여기서 **최종 결정**을 내린다(부착 or L-16 무부착).
+    std::vector<FakeNodeAnchor> anchors;
+    if (!build_anchors_from_view(*response, anchors))
+    {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "균일 뷰→부착 표 변환 실패 (스코프 불일치·노드 id 센티넬 등) — 계약 L-16 대로 부착 "
+        "없이 기동합니다.");
+      finalize_backend({});
+      return;
+    }
+    finalize_backend(anchors);
+  }
+  catch (const std::exception & e)
+  {
+    RCLCPP_ERROR(
+      this->get_logger(), "on_uniform_view_response 예외 (부착 없이 기동): %s", e.what());
+    finalize_backend({});
+  }
+}
+
+bool SimBridgeNode::build_anchors_from_view(
+  const mrs_interfaces::srv::GetUniformView::Response & response,
+  std::vector<FakeNodeAnchor> & anchors) const
+{
+  // 스코프 정합: 응답 (roadmap_version, view_id) 가 관측 스코프와 다르면 부착하지 않는다 —
+  // 다른 스코프의 노드 id 를 관측 스코프로 실으면 오태깅이 되어 수신자가 조용히 폐기한다.
+  if (
+    response.roadmap_version != observation_scope_.roadmap_version ||
+    response.view_id != observation_scope_.view_id)
+  {
+    return false;
+  }
+
+  anchors.clear();
+  anchors.reserve(response.nodes.size());
+  for (const mrs_interfaces::msg::RoadmapNode & node : response.nodes)
+  {
+    // 규칙 V3: uint32 → 강타입 랩은 convert 단독 소유. 균일 뷰 노드는 센티넬을 허용하지 않는다.
+    UniformNodeId node_id;
+    const convert::ConvertResult result =
+      convert::node_id_from_msg(node.node_id, convert::NoneNodePolicy::REJECT, node_id);
+    if (!result.ok)
+    {
+      return false;
+    }
+    FakeNodeAnchor anchor;
+    anchor.node_id = node_id;
+    anchor.x_m = node.x_m;
+    anchor.y_m = node.y_m;
+    anchors.push_back(anchor);
+  }
+  return !anchors.empty();
+}
+
+void SimBridgeNode::finalize_backend(const std::vector<FakeNodeAnchor> & anchors)
+{
+  if (backend_ready_)
+  {
+    return; // 멱등 — 백엔드는 한 번만 확정한다.
+  }
+
+  if (!try_build_backend(anchors))
+  {
+    if (!anchors.empty())
+    {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "부착 표로 백엔드 구성 실패 — 계약 L-16 대로 부착 없이 재시도합니다(정지보다 부착 "
+        "없이 도는 편이 낫다).");
+      if (!try_build_backend({}))
+      {
+        return; // FATAL 은 try_build_backend 가 남겼다. backend_ready_=false → 세계 정지.
+      }
+    }
+    else
+    {
+      return; // 부착 없이도 실패 — 기동 거부 상태로 남는다(FATAL 기록됨).
+    }
+  }
+
+  backend_ready_ = true;
+  if (map_query_timer_ != nullptr)
+  {
+    map_query_timer_->cancel();
+  }
+  start_stepping();
+}
+
+bool SimBridgeNode::try_build_backend(const std::vector<FakeNodeAnchor> & anchors)
+{
   FakeSimConfig config;
-  if (!build_fake_config(config))
+  if (!build_fake_config(config, anchors))
   {
     return false;
   }
 
   // ⚠ SimBackendRegistry 를 쓰지 않는다: 현재 구현이 `std::logic_error` 를 던지는 스텁이고
   //   `mrs_sim_abstraction` 은 이번 작업에서 **수정 금지** 대상이다. 선택 로직을 Composition
-  //   Root 인접(이 노드)에 두는 것은 architecture §2.4 검사 5 와 정합한다. 레지스트리가
-  //   구현되면 이 블록을 그쪽으로 옮긴다.
+  //   Root 인접(이 노드)에 두는 것은 architecture §2.4 검사 5 와 정합한다.
   auto fake_backend = std::make_shared<FakeSimBackend>();
   if (!fake_backend->configure(config))
   {
     RCLCPP_FATAL(
       this->get_logger(),
-      "FakeSimBackend::configure 실패 — 구성(스텝 dt·반지름·로봇 id 중복·뷰 스코프)을 "
-      "확인하십시오.");
+      "FakeSimBackend::configure 실패 — 구성(스텝 dt·반지름·로봇 id 중복·뷰 스코프·부착 id "
+      "중복)을 확인하십시오.");
     return false;
   }
   if (!fake_backend->reset(static_cast<std::uint64_t>(std::max<std::int64_t>(sim_seed_, 0))))
@@ -312,7 +510,40 @@ bool SimBridgeNode::create_and_configure_backend()
   backend_ = std::move(fake_backend);
   sim_time_s_ = 0.0;
   step_count_ = 0;
+  attached_anchor_count_ = config.node_anchors.size();
   return true;
+}
+
+void SimBridgeNode::start_stepping()
+{
+  last_realtime_report_sim_s_ = sim_time_s_;
+  last_realtime_report_wall_s_ = steady_clock_.now().seconds();
+
+  // ⚠ nav2-reference §2 C2 (필수 채택): /clock 발행 타이머는 **벽시계**다.
+  //   use_sim_time 으로 돌리면 자기가 발행하지 않은 시계를 기다리며 부팅 데드락에 빠진다.
+  clock_timer_ = this->create_wall_timer(
+    std::chrono::duration<double>(clock_publish_wall_period_s_),
+    std::bind(&SimBridgeNode::on_clock_timer, this), backend_group_);
+
+  if (auto_step_)
+  {
+    // 자동 스텝 타이머도 **벽시계**여야 한다 — 시뮬 시각을 전진시키는 주체가 그 시각을
+    // 기다리면 세계가 영원히 멈춘다(같은 부팅 데드락의 다른 얼굴).
+    step_timer_ = this->create_wall_timer(
+      std::chrono::duration<double>(step_wall_period_s_),
+      std::bind(&SimBridgeNode::on_step_timer, this), backend_group_);
+  }
+
+  publish_clock();
+
+  const SimCapabilities capabilities = backend_->capabilities();
+  RCLCPP_INFO(
+    this->get_logger(),
+    "sim_bridge 기동 — backend=%s, robot_count=%d, sim_step_s=%.6f, auto_step=%s, "
+    "deterministic=%s, fidelity=%u, node_anchors=%zu",
+    capabilities.backend_name.c_str(), robot_count_, sim_step_s_, auto_step_ ? "true" : "false",
+    capabilities.deterministic_with_seed ? "true" : "false",
+    static_cast<unsigned>(capabilities.physics_fidelity), attached_anchor_count_);
 }
 
 bool SimBridgeNode::validate_spawn_parameters() const
@@ -343,7 +574,8 @@ bool SimBridgeNode::validate_spawn_parameters() const
   return true;
 }
 
-bool SimBridgeNode::build_fake_config(FakeSimConfig & config) const
+bool SimBridgeNode::build_fake_config(
+  FakeSimConfig & config, const std::vector<FakeNodeAnchor> & anchors) const
 {
   if (!validate_spawn_parameters())
   {
@@ -357,10 +589,9 @@ bool SimBridgeNode::build_fake_config(FakeSimConfig & config) const
   config.actuate_to_state_latency_s = actuate_to_state_latency_s_;
   config.view_scope = observation_scope_;
 
-  // 노드 부착 표는 **비워 둔다**. MapRegistry 균일 뷰가 [0a] 에서는 더미이고, 추측해서 붙이는
-  // 것보다 계약이 정한 정상 경로(센티넬 + edge_progress)로 보고하는 편이 옳다
-  // (msg_convert `to_msg(RobotObservation…)` 주석 — "백엔드가 뷰를 모르면 부착하지 않는다").
-  config.node_anchors.clear();
+  // 부착 표는 MapRegistry 균일 뷰(@ref build_anchors_from_view)에서 온다. 비어 있으면 계약 L-16
+  // 대로 부착하지 않고 정상 경로(센티넬 + edge_progress)로 보고한다 — 추측해서 붙이지 않는다.
+  config.node_anchors = anchors;
 
   config.robots.clear();
   config.robots.reserve(count);
