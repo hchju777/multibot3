@@ -23,7 +23,7 @@ bool DependencyGraph::release_next_window(RobotId robot_id, ExecutionWindow & ou
     "not implemented: DependencyGraph::release_next_window — Phase 5 (coordination-builder) 대상");
 }
 
-void DependencyGraph::on_progress_event(RobotId robot_id, NodeId cleared_node, double time_s)
+void DependencyGraph::on_progress_event(RobotId robot_id, UniformNodeId cleared_node, double time_s)
 {
   (void)robot_id;
   (void)cleared_node;

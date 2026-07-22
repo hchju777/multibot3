@@ -14,8 +14,10 @@
  * `nodes_to_msg`/`edges_to_msg` 는 **V1 종류 대조를 수행하지 못한다**. 도메인 헤더를 고치지
  * 않고 [0a] 는 현행 형태로 두며, "어느 뷰인가"는 호출 노드가 어느 서비스 핸들러에서
  * 부르는가로만 보장된다([1] D-11 해소 예정 — 헤더 `@note` 참조).
- * 같은 이유로 노드·엣지 id 는 아직 강타입이 아니어서 `node_id_*` 헬퍼를 쓸 수 없고,
- * 센티넬 판정을 `mrs::NODE_ID_NONE`·`mrs::EDGE_ID_NONE` 과의 직접 대조로 한다.
+ * 뷰 컨테이너(@ref mrs::RoadmapViewData)의 노드·엣지 id 는 설계상 bare `std::uint32_t` 이며
+ * (사용자 결정, 파일 3 — 뷰 종류는 원소가 아니라 컨테이너의 `view_kind` 가 고정한다), 센티넬
+ * 판정은 그 bare 공간의 센티넬 `mrs::ROADMAP_ID_NONE` 과의 직접 대조로 한다. 뷰별 강타입 id 는
+ * `NodeMappingView`(대응표)·`RoadmapValidationResult`(검사 위반 배열)가 담당한다.
  */
 
 #include "mrs_msg_convert/msg_convert.hpp"
@@ -40,13 +42,13 @@ ConvertResult nodes_to_msg(
   std::vector<mrs_interfaces::msg::RoadmapNode> converted;
   converted.reserve(view.nodes.size());
 
-  std::unordered_set<mrs::NodeId> seen_node_ids;
+  std::unordered_set<std::uint32_t> seen_node_ids;
   seen_node_ids.reserve(view.nodes.size());
 
   for (const mrs::RoadmapNodeView & node : view.nodes)
   {
     // ② 필드 범위 — 센티넬·중복.
-    if (node.node_id == mrs::NODE_ID_NONE)
+    if (node.node_id == mrs::ROADMAP_ID_NONE)
     {
       return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
     }
@@ -104,11 +106,11 @@ ConvertResult edges_to_msg(
   for (const mrs::RoadmapEdgeView & edge : view.edges)
   {
     // ② 필드 범위 — 센티넬 3건.
-    if (edge.edge_id == mrs::EDGE_ID_NONE)
+    if (edge.edge_id == mrs::ROADMAP_ID_NONE)
     {
       return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
     }
-    if (edge.node_a == mrs::NODE_ID_NONE || edge.node_b == mrs::NODE_ID_NONE)
+    if (edge.node_a == mrs::ROADMAP_ID_NONE || edge.node_b == mrs::ROADMAP_ID_NONE)
     {
       return convert_fail(ConvertStatus::FIELD_RANGE_VIOLATION);
     }

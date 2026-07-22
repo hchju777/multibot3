@@ -46,12 +46,14 @@ public:
 
   /**
    * @brief 로봇 진행 이벤트를 반영한다(노드 클리어 → 하위 의존성 해소 판정).
-   * @param[in] robot_id 진행한 로봇.
-   * @param[in] cleared_node 클리어된 노드 id.
-   * @param[in] time_s 이벤트 발생 시각 [s].
+   * @param[in] robot_id 진행한 로봇. 자료형 `mrs::RobotId`.
+   * @param[in] cleared_node 클리어된 노드 id. 자료형 `mrs::UniformNodeId` (균일 뷰 강타입 —
+   *            진행/클리어 노드는 ExecutionWindow·FrozenOrder 와 같은 공간이고 계약이 UNIFORM 으로
+   *            고정한다, 계약 §0.1).
+   * @param[in] time_s 이벤트 발생 시각 [s]. 자료형 `double`.
    * @return void
    */
-  void on_progress_event(RobotId robot_id, NodeId cleared_node, double time_s);
+  void on_progress_event(RobotId robot_id, UniformNodeId cleared_node, double time_s);
 
   /**
    * @brief R3 부분 재계획 결과를 커밋 경계 안쪽으로 접합한다 (splice, 정리 T2.2).

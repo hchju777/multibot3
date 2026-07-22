@@ -25,7 +25,7 @@
  * 포트는 `occupied_node`/`next_node` 를 **균일 뷰** 노드로 요구하지만, 이 패키지는
  * `mrs_core_types` 에만 의존하므로 MapRegistry 를 호출할 수 없다(아키텍처 §2.2).
  * 그래서 노드 위치 테이블을 @ref FakeSimBackend::configure 로 **주입**받아 스스로 부착한다.
- * 테이블이 주어지지 않으면 계약대로 `NODE_ID_NONE` 을 보고한다 — 추측해서 붙이지 않는다.
+ * 테이블이 주어지지 않으면 계약대로 `UNIFORM_NODE_ID_NONE` 을 보고한다 — 추측해서 붙이지 않는다.
  *
  * ## 결정론
  * 같은 시드·같은 지령열이면 부동소수 수준까지 같은 궤적을 낸다. 난수는 시드된 엔진 하나만
@@ -78,7 +78,7 @@ struct FakeSimConfig
   double actuate_to_state_latency_s{0.0};
   /** @brief 로봇 초기 배치. */
   std::vector<FakeRobotSpawn> robots;
-  /** @brief 노드 부착 표. 비어 있으면 노드를 부착하지 않고 `NODE_ID_NONE` 을 보고한다. */
+  /** @brief 노드 부착 표. 비어 있으면 노드를 부착하지 않고 `UNIFORM_NODE_ID_NONE` 을 보고한다. */
   std::vector<FakeNodeAnchor> node_anchors;
   /** @brief 관측이 실어 보낼 뷰 스코프. `view_kind` 는 UNIFORM 이어야 한다. */
   ViewScope view_scope;

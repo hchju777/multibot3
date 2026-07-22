@@ -52,14 +52,17 @@ public:
 
   /**
    * @brief 신규/미배정 작업을 로봇에 배정한다 (min-cost-flow 1회 해).
-   * @param[in] task_id 작업 id.
-   * @param[in] pickup_node 픽업 노드 id (물리 roadmap 기준).
-   * @param[in] delivery_node 딜리버리 노드 id (물리 roadmap 기준).
-   * @param[out] out_robot_id 배정된 로봇 id. 배정 불가면 ROBOT_ID_NONE.
-   * @return bool 배정 성공 여부.
+   * @param[in] task_id 작업 id. 자료형 `std::uint64_t`.
+   * @param[in] pickup_node 픽업 노드 id. 자료형 `mrs::PhysicalNodeId` (물리 roadmap 뷰 강타입 —
+   *            작업 엔드포인트는 물리 지도의 개념이다, 계약 §0.1 `TaskAssignment` 행).
+   * @param[in] delivery_node 딜리버리 노드 id. 자료형 `mrs::PhysicalNodeId` (물리 roadmap 뷰
+   * 강타입).
+   * @param[out] out_robot_id 배정된 로봇 id. 자료형 `mrs::RobotId`. 배정 불가면 ROBOT_ID_NONE.
+   * @return `bool` — 배정 성공이면 true, 배정 불가면 false.
    */
   bool assign_task(
-    std::uint64_t task_id, NodeId pickup_node, NodeId delivery_node, RobotId & out_robot_id);
+    std::uint64_t task_id, PhysicalNodeId pickup_node, PhysicalNodeId delivery_node,
+    RobotId & out_robot_id);
 
   /**
    * @brief 상향 재할당 요청을 처리한다 (R4, D-02 v2 혼합 트리거 + 진동 억제 3종).

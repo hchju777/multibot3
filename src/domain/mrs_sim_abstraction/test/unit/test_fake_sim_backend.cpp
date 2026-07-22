@@ -344,8 +344,9 @@ TEST(FakeSimBackend, InjectRejectsCommunicationFaults)
   ASSERT_TRUE(backend.reset(1));
 
   std::uint64_t injection_id = 0;
-  EXPECT_FALSE(
-    backend.inject({mrs::FaultKind::COMM_DELAY, mrs::RobotId{1}, 0, 1.0, 0.0}, injection_id));
+  EXPECT_FALSE(backend.inject(
+    {mrs::FaultKind::COMM_DELAY, mrs::RobotId{1}, mrs::PHYSICAL_EDGE_ID_NONE, 1.0, 0.0},
+    injection_id));
 }
 
 // 통로 개폐는 지도를 아는 계층의 일이다 — 기하 전용 백엔드가 흉내내지 않는다.
@@ -356,8 +357,9 @@ TEST(FakeSimBackend, InjectRejectsCorridorFaults)
   ASSERT_TRUE(backend.reset(1));
 
   std::uint64_t injection_id = 0;
-  EXPECT_FALSE(
-    backend.inject({mrs::FaultKind::CORRIDOR_CLOSE, mrs::RobotId{1}, 0, 0.0, 0.0}, injection_id));
+  EXPECT_FALSE(backend.inject(
+    {mrs::FaultKind::CORRIDOR_CLOSE, mrs::RobotId{1}, mrs::PHYSICAL_EDGE_ID_NONE, 0.0, 0.0},
+    injection_id));
 }
 
 // ROBOT_STALL 은 지원한다. injection_id 는 1 부터 시작(0 = 미할당과 구별).
@@ -368,8 +370,9 @@ TEST(FakeSimBackend, InjectAcceptsRobotStallAndIssuesIdFromOne)
   ASSERT_TRUE(backend.reset(1));
 
   std::uint64_t injection_id = 0;
-  EXPECT_TRUE(
-    backend.inject({mrs::FaultKind::ROBOT_STALL, mrs::RobotId{1}, 0, 0.0, 0.1}, injection_id));
+  EXPECT_TRUE(backend.inject(
+    {mrs::FaultKind::ROBOT_STALL, mrs::RobotId{1}, mrs::PHYSICAL_EDGE_ID_NONE, 0.0, 0.1},
+    injection_id));
   EXPECT_EQ(injection_id, 1U);
 }
 
@@ -382,8 +385,9 @@ TEST(FakeSimBackend, RobotStallHoldsRobotThenReleasesAfterDuration)
   ASSERT_TRUE(backend.reset(1));
 
   std::uint64_t injection_id = 0;
-  ASSERT_TRUE(
-    backend.inject({mrs::FaultKind::ROBOT_STALL, mrs::RobotId{1}, 0, 0.0, 0.1}, injection_id));
+  ASSERT_TRUE(backend.inject(
+    {mrs::FaultKind::ROBOT_STALL, mrs::RobotId{1}, mrs::PHYSICAL_EDGE_ID_NONE, 0.0, 0.1},
+    injection_id));
 
   const std::vector<mrs::ActuationCommand> commands{{mrs::RobotId{1}, 1.0, 0.0}};
   ASSERT_TRUE(backend.actuate(commands));

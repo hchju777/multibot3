@@ -33,12 +33,13 @@ namespace mrs
  */
 struct PlanRequestEntry
 {
-  RobotId robot_id{ROBOT_ID_NONE};        ///< 로봇 id
-  UniformNodeId start_node{NODE_ID_NONE}; ///< 시작 노드 id — **균일 뷰**
+  RobotId robot_id{ROBOT_ID_NONE};                ///< 로봇 id
+  UniformNodeId start_node{UNIFORM_NODE_ID_NONE}; ///< 시작 노드 id — **균일 뷰**
   double start_theta_rad{0.0}; ///< 시작 자세 [rad], map, [-pi, pi] (diff-drive 회전 비용)
-  UniformNodeId goal_node{NODE_ID_NONE}; ///< 목표 노드 id — **균일 뷰**.
-                                         ///< 작업 엔드포인트(물리 뷰)는 MapRegistry 변환을 거쳐
-                                         ///< 여기 들어온다 — 변환 없이 넣으면 컴파일되지 않는다
+  UniformNodeId goal_node{
+    UNIFORM_NODE_ID_NONE}; ///< 목표 노드 id — **균일 뷰**.
+                           ///< 작업 엔드포인트(물리 뷰)는 MapRegistry 변환을 거쳐
+                           ///< 여기 들어온다 — 변환 없이 넣으면 컴파일되지 않는다
 };
 
 /**

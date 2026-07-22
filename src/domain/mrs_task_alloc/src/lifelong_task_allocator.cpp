@@ -6,7 +6,8 @@ namespace mrs
 {
 
 bool LifelongTaskAllocator::assign_task(
-  std::uint64_t task_id, NodeId pickup_node, NodeId delivery_node, RobotId & out_robot_id)
+  std::uint64_t task_id, PhysicalNodeId pickup_node, PhysicalNodeId delivery_node,
+  RobotId & out_robot_id)
 {
   (void)task_id;
   (void)pickup_node;

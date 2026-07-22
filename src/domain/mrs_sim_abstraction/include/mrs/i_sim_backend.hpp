@@ -84,10 +84,11 @@ struct RobotObservation
   double v_mps{0.0};               ///< 몸체 선속도 [m/s]
   double omega_rps{0.0};           ///< 몸체 각속도 [rad/s]
   ViewScope view_scope;            ///< 아래 노드 id 2건의 뷰. view_kind = UNIFORM 고정
-  UniformNodeId occupied_node{NODE_ID_NONE}; ///< 점유 중 노드(**균일 뷰**). 엣지 위면 NODE_ID_NONE
-  UniformNodeId next_node{NODE_ID_NONE}; ///< 진행 방향 다음 노드(**균일 뷰**)
-  double edge_progress{0.0};             ///< 엣지 진행률 [0,1]
-  ObservationUncertainty uncertainty;    ///< 관측 불확실성 (isaac 에서 실채워짐)
+  UniformNodeId occupied_node{
+    UNIFORM_NODE_ID_NONE}; ///< 점유 중 노드(**균일 뷰**). 엣지 위면 UNIFORM_NODE_ID_NONE
+  UniformNodeId next_node{UNIFORM_NODE_ID_NONE}; ///< 진행 방향 다음 노드(**균일 뷰**)
+  double edge_progress{0.0};                     ///< 엣지 진행률 [0,1]
+  ObservationUncertainty uncertainty; ///< 관측 불확실성 (isaac 에서 실채워짐)
 };
 
 /**
@@ -120,9 +121,10 @@ struct FaultInjection
 {
   FaultKind kind{FaultKind::COMM_DELAY};  ///< 결함 종류
   RobotId target_robot_id{ROBOT_ID_NONE}; ///< 대상 로봇
-  EdgeId target_edge_id{NODE_ID_NONE}; ///< 대상 **물리 뷰** 엣지 (통로 개폐). 통로 개폐는
-                                       ///< 물리 지도의 사건이므로 균일 뷰 엣지가 아니다.
-                                       ///< (센티넬은 EDGE_ID_NONE 로 정정 예정 — 값 동일)
+  PhysicalEdgeId target_edge_id{
+    PHYSICAL_EDGE_ID_NONE}; ///< 대상 **물리 뷰** 엣지 (통로 개폐).
+                            ///< 통로 개폐는 물리 지도의 사건이므로 균일 뷰 엣지가 아니다
+                            ///< (계약 §0.1 `SimInject` 행 — PHYSICAL 엣지 강타입).
   double magnitude{0.0};  ///< 강도 (단위는 kind 별)
   double duration_s{0.0}; ///< 지속 시간 [s]. 0 = 해제 전까지
 };
