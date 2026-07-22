@@ -15,6 +15,7 @@
  */
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "mrs_map_registry/map_error.hpp"
@@ -26,12 +27,22 @@ namespace mrs
 /**
  * @brief MapRegistry — 3뷰 정합의 단일 소유자 (D-11).
  * @note 이 클래스 밖에서 세분화·collapse·좌표 변환을 재구현하지 않는다(C4, CI 검사).
+ * @note 저장 상태(뷰 3종·대응표·graph_index)와 yaml-cpp 의존은 PIMPL(@ref Impl)로 숨긴다 —
+ *       이 공개 헤더는 내부 타입·외부 파서를 노출하지 않는다.
  */
 class MapRegistry
 {
 public:
-  MapRegistry() = default;
-  ~MapRegistry() = default;
+  /** @brief 빈 레지스트리를 만든다. 지도가 로드되기 전에는 모든 조회가 MAP_NOT_LOADED 로 실패한다.
+   */
+  MapRegistry();
+  /** @brief 저장 상태를 해제한다. (Impl 이 완전한 번역 단위에서 정의된다.) */
+  ~MapRegistry();
+
+  MapRegistry(const MapRegistry &) = delete;
+  MapRegistry & operator=(const MapRegistry &) = delete;
+  MapRegistry(MapRegistry &&) noexcept;
+  MapRegistry & operator=(MapRegistry &&) noexcept;
 
   /**
    * @brief 물리(불균일) roadmap 을 로드하고 새 버전을 발급한다.
@@ -112,13 +123,11 @@ public:
    * @return `std::uint64_t` — 현재 roadmap_version. 미로드 상태면 0(@ref
    * ROADMAP_VERSION_UNSPECIFIED).
    */
-  [[nodiscard]] std::uint64_t roadmap_version() const noexcept
-  {
-    return roadmap_version_;
-  }
+  [[nodiscard]] std::uint64_t roadmap_version() const noexcept;
 
 private:
-  std::uint64_t roadmap_version_{ROADMAP_VERSION_UNSPECIFIED}; ///< 현재 물리 지도 버전 (단조증가)
+  struct Impl; ///< 저장 상태·연산의 PIMPL (src/map_registry_impl.hpp 에 정의, 미설치)
+  std::unique_ptr<Impl> impl_; ///< PIMPL 핸들. ctor 에서 생성, dtor 에서 해제
 };
 
 } // namespace mrs
