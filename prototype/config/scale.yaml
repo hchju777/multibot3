@@ -1,0 +1,41 @@
+# =============================================================================
+#  🔴 탐색용 임시값 — 사전등록 상수가 아니다
+# =============================================================================
+#  - 이 파일의 어떤 수치도 _workspace/27_spike_preregistration.md §1의 동결
+#    대상이 아니다. 그 문서의 값과 우연히 같은 숫자가 있어도 **동결이 아니다.**
+#  - 물리 규모는 최종적으로 아이작 심(Isaac Sim) 에셋 치수에 맞춘다.
+#    에셋 치수가 정해지면 **이 파일만 바꾼다.** 코드에는 어떤 길이·속도·치수도
+#    박혀 있지 않다(박혀 있다면 그것은 결함이며 보고 대상이다).
+#  - 이 값들로 만든 어떤 산출물도 논문 증거가 아니다.
+# =============================================================================
+
+geometry:
+  # 통로 한 구간(교차점 사이) 길이. 창고형 표준 임시값.
+  corridor_segment_length_m: 5.0
+  # 엔드포인트(적치·픽 지점) 지선 길이.
+  endpoint_stub_length_m: 2.0
+  # 교행 가능 통로 폭.
+  aisle_width_wide_m: 2.4
+  # 교행 불가 통로 폭.
+  aisle_width_narrow_m: 1.2
+  # 엔드포인트 지선 폭.
+  stub_width_m: 1.2
+  # 정적 장애물 측방 팽창. mrs.roadmap.provenance에 감사용으로만 실린다.
+  wall_inflation_m: 0.0
+
+robot:
+  # 공칭 주행 속도. 이 프로토타입은 아직 시간을 쓰지 않는다(경로 계획 없음).
+  # 다음 단계(계획기)가 소비할 자리로 미리 둔다.
+  nominal_speed_mps: 1.0
+  body_width_m: 0.8
+  body_length_m: 1.0
+  # mrs.roadmap.provenance.min_separation_m 및 mrs.trajectories.limits와
+  # 동일해야 하는 값(계약 §4-3 세 자리 동일성). 여기가 그 세 번째 자리다.
+  min_separation_m: 1.0
+
+# 간선 용량 산출 규칙. provenance.capacity_rule_id = "rule_a"가 가리키는 것.
+# cap(e) = clamp( floor(width_m / (body_width_m + lateral_gap_m)), 1, max )
+# 소비 모듈은 이 규칙 이름에 분기하지 않는다(계약 §4-3 · A16).
+capacity_rule_a:
+  lateral_gap_m: 0.2
+  max_capacity_robots: 4
