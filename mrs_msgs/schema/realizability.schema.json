@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.realizability/1.0.0",
+  "title": "mrs.realizability 1.0.0 — trajopt -> sadg_t0 (상향 채널)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-3.",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/Realizability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "rz_seq", "entries"],
+  "properties": {
+    "schema": {"const": "mrs.realizability", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "rz_seq": {
+      "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+      "x-ros-type": "uint64",
+      "description": "🔴 벡터의 내용이 바뀐 발행에서만 증가한다 — 틱마다 증가하면 광고 유효 기간이 한 주기가 되어 커밋 게이트가 항상 실패한다(§6-3). 자기 구속: rz_seq n의 벡터를 발행한 뒤 n+1로 대체될 때까지 자신이 광고한 true를 지키며 철회는 seq를 올려서만 한다. 그 규칙은 발행 열이 있어야 판정되므로 표현 불가 — A22. commit_seq·plan_revision·revision과 다른 순서수 공간이다(§2-2(6)). 상한은 §7-3."
+    },
+    "entries": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/RealizabilityEntry",
+      "description": "미수신·유실 시 기본값은 false(불가로 간주)이며 MN2(건전한 과소근사)와 방향이 같다. 지평 밖 (그룹, 대안)의 true는 '검증된 가능'이 아니다. §6-3.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["group", "alternative", "realizable"],
+        "properties": {
+          "group": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.execution_constraints#/switch_groups/*/id", "note": "상류 이름의 재사용. §6."}
+          },
+          "alternative": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.execution_constraints#/switch_groups/*/alternatives/*/id", "note": "상류 이름의 재사용. §6. 같은 group 안의 alternative여야 한다는 결합 조건은 x-ref 하나로 표현되지 않는다 — A20과 같은 형태의 조건부 참조다."}
+          },
+          "realizable": {
+            "type": "boolean", "x-ros-type": "bool",
+            "description": "가부다. 이유·마진·비용을 싣지 않는다. §6."
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {
+      "id": "group_alternative_pair_unique",
+      "collection": "#/entries/*",
+      "key": ["group", "alternative"],
+      "note": "한 (그룹, 대안) 쌍에 판정 하나 [유도]. 계약에 명시가 없다 — 벡터라는 서술에서 유도했다."
+    }
+  ],
+  "x-layer2-note": "표현 불가 조항 1건(A22 rz_seq가 내용이 바뀔 때만 증가·자기 구속). 45_schema_source_draft.md §45-1."
+}

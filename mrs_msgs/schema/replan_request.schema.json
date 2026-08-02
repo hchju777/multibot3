@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.replan_request/1.0.0",
+  "title": "mrs.replan_request 1.0.0 — sadg_t0 -> mapf (action goal 부)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-2 / 정정: §17-2(committed_segment_count). 절대 시각을 싣지 않는다.",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/action/Replan (goal 부)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "reason", "affected_robots", "blocked", "blocked_hash", "ordering_constraints", "baseline"],
+  "properties": {
+    "schema": {"const": "mrs.replan_request", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "reason": {
+      "enum": ["exogenous_block", "ctrl_stop_declared", "infeasible_subgoal", "orientation_flip", "unresolvable_locally", "horizon_exhausting"],
+      "x-ros-type": "uint8",
+      "description": "닫힌 어휘 6값(§6-2). blocked는 exogenous_block으로 흡수했다 — 짧은 이름이 '누가 막았는가'를 지우고 그 구별이 SC-6의 정온 창 판정이 요구하는 것이다. first_goal_idle은 넣지 않았다(계획기 내부 트리거이며 요청으로 오지 않는다). 승급 단 번호가 어휘에 없다 — unresolvable_locally는 관측 사실이지 L2/L3 구별이 아니다. 값 horizon_exhausting은 키가 아니라 값이므로 check_schema_purity.py의 horizon 패턴에 걸리지 않는다(그 스크립트는 키만 훑는다) — 다만 §10-1이 같은 이유로 terminal의 값 후보를 바꾼 전례가 있다."
+    },
+    "affected_robots": {
+      "type": "array",
+      "uniqueItems": true,
+      "x-todo": "B-1: minItems 미기재.",
+      "items": {"type": "string", "x-ros-type": "string"},
+      "description": "요청 범위. 확장된 집합 A*는 싣지 않는다. §6."
+    },
+    "blocked": {
+      "type": "array",
+      "x-todo": "B-1: 빈 배열 허용 여부와 reason과의 관계가 미기재.",
+      "description": "유향 간선. 세계의 사실(차단). §6. 동적 방향 배정은 로드맵이 아니라 여기와 실행 계층의 커밋 상태에 있다(§4-2).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string", "x-ros-type": "string", "x-ros-field": "from_id",
+            "x-ref": {"target": "mrs.roadmap#/nodes/*/id", "note": "§6 · §7-1."}
+          },
+          "to": {
+            "type": "string", "x-ros-type": "string", "x-ros-field": "to_id",
+            "x-ref": {"target": "mrs.roadmap#/nodes/*/id", "note": "§6 · §7-1."}
+          }
+        }
+      }
+    },
+    "blocked_hash": {
+      "type": "string",
+      "x-ros-type": "string",
+      "x-todo": "B-8: 형식·길이 미기재. 불투명이므로 pattern을 넣지 않았다.",
+      "description": "불투명 안정 해시. 동일성 비교 전용이며 T0-T1이 쓰는 것과 같은 것이다. §6."
+    },
+    "ordering_constraints": {
+      "type": "array",
+      "description": "mrs.discrete_plan.visit_order와 동형. 순서수 전용이며 시간이 없다. §6.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["location", "sequence"],
+        "properties": {
+          "location": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.roadmap#/nodes/*/id", "note": "§6."}
+          },
+          "sequence": {
+            "type": "array",
+            "minItems": 2,
+            "x-todo": "B-17: '항목 수 >= 2'가 여기에도 적용되는지 계약이 명시하지 않았다. '동형'의 자연스러운 읽기로 적용했다.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["robot", "index"],
+              "properties": {
+                "robot": {"type": "string", "x-ros-type": "string"},
+                "index": {"type": "integer", "minimum": 0, "maximum": 4294967295, "x-ros-type": "uint32"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "baseline": {
+      "type": "array",
+      "x-todo": "B-15: 전 로봇을 덮어야 하는지 미기재.",
+      "description": "재계획 기준점. 진입 사건이 VOLATILE이라 늦게 뜬 계획기의 기준점이 통째로 비는 것을 막는다. §6.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["robot", "committed_segment_count"],
+        "properties": {
+          "robot": {"type": "string", "x-ros-type": "string"},
+          "committed_segment_count": {
+            "type": "integer", "minimum": 0, "maximum": 4294967295,
+            "x-unit": "segments", "x-ros-type": "uint32",
+            "description": "🔴 그 로봇이 완료 커밋한 세그먼트의 개수. 값 k이면 {robot}#0 ... {robot}#(k-1) k개가 완료됐고 계획 시작 정점은 steps[k]다. index가 아니라 count인 이유: (i) 센티널이 필요 없다(-1이 사라진다), (ii) 소비 측이 필요로 한 '로봇별 시작 인덱스' 변환이 항등이 되어 오프바이원을 만들 자리가 없다, (iii) 이름이 단위를 나른다. §17-2-1. 남는 [미확인]: 생산 측(12c)이 이 정의대로 낼 수 있는지 확인되지 않았다. 옛 이름 committed_index는 폐기됐다."
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {"id": "baseline_robot_unique", "collection": "#/baseline/*", "key": "robot", "note": "한 로봇에 기준점 하나 [유도]."}
+  ],
+  "x-layer2-note": "표현 불가 조항 0건 — 11종 중 유일하게 의미 조항까지 스키마로 덮인다. 45_schema_source_draft.md §45-6.",
+  "x-forbidden-note": "확장된 집합 A*·해소 예상 시각·대안 선호도는 싣지 않는다(§6 · §8). 릴리스 시각도 없다."
+}

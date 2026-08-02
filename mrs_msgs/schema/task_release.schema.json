@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.task_release/1.0.0",
+  "title": "mrs.task_release 1.0.0 — sim(injector) -> mrta",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-1(1).",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/TaskRelease",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "release_index", "task", "goals"],
+  "properties": {
+    "schema": {"const": "mrs.task_release", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "release_index": {
+      "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+      "x-ros-type": "uint64",
+      "x-todo": "B-19.",
+      "description": "0-기반 단조 증가. 순서수이며 유실 검출 수단이다. §6. 단조·유실 검출은 발행 열이 필요해 표현 불가 — A21. 상한은 §7-3."
+    },
+    "task": {
+      "type": "string", "x-ros-type": "string",
+      "description": "문제 엔티티. §6."
+    },
+    "goals": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/Goal (공유)",
+      "description": "이 태스크의 목표 원소들. goal_id는 mrs.assignment와 같은 식별자 공간이며 발급자는 인스턴스 생성기다(§6). 그 공간 동일성은 두 문서 대응이라 표현 불가 — A21과 같은 계열.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["goal_id", "location"],
+        "properties": {
+          "goal_id": {
+            "type": "string", "x-ros-type": "string",
+            "description": "불투명. mrs.assignment.assignments[].goals[].goal_id와 같은 공간. 파싱하면 계약 위반이므로 pattern을 넣지 않았다(§5-4(1))."
+          },
+          "location": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.roadmap#/endpoints/*", "note": "§6 — 목표 위치는 엔드포인트다. 표본이 A8 위반을 없애려 L09·L11을 신설한 것이 이 제약의 사례다(§17-11-1)."}
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {"id": "release_goal_id_unique", "collection": "#/goals/*", "key": "goal_id", "note": "한 릴리스 안에서 목표 원소 유일 [유도]."}
+  ],
+  "x-layer2-note": "표현 불가 조항 1건(A21 release_index 단조·유실 검출, goal_id 공간 동일성). 45_schema_source_draft.md §45-1.",
+  "x-forbidden-note": "🔴 릴리스 시각을 싣지 않는다 — 미래 시각을 실으면 배정기가 그것을 볼 수 있고 '온라인 순차 탐욕'이 구조적으로 성립하지 않는다(§6-1(1)). 발화 시점 자체가 시각을 나른다."
+}

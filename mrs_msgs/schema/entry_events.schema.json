@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.entry_events/1.0.0",
+  "title": "mrs.entry_events 1.0.0 — trajopt -> sadg_t0 (상향 채널)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 / 정정: §17-2-2. 이 스키마가 ent/rel의 유일 정본이며 진입 시각은 경계에 없다(§6-1(2)).",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/EntryEvents",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "events"],
+  "properties": {
+    "schema": {"const": "mrs.entry_events", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "events": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/EntryEvent",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seq", "robot", "segment", "location", "entered"],
+        "properties": {
+          "seq": {
+            "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+            "x-ros-type": "uint64",
+            "x-todo": "B-19: 로봇별 공간인지 전역인지, '0-기반'이 첫 값 0을 요구하는지 미기재.",
+            "description": "0-기반 단조 증가. 건너뜀 = 유실. 순서수이며 유실 검출의 유일 수단이다. §6. 단조·유실 검출 자체는 발행 열이 필요해 표현 불가(A21). 상한은 §7-3."
+          },
+          "robot": {"type": "string", "x-ros-type": "string", "description": "세계의 사실."},
+          "segment": {
+            "type": "string",
+            "pattern": "^[^#]+#(0|[1-9][0-9]*)$",
+            "x-ros-type": "string",
+            "x-ref": {"target": "mrs.execution_constraints#/segments/*/id", "note": "§6 — segments[].id 형식. 상류 순번의 재사용."},
+            "description": "entered:true이면 그 정점에 들어오는 세그먼트, false이면 나가는 세그먼트다(§17-2-2)."
+          },
+          "location": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.roadmap#/nodes/*/id", "note": "§6."},
+            "description": "어느 정점의 진입인가. entered:true이면 location == segment.to, false이면 location == segment.from이어야 한다(§17-2-2 1·2). 그 대조는 execution_constraints 조회를 요구해 표현 불가 — A20."
+          },
+          "entered": {
+            "type": "boolean", "x-ros-type": "bool",
+            "description": "true=진입, false=해제. 가부다 — ent/rel의 유일 정본. §6. 미수신·유실 시 기본값은 '있었다로 간주'이며 realizability의 false 기본값과 방향이 반대인 것은 의도된 것이다(배타는 과대가 안전, 허가는 과소가 안전). §6-3."
+          }
+        }
+      }
+    }
+  },
+  "x-layer2-note": "표현 불가 조항 2건(A20 entered에 따른 location==segment.to/.from / A21 seq 단조·유실 검출). 45_schema_source_draft.md §45-1."
+}

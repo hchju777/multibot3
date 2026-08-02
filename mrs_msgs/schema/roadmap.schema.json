@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.roadmap/2.0.0",
+  "title": "mrs.roadmap 2.0.0 — 공통 입력 (생성기 -> mapf · sadg · trajopt)",
+  "description": "계약 정본: 13_interface_contract.md §4 / 정정: 48_contract_amendment.md §18-3(B-7) · §18-4(B-16) · §18-6(A15). MAJOR 사유: 전역 directed 불리언을 삭제하고 간선별 traversal로 대체했다(§4-2). 로드맵은 정적 제약만 준다. 값은 하나도 정해지지 않았다(§13-1).",
+  "x-contract-version": "2.0.0",
+  "x-ros-msg": "mrs_msgs/msg/Roadmap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "nodes", "edges", "endpoints", "corridors", "provenance"],
+  "properties": {
+    "schema": {"const": "mrs.roadmap", "x-ros-type": "string"},
+    "schema_version": {
+      "const": "2.0.0", "x-ros-type": "string",
+      "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
+    },
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "nodes": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/RoadmapNode",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "x", "y", "clearance_m"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "run 내 유일. 세 스키마의 location이 전부 여기를 가리킨다. §4-1."
+          },
+          "x": {
+            "type": "number", "x-unit": "m", "x-ros-type": "float64",
+            "x-unit-suffix-exempt": true,
+            "description": "공유 map 프레임. 기하. 면제 사유: 인스턴스 데이터이므로 접미사 규율의 대상이 아니다 — 동결 상수로 등재될 수 없다(§18-4-2)."
+          },
+          "y": {
+            "type": "number", "x-unit": "m", "x-ros-type": "float64",
+            "x-unit-suffix-exempt": true,
+            "description": "공유 map 프레임. 기하. 면제 사유: 인스턴스 데이터(§18-4-2)."
+          },
+          "clearance_m": {
+            "type": "number", "exclusiveMinimum": 0, "x-unit": "m", "x-ros-type": "float64",
+            "description": "총(total) 값. 결측 없음. 팽창 미적용. 로드맵 기하에서만 나오는 물리량이며 팽창을 적용하지 않았으므로 로봇 모델에도 저수준 강제 강도에도 종속되지 않는다. §4-1. 정의역 R_{>0}(§12). 접미사 규율의 대상이다 — 생성기 config 인접 상수다(§18-4-2). 하한 규칙(2-A/2-B)은 계약 사항이 아니다(§8-1)."
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/RoadmapEdge",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "traversal", "length_m", "width_m", "capacity_robots", "corridor"],
+        "properties": {
+          "from": {
+            "type": "string", "x-ros-type": "string", "x-ros-field": "from_id",
+            "x-ref": {"target": "#/nodes/*/id", "note": "§4-1."}
+          },
+          "to": {
+            "type": "string", "x-ros-type": "string", "x-ros-field": "to_id",
+            "x-ref": {"target": "#/nodes/*/id", "note": "§4-1."}
+          },
+          "traversal": {
+            "enum": ["bidirectional", "forward_only", "backward_only"],
+            "x-ros-type": "uint8",
+            "description": "닫힌 어휘. 방향은 from->to 기준. 정적 통행 제약이며 세계의 사실이다. 교행 불가 통로는 capacity_robots:1 + corridor로 표현하고 traversal은 여전히 bidirectional이다 — 영구 단방향 램프(forward_only)와 다른 사실이며 v0의 directed 불리언이 표현하지 못한 것이 정확히 이 혼재다(§4-2). 역행 검출 자체는 표현 불가(A3)."
+          },
+          "length_m": {
+            "type": "number", "exclusiveMinimum": 0, "x-unit": "m", "x-ros-type": "float64",
+            "description": "간선의 기하 통과 길이. 좌표에서 유클리드로 유도한 값이 아니다 — 곡선 간선에서 둘이 다르고, 유도하게 두면 두 소비자가 다른 값을 얻는다. §4-1. 정의역 R_{>0}(§12). 접미사 규율의 대상(§18-4-2)."
+          },
+          "width_m": {
+            "type": "number", "exclusiveMinimum": 0, "x-unit": "m", "x-ros-type": "float64",
+            "description": "통과 가능 폭. 간선 내부에서 일정(A-G1). 물리 파라미터. §4-1. 접미사 규율의 대상(§18-4-2)."
+          },
+          "capacity_robots": {
+            "type": "integer", "minimum": 1, "maximum": 255,
+            "x-unit": "robots", "x-ros-type": "uint8",
+            "x-todo": "B-6: 하한이 1인지 0인지 계약에 없다(정의역이 N이라고만 함). '1이면 교행 불가'가 최소 사례로 서술된 것에서 1을 택했다 [유도].",
+            "description": "동시 통과 로봇 수의 상한. A-G1이 단일 값의 건전성을 보장한다. §4-1."
+          },
+          "corridor": {
+            "type": "string",
+            "x-ros-type": "string",
+            "x-ref": {"target": "#/corridors/*/id", "sentinel": "", "note": "빈 문자열이면 참조 없음. §4-1(§18-3으로 정정) · §7-2."},
+            "description": "🔴 §18-3 확정: '없음'은 JSON에서도 빈 문자열 \"\"이며 null이 아니다. §4-1의 타입 표기 'string | null'을 'string'으로 정정했다. 사유는 'ROS IDL에 널이 없다'가 아니라(그 논리라면 §7-4의 enum도 JSON을 uint8로 바꿔야 한다) 어댑터 왕복 사상이 항등이 되기 때문이다 — §17-2-1(F2)이 committed_segment_count를 택한 논거와 같은 계열이다. 센티널이 값 공간 밖에 있음은 corridors[].id의 minLength로 보장한다. 이 간선이 함께 방향이 정해지는 묶음에 속하는가를 나르며 묶음 자체는 방향을 싣지 않는다."
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "uniqueItems": true,
+      "x-todo": "B-13: 중복·빈 배열 허용 여부 미기재. uniqueItems는 집합이라는 성격에서 [유도].",
+      "items": {
+        "type": "string",
+        "x-ros-type": "string",
+        "x-ref": {"target": "#/nodes/*/id", "note": "nodes[].id의 부분집합. §4-1."}
+      },
+      "description": "V^ep. 목표·대기 지점이 놓일 수 있는 정점. 문제 정의다. §4-1."
+    },
+    "corridors": {
+      "type": "array",
+      "x-ros-msg": "mrs_msgs/msg/Corridor",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "edges", "length_m"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "x-ros-type": "string",
+            "description": "run 내 유일. §4-1. 🔴 minLength:1은 §18-3-3의 파생 정정이다 — edges[].corridor의 '없음'이 빈 문자열이므로 빈 문자열이 합법 통로 id이면 '없음'과 'id가 빈 문자열인 통로'가 구별되지 않고 둘 다 문자열이라 통과한다(§17-2-2와 같은 종류의 결함). 센티널을 정하면 그 센티널이 값 공간 밖임을 보장해야 한다."
+          },
+          "edges": {
+            "type": "array",
+            "x-ros-msg": "mrs_msgs/msg/EdgeRef",
+            "x-ref": {
+              "target": "#/edges/*",
+              "key": ["from", "to"],
+              "as": "tuple",
+              "note": "A15 해소 — x-ref를 복합 키로 확장했다(§18-6-1, 조정자 판단 채택). 각 쌍이 edges에 실재해야 한다. 새 키워드가 아니라 기존 키워드의 확장이다."
+            },
+            "description": "함께 뒤집히는 간선 묶음. edges의 [from,to] 쌍 목록. §4-1.",
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {"type": "string", "x-ros-type": "string"},
+              "x-ros-field": "[from_id, to_id]"
+            }
+          },
+          "length_m": {
+            "type": "number", "exclusiveMinimum": 0, "x-unit": "m", "x-ros-type": "float64",
+            "description": "통로 전체 길이. gamma_q. 물리 파라미터. §4-1. 접미사 규율의 대상(§18-4-2)."
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_separation_m", "wall_inflation_m", "capacity_rule_id", "generator_version"],
+      "x-ros-msg": "mrs_msgs/msg/RoadmapProvenance",
+      "description": "감사 전용. 소비자는 startup_checker 하나이고 그 소비는 동일성 대조다(§4-3). 조건 P1·P2·P3 중 하나라도 깨지면 이 객체는 SC-4의 반증 대상이 된다(§17-7-1) — 그 감시는 아티팩트에 관측 경로가 없어 구조 검사로만 가능하다(A16).",
+      "properties": {
+        "min_separation_m": {
+          "type": "number", "exclusiveMinimum": 0, "x-unit": "m", "x-ros-type": "float64",
+          "x-equal-to": {"target": "mrs.trajectories#/limits/min_separation_m", "note": "§4-3 세 자리 동일성. 세 번째 자리 config.yaml:min_separation_m은 A12."},
+          "description": "로드맵 생성 시 쓴 값. 사본이며 값을 만들지 않는다. 다르면 그 run은 무효다(§4-3). 접미사 규율의 대상(§18-4-2)."
+        },
+        "wall_inflation_m": {
+          "type": "number", "minimum": 0, "x-unit": "m", "x-ros-type": "float64",
+          "description": "정적 장애물 측방 팽창. 로드맵 생성기 config의 값이면서 여기에 기록된다 — 어느 소비 모듈도 읽지 않는다(§4-4). audit-only. 정의역 R_{>=0}(§12). 접미사 규율의 대상(§18-4-2)."
+        },
+        "capacity_rule_id": {
+          "enum": ["rule_a"],
+          "x-ros-type": "string",
+          "description": "닫힌 어휘. 유일한 합법 용도는 config.yaml의 같은 키와 동일성 비교이며 어느 소비 모듈도 이 문자열에 분기하지 않는다 — 분기하면 '어떻게 계산하는가'가 경계로 새고 SC-4가 실험 없이 반증된다(§4-3 · §17-7-2). 산출식을 이름한 문자열을 금지하기 위해 불투명에서 열거값으로 좁혔다. 어휘 확장은 계약 개정 대상이다."
+        },
+        "generator_version": {
+          "type": "string", "x-ros-type": "string",
+          "description": "불투명. 감사. §4-1."
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {"id": "node_id_unique", "collection": "#/nodes/*", "key": "id", "note": "run 내 유일. §4-1 [원문]."},
+    {"id": "corridor_id_unique", "collection": "#/corridors/*", "key": "id", "note": "run 내 유일. §4-1 [원문]."}
+  ],
+  "x-layer2-note": "표현 불가 조항 1건(A16 provenance 소비자 등록 금지·값 분기 금지). A15는 §18-6-1에서 x-ref 복합 키 확장으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1.",
+  "x-forbidden-note": "directed는 삭제됐다(§4-2) — additionalProperties:false가 재진입을 막는다. 동적 방향 배정은 로드맵에 없고 mrs.replan_request.blocked와 실행 계층의 커밋 상태에 있다."
+}

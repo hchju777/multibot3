@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.stop_declaration/1.0.0",
+  "title": "mrs.stop_declaration 1.0.0 — trajopt -> sadg_t0 (상향 채널)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 / 정정: §17-4(생산자별 reason 부분집합).",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/StopDeclarations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "declarations"],
+  "properties": {
+    "schema": {"const": "mrs.stop_declaration", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "declarations": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/StopDeclaration",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seq", "robot", "declared", "reason", "location"],
+        "properties": {
+          "seq": {
+            "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+            "x-ros-type": "uint64",
+            "x-todo": "B-19.",
+            "description": "순서수. mrs.entry_events.seq와 별개 공간이다(§6). 단조성은 표현 불가 — A21."
+          },
+          "robot": {"type": "string", "x-ros-type": "string", "description": "세계의 사실."},
+          "location": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.roadmap#/nodes/*/id", "note": "§6."},
+            "description": "세계의 사실."
+          },
+          "declared": {
+            "type": "boolean", "x-ros-type": "bool",
+            "description": "개시/해제. 가부다(B^ctrl). §6."
+          },
+          "reason": {
+            "enum": ["exogenous_block", "infeasible_subgoal"],
+            "x-ros-type": "uint8",
+            "description": "🔴 6값 어휘의 부분집합 2값이다 — 저수준이 직접 관측할 수 있는 것만 남겼다(§17-4). 그 밖의 값이 오면 계약 위반이며 수신 측이 카운터로 센다. 개시의 분류이지 비용·선호가 아니다. SC-6의 정온 창 판정은 replan_request.reason(6값)이 내생 개시를 분류하고 이 2값이 저수준 개시를 세분한다 — 두 층이 각자 자기가 아는 것만 말한다. .msg는 uint8 상수이며 표는 mrs_core가 유일하게 소유한다(§7-4)."
+          }
+        }
+      }
+    }
+  },
+  "x-layer2-note": "표현 불가 조항 1건(A21 seq 단조·유실 검출). 45_schema_source_draft.md §45-1."
+}

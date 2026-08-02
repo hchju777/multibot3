@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.replan_result/1.0.0",
+  "title": "mrs.replan_result 1.0.0 — mapf -> sadg_t0 (action result 부)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6.",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/action/Replan (result 부)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "outcome", "plan_revision", "blocked_hash", "unreachable_robots", "components"],
+  "properties": {
+    "schema": {"const": "mrs.replan_result", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
+    "outcome": {
+      "enum": ["planned", "fallback", "preempted", "rejected"],
+      "x-ros-type": "uint8",
+      "description": "닫힌 어휘. 가부·상태이며 '폴백 기전을 썼는가'가 아니라 '이 응답이 무엇인가'다. §6. 폴백 사용 여부는 경계 금지 목록에 있고 result.json:mapf_fallback_used가 그 자리다(§1-3)."
+    },
+    "plan_revision": {
+      "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+      "x-ros-type": "uint64",
+      "x-ref": {"target": "mrs.discrete_plan#/plan_revision", "note": "같은 순서수 공간. §6."},
+      "description": "'어느 발행이 내 요청의 응답인가'의 대응. mrs.discrete_plan.plan_revision과 같은 공간이다. §6."
+    },
+    "blocked_hash": {
+      "type": "string", "x-ros-type": "string",
+      "x-todo": "B-8: 형식·길이 미기재.",
+      "description": "요청의 값을 되돌려준다 — 어느 스냅샷 위의 계획인가. §6. 요청과의 일치 대조는 두 문서 대응이라 표현 불가 — A23."
+    },
+    "unreachable_robots": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "x-ros-type": "string"},
+      "description": "A-W 위반의 관측. 빈 배열 가능. 가부 + 사실이며 비용·이득이 아니다. §6."
+    },
+    "components": {
+      "type": "array",
+      "x-todo": "B-18: 원소들이 서로소·전수 분할인지 미기재.",
+      "x-ros-msg": "mrs_msgs/msg/RobotGroup",
+      "description": "성분 분할. string[][]는 IDL에 없으므로 .msg에서는 RobotGroup[]이고 각 원소가 string[] robots다 — 3중 이상 중첩은 만들지 않는다(§7-6). 빈 배열 가능.",
+      "items": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {"type": "string", "x-ros-type": "string"},
+        "x-ros-field": "robots"
+      }
+    }
+  },
+  "x-layer2-note": "표현 불가 조항 1건(A23 blocked_hash가 요청의 값을 되돌려주는가). 45_schema_source_draft.md §45-1."
+}

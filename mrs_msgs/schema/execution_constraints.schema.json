@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.execution_constraints/1.1.0",
+  "title": "mrs.execution_constraints 1.1.0 — SADG(T0) -> 궤적 최적화 (SC-4 freeze target)",
+  "description": "계약 정본: 13_interface_contract.md §2 / 정정: 48_contract_amendment.md §18-6(A10). 릴리스 조건은 그래프가 함축한다 — 시간을 주지 않는다(§2-2(5)).",
+  "x-contract-version": "1.1.0",
+  "x-ros-msg": "mrs_msgs/msg/ExecutionConstraints",
+  "$defs": {
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "type"],
+      "properties": {
+        "from": {
+          "type": "string",
+          "x-ros-type": "string",
+          "x-ros-field": "from_id",
+          "x-ref": {
+            "target": "#/segments/*/id",
+            "note": "§2-1."
+          },
+          "description": "출발 세그먼트. .msg에서는 from_id — from은 파이썬 예약어이며 rosidl이 거부할 수 있다(§7-1). JSON 이름을 바꾸지 않은 이유는 v0의 from/to가 check_schema_purity.py의 ALLOWED_PHYSICAL에 등재돼 있기 때문이다."
+        },
+        "to": {
+          "type": "string",
+          "x-ros-type": "string",
+          "x-ros-field": "to_id",
+          "x-ref": {
+            "target": "#/segments/*/id",
+            "note": "§2-1."
+          },
+          "description": "도착 세그먼트."
+        },
+        "type": {
+          "enum": ["sequential", "ordering"],
+          "x-ros-type": "uint8",
+          "description": "닫힌 어휘. sequential은 로봇 내부, ordering은 로봇 간. 어느 실행 계열이든 이 둘로 나뉜다. §2-1. .msg는 uint8 상수(§7-4)."
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "commit_seq", "segments", "dependencies", "switch_groups"],
+  "properties": {
+    "schema": {
+      "const": "mrs.execution_constraints",
+      "x-ros-type": "string"
+    },
+    "schema_version": {
+      "const": "1.1.0",
+      "x-ros-type": "string",
+      "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
+    },
+    "instance_id": {
+      "type": "string",
+      "x-ros-type": "string",
+      "x-todo": "B-9."
+    },
+    "commit_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "x-ros-type": "uint64",
+      "description": "0-기반 단조 증가, run 내 유일. 문제 상태의 판본 번호이지 알고리즘 파라미터가 아니다 — 시각이 아니고 주기를 함의하지 않으며 하류는 크기 비교만 한다. §2-1. plan_revision·rz_seq·revision과 다른 순서수 공간이며 교차 비교하지 않는다(§2-2(6)). 상한은 §7-3."
+    },
+    "segments": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재. segments에 나타나지 않는 로봇은 세그먼트 0개다(§2-2(7)) — 전 로봇이 그러면 빈 배열이 되므로 하한을 넣지 않았다.",
+      "description": "한 세그먼트 = 간선 하나의 이동. 로봇별 세그먼트 수 = steps 수 - 1(§1-2(6))이며 그 대조는 표현 불가 — A11.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "robot", "from", "to"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[^#]+#(0|[1-9][0-9]*)$",
+            "x-ros-type": "string",
+            "x-derived-from": {
+              "source": "sibling",
+              "field": "robot",
+              "via": "pattern-group",
+              "group": 1,
+              "pattern": "^([^#]+)#(0|[1-9][0-9]*)$",
+              "note": "A10 해소 — id의 첫 캡처 그룹이 형제 필드 robot과 같아야 한다. §18-6-1에서 x-derived-from을 신설해 층 1로 내렸다(A1과 한 키워드). 복합 식별자를 없애지 않은 이유: dependencies·entry_events·alternatives가 이 문자열을 참조하므로 (robot,index) 쌍으로 바꾸면 참조 자리 전부가 객체가 되어 .msg 중첩이 한 단 깊어지고 §7-6에 압박이 간다. 그리고 §17-2-1이 committed_segment_count의 뜻을 이 형식으로 정의했다."
+            },
+            "description": "{robot}#{index} 형식이며 index는 상류 steps[].index와 같은 0-기반 순번이다. 상류 순번의 재사용이지 새 이름 공간이 아니다. §2-1. pattern은 형식만 잡고 일치는 x-derived-from이 잡는다."
+          },
+          "robot": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "인스턴스 로봇 식별자. 세계의 사실."
+          },
+          "from": {
+            "type": "string",
+            "x-ros-type": "string",
+            "x-ros-field": "from_id",
+            "x-ref": {
+              "target": "mrs.roadmap#/nodes/*/id",
+              "note": "§2-1."
+            }
+          },
+          "to": {
+            "type": "string",
+            "x-ros-type": "string",
+            "x-ros-field": "to_id",
+            "x-ref": {
+              "target": "mrs.roadmap#/nodes/*/id",
+              "note": "§2-1."
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "고정 의존. 빈 배열은 세그먼트가 0~1개일 때 정상이다.",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    },
+    "switch_groups": {
+      "type": "array",
+      "description": "빈 배열은 합법이며 '스위칭 없음' 칸이 이 형태로 낸다. §2-2(1) — 명문화하지 않으면 AB-SWAP-PLAN의 한 칸이 계약 수정을 요구한다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "location", "alternatives"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "run 내 유일. §2-1."
+          },
+          "location": {
+            "type": "string",
+            "x-ros-type": "string",
+            "x-ref": {
+              "target": "mrs.discrete_plan#/visit_order/*/location",
+              "note": "§2-1 — 그룹이 붙은 정점은 discrete_plan.visit_order에 실재해야 한다."
+            }
+          },
+          "alternatives": {
+            "type": "array",
+            "x-todo": "B-2: 최소 2인지 계약에 없다. 하한을 넣지 않았다.",
+            "description": "대안은 '내용'으로 실린다 — 불투명 인덱스가 아니다. §2-2(3). 한 그룹의 대안들은 상호 배타·완전이고 모두 같은 구성원 집합 위의 다른 통행 순서다(§2-2(2)) — 그 둘은 표현 불가(A8·A9). 구성원 로봇 집합은 필드가 아니라 유도값이다(§2-2(4)).",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "dependencies"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "x-ros-type": "string",
+                  "description": "그룹 내 유일. §2-1."
+                },
+                "dependencies": {
+                  "type": "array",
+                  "description": "대안의 '내용'. 루트 dependencies와 동형이다. §2-1.",
+                  "items": {
+                    "$ref": "#/$defs/dependency"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {
+      "id": "segment_id_unique",
+      "collection": "#/segments/*",
+      "key": "id",
+      "note": "세그먼트 식별자는 유일하다 — dependencies가 이것을 참조한다(§2-1) [유도]."
+    },
+    {
+      "id": "switch_group_id_unique",
+      "collection": "#/switch_groups/*",
+      "key": "id",
+      "note": "run 내 유일. §2-1 [원문]."
+    },
+    {
+      "id": "alternative_id_unique_within_group",
+      "collection": "#/switch_groups/*/alternatives/*",
+      "key": "id",
+      "scope": "#/switch_groups/*",
+      "note": "그룹 내 유일. §2-1 [원문]. scope는 유일성이 그룹 단위임을 뜻한다."
+    }
+  ],
+  "x-layer2-note": "표현 불가 조항 4건(A7 스위치 조합 전수 비순환 / A8 대안 상호배타·완전 / A9 대안별 구성원 집합 동일 / A11 세그먼트 수 == steps 수 - 1). A10은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1.",
+  "x-forbidden-note": "경계에 올리자는 요구를 받았으나 넣지 않은 것: Heads(A_g) · lift/FirstOcc · ctrl 우선순위 · entry_rule_path · 릴리스 비트 · 뒤집기 이득 · z_{g,a} · 재발행 주기 · tau_nom/lambda*. §2 말미. additionalProperties:false가 이것들의 재진입을 구조적으로 막는다."
+}

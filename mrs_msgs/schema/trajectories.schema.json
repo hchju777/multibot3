@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.trajectories/1.1.0",
+  "title": "mrs.trajectories 1.1.0 — 궤적 최적화 출력 (SC-4 freeze target)",
+  "description": "계약 정본: 13_interface_contract.md §3 / 출처 규범: _p3 §17-1 / 정정: 48_contract_amendment.md §18-1(B-4) · §18-2(B-5) · §18-4(B-16). 연속 시간은 이 스키마에만 등장한다. 물리 제약도 이 스키마에만 있다.",
+  "x-contract-version": "1.1.0",
+  "x-ros-msg": "mrs_msgs/msg/Trajectories",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "limits", "trajectories"],
+  "properties": {
+    "schema": {
+      "const": "mrs.trajectories",
+      "x-ros-type": "string"
+    },
+    "schema_version": {
+      "const": "1.1.0",
+      "x-ros-type": "string",
+      "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
+    },
+    "instance_id": {
+      "type": "string",
+      "x-ros-type": "string",
+      "x-todo": "B-9."
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v_max", "a_max", "j_max", "min_separation_m",
+        "omega_max_radps", "yaw_accel_max_radps2",
+        "brake_decel_min_mps2", "curvature_max_invm", "reverse_motion_allowed"
+      ],
+      "x-ros-msg": "mrs_msgs/msg/Limits",
+      "description": "물리 한계만. 값의 유일한 출처는 config.yaml:robot.* 이고 이 아홉은 사본이다(§17-1-1). 값이 하나도 정해지지 않았다 — 아래는 부호·단위·정의역만 규정한다(§13-1 값 미정). config.yaml과의 동일성 대조는 표현 불가(A12). 아홉 전부가 접미사 규율의 대상이다(§18-4-2 — 동결 상수로 등재될 수 있는 스칼라).",
+      "properties": {
+        "v_max": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "m/s",
+          "x-ros-type": "float64",
+          "x-unit-suffix-exempt": true,
+          "x-equal-to": {"target": "config.yaml#/robot/v_max_mps", "note": "§17-1-2 대응표. 대상 파일이 아직 없다 — A12."},
+          "description": "0 이상, 크기(부호 없음). 기준점 속도. 하드웨어가 정한다. 면제 사유: v0 이름 유지 — NOTATION binding·config 키 아님·미용을 위한 MAJOR 금지(§3-3)."
+        },
+        "a_max": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "m/s^2",
+          "x-ros-type": "float64",
+          "x-unit-suffix-exempt": true,
+          "x-equal-to": {"target": "config.yaml#/robot/a_max_mps2", "note": "§17-1-2."},
+          "description": "0 이상. 가속 상한. 면제 사유: v0 이름 유지(§3-3)."
+        },
+        "j_max": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "m/s^3",
+          "x-ros-type": "float64",
+          "x-unit-suffix-exempt": true,
+          "x-equal-to": {"target": "config.yaml#/robot/j_max_mps3", "note": "§17-1-2. 접미사 _mps3는 check_prereg_frozen.py의 KEY_UNIT_SUFFIX에 없다 — F10 확장 요청 대상."},
+          "description": "0 이상. 면제 사유: v0 이름 유지(§3-3)."
+        },
+        "min_separation_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "x-ros-type": "float64",
+          "x-equal-to": {"target": "mrs.roadmap#/provenance/min_separation_m", "note": "§4-3 세 자리 동일성 중 두 자리. 세 번째는 config.yaml:min_separation_m이며 그것은 A12."},
+          "description": "두 로봇 기준점 사이 유클리드 거리의 하한. 공유 map 평면. 차체의 효과를 이 스칼라 하나가 나른다 — 차체 다각형·외접 반경은 계약에 없다(§8). 정의역 R_{>0}(§12)."
+        },
+        "omega_max_radps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "rad/s",
+          "x-ros-type": "float64",
+          "x-equal-to": {"target": "config.yaml#/robot/omega_max_radps", "note": "§17-1-2."},
+          "description": "0 초과, 크기. 요각 속도 상한. 확장 유니사이클의 상태 제약 — 두 저수준이 다른 값을 쓰면 비교되는 것이 방법이 아니라 로봇이 된다. §18-2 정정: §3-1의 '0 이상'은 부호 규약이고 §12의 정의역 R_{>0}가 0을 배제한다 — 두 열이 다른 질문에 답하며 모순이 아니었다. omega_max=0은 회전 불가 로봇이고 같은 limits의 curvature_max_invm>0과 서로를 부정한다."
+        },
+        "yaw_accel_max_radps2": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "rad/s^2",
+          "x-ros-type": "float64",
+          "x-equal-to": {"target": "config.yaml#/robot/yaw_accel_max_radps2", "note": "§17-1-2."},
+          "description": "0 초과. 각가속도 상한. 입력 제약. 기호는 alpha^yaw이며 alpha(노드당 시뮬 초)와 상첨자로 구별한다(§12). 하한 사유는 omega_max_radps와 같다(§18-2)."
+        },
+        "brake_decel_min_mps2": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m/s^2",
+          "x-ros-type": "float64",
+          "x-equal-to": {"target": "config.yaml#/robot/brake_decel_min_mps2", "note": "§17-1-2."},
+          "description": "0 초과. '보장되는 최소 제동 감속'의 하한이며 상한이 아니다 — 이름의 _min이 그 사실을 박는다(§3-3). 없으면 검증자가 제동 관련 어떤 것도 재현 검증하지 못하고 저수준 config를 읽어야 하며 그 순간 검증자가 방법에 종속된다. 🔴 이 행이 '0 초과'를 명시한다는 사실이 §18-2 판정의 근거다 — §3-1은 0의 합법성을 말할 때 '0 초과'라고 쓴다."
+        },
+        "curvature_max_invm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "1/m",
+          "x-ros-type": "float64",
+          "x-equal-to": {"target": "config.yaml#/robot/curvature_max_invm", "note": "§17-1-2."},
+          "description": "0 초과. 기준점 경로 곡률 상한. 낱말형 이름을 쓴 이유는 kappa가 NOTATION.md에서 승급 횟수이기 때문이다(§3-3). 최소 회전 반경은 R_min = 1/curvature_max_invm이며 별도 필드를 만들지 않는다(§17-5)."
+        },
+        "reverse_motion_allowed": {
+          "type": "boolean",
+          "x-ros-type": "bool",
+          "x-equal-to": {"target": "config.yaml#/robot/reverse_motion_allowed", "note": "§17-1-2."},
+          "description": "명제 (G2-d)의 전제 B5(최대 제동 입력이 정지 후 후진으로 넘어가지 않는다)가 계약 수준에서 표현되지 않으면 두 저수준이 다른 가정 위에서 돈다(§3-1). 🔴 이 불리언의 존재가 §18-1 판정을 지지한다 — 후진 가부를 별도 필드로 나른다는 것은 '후진을 points[].v의 부호로 나른다'는 설계가 채택되지 않았음을 뜻한다. 둘 다 있으면 같은 사실에 진실 원천이 둘이 된다."
+        }
+      }
+    },
+    "trajectories": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["robot", "points"],
+        "properties": {
+          "robot": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "인스턴스 로봇 식별자. 세계의 사실."
+          },
+          "points": {
+            "type": "array",
+            "x-sorted": {
+              "by": "t",
+              "order": "strict-ascending",
+              "note": "시간 단조 증가. v0 §4 검사 규약."
+            },
+            "x-todo": "B-3: 최소 2인지 계약에 없다(유한차분에는 2가 필요하다). 하한을 넣지 않았다.",
+            "x-ros-msg": "mrs_msgs/msg/TrajectoryPoint",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["t", "x", "y", "yaw"],
+              "properties": {
+                "t": {
+                  "type": "number",
+                  "minimum": 0,
+                  "x-unit": "s",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "description": "run 시작(=0)부터의 경과 시뮬 시각. 벽시계도 유닉스 시각도 아니다. 시뮬 클록. 연속 시간은 이 스키마에만 등장한다(§3-2). 면제 사유: 인스턴스 데이터이므로 접미사 규율의 대상이 아니다 — 동결 상수로 등재될 수 없다(§18-4-2)."
+                },
+                "x": {
+                  "type": "number",
+                  "x-unit": "m",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "description": "로봇 기준점 p_r. 공유 map 프레임. 면제 사유: 인스턴스 데이터(§18-4-2)."
+                },
+                "y": {
+                  "type": "number",
+                  "x-unit": "m",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "description": "로봇 기준점 p_r. 공유 map 프레임. 면제 사유: 인스턴스 데이터(§18-4-2)."
+                },
+                "yaw": {
+                  "type": "number",
+                  "minimum": -3.141592653589793,
+                  "maximum": 3.141592653589793,
+                  "x-unit": "rad",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "description": "범위 (-pi, pi]. map의 +x축에서 반시계. §3-2. 두 경계가 모두 '포함'인 이유: IEEE-754 배정도에서 -3.141592653589793(=-3.141592653589793116)은 -pi보다 큰 가장 작은 배정도이고 3.141592653589793은 pi보다 작은 가장 큰 배정도다. 따라서 배정도 d에 대해 (minimum <= d) <=> (-pi < d)이고 (d <= maximum) <=> (d <= pi)이며 양쪽 다 정확하다. exclusiveMinimum/exclusiveMaximum을 쓰면 합법 값 하나를 1 ULP 차이로 거절한다 — 조정자가 정확 십진 산술로 확인했다(45_layer1_probe_result.md). 전제: 검증기가 JSON 수를 배정도로 읽는다. 면제 사유: 인스턴스 데이터(§18-4-2)."
+                },
+                "v": {
+                  "type": "number",
+                  "minimum": 0,
+                  "x-unit": "m/s",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "x-ros-optional-flag": "has_v",
+                  "description": "선택. 🔴 보고된 '크기'이며 0 이상이다 — 부호를 나르지 않는다(§3-2, §18-1로 확정). 검사는 언제나 위치·자세 열 유한차분에서 유도한 값을 기준으로 하고 후진 검출은 유도값 v^fd < 0으로 한다 — 이 필드가 아니다. .msg에는 옵셔널이 없으므로 has_v 불리언을 함께 두고 JSON에는 has_*를 싣지 않는다(§7-5). 면제 사유: 인스턴스 데이터(§18-4-2)."
+                },
+                "a": {
+                  "type": "number",
+                  "minimum": 0,
+                  "x-unit": "m/s^2",
+                  "x-ros-type": "float64",
+                  "x-unit-suffix-exempt": true,
+                  "x-ros-optional-flag": "has_a",
+                  "description": "선택. 보고된 크기이며 0 이상이다(§3-2, §18-1). 제동(음의 가속)은 유도값의 감속 구간 하한에서 본다 — 이 필드가 아니다. 면제 사유: 인스턴스 데이터(§18-4-2)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {
+      "id": "trajectory_robot_unique",
+      "collection": "#/trajectories/*",
+      "key": "robot",
+      "note": "한 로봇에 궤적 하나 [유도]."
+    }
+  ],
+  "x-layer2-note": "표현 불가 조항 3건(A12 limits == config.yaml:robot.* — 대상 파일 부재로 '미정' / A13 위치 유한차분 유도값 <= limits / A14 공통 시간 격자에서 모든 로봇 쌍 거리 >= min_separation_m). 45_schema_source_draft.md §45-1.",
+  "x-forbidden-note": "차체 다각형·외접 반경·내접 반경은 계약에 없다 — 차체의 효과는 min_separation_m 하나가 나른다(§8). segment_end_sample[]은 거절됐다(§14 15행) — 세그먼트 완료는 mrs.entry_events가 나른다."
+}

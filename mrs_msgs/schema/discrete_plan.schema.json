@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.discrete_plan/2.0.0",
+  "title": "mrs.discrete_plan 2.0.0 — MAPF -> SADG (SC-4 freeze target)",
+  "description": "계약 정본: 13_interface_contract.md §1 / 정정: _p3 §17-3-1(8) · 48_contract_amendment.md §18-6(A1). 이 스키마는 계약의 파생물이 아니라 원본이다.",
+  "x-contract-version": "2.0.0",
+  "x-ros-msg": "mrs_msgs/msg/DiscretePlan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "plan_revision", "plans", "visit_order"],
+  "properties": {
+    "schema": {
+      "const": "mrs.discrete_plan",
+      "x-ros-type": "string",
+      "description": "봉투. §1-1."
+    },
+    "schema_version": {
+      "const": "2.0.0",
+      "x-ros-type": "string",
+      "description": "봉투. §0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
+    },
+    "instance_id": {
+      "type": "string",
+      "x-ros-type": "string",
+      "x-todo": "B-9: 형식 미기재.",
+      "description": "문제 인스턴스의 이름. §1-1."
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "x-ros-type": "uint64",
+      "description": "0-기반 단조 증가, run 내 유일. 순서수이지 시각이 아니다. §1-1. 상한은 §7-3(JSON 배정도 2^53). 단조성은 A18과 같은 이유로 층 2(발행 열 필요)."
+    },
+    "plans": {
+      "type": "array",
+      "x-todo": "B-1: minItems 미기재.",
+      "description": "인스턴스 로봇 전부. 유휴 로봇도 길이 1 계획으로 등장한다. §17-3-1(8).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["robot", "terminal", "steps"],
+        "properties": {
+          "robot": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "인스턴스 로봇 식별자. 세계의 사실. §1-1."
+          },
+          "terminal": {
+            "enum": ["goal_reached", "plan_truncated", "no_progress"],
+            "x-ros-type": "uint8",
+            "description": "닫힌 어휘 3값. §1-3. 가부·상태이지 기전이 아니다 — 폴백 사용 여부는 경계 금지(§1-3). .msg에서는 uint8 상수이며 문자열<->상수 표는 mrs_core가 유일하게 소유한다(§7-4)."
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "description": "길이 1은 합법이며 세그먼트 0개를 뜻한다. §1-2(6). steps는 목표 열을 다 덮지 않을 수 있다(절단) — §1-2(5).",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["index", "location"],
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "x-ros-type": "uint32",
+                  "x-derived-from": {
+                    "source": "array-position",
+                    "note": "A1 해소 — 값이 자기 배열 위치와 같아야 한다. §18-6-1에서 x-derived-from을 신설해 층 1로 내렸다. 이 필드는 배열 위치의 '이름'이며 visit_order[].sequence[].index가 그 이름을 참조한다 — 중복 인코딩이고 이 키워드가 그 대가를 검사한다."
+                  },
+                  "description": "그 로봇 계획 안의 0-기반 순번. 타임스텝이 아니다. 연속한 동일 정점(대기)은 접힌다. §1-2(1)."
+                },
+                "location": {
+                  "type": "string",
+                  "x-ros-type": "string",
+                  "x-ref": {
+                    "target": "mrs.roadmap#/nodes/*/id",
+                    "note": "로드맵 정점 이름. §1-1."
+                  },
+                  "description": "로드맵 노드 공간. 연속 두 location의 인접성(A2)과 traversal 방향 준수(A3)는 층 2."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "visit_order": {
+      "type": "array",
+      "x-todo": "B-12: location 중복 허용 여부 미기재. B-1: minItems 미기재(빈 배열은 공유 정점 없음을 뜻하므로 합법으로 읽었다).",
+      "description": "대기 접기 전 원본에서 각 정점의 최초 진입 순으로 뽑고, index는 접은 뒤 순번으로 재매핑한다. §1-2(2). 이것이 SADG Type-2 의존의 유일한 근거다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["location", "sequence"],
+        "properties": {
+          "location": {
+            "type": "string",
+            "x-ros-type": "string",
+            "x-ref": {
+              "target": "mrs.roadmap#/nodes/*/id",
+              "note": "§1-1."
+            }
+          },
+          "sequence": {
+            "type": "array",
+            "minItems": 2,
+            "description": "싣는 기준은 '항목 수 >= 2'이며 '둘 이상의 로봇'이 아니다 — 한 로봇의 재방문도 항목 둘이라 싣는다. §1-2(3), §10-3(3). 이것이 v0 대비 의미 변경이며 MAJOR의 절반이다. 각 위치의 sequence는 전순서다(§1-2(4)).",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["robot", "index"],
+              "properties": {
+                "robot": {
+                  "type": "string",
+                  "x-ros-type": "string"
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "x-ros-type": "uint32",
+                  "description": "그 로봇의 steps[].index(재매핑 후). 실제 step과의 일치는 표현 불가 — A4. 여기에는 x-derived-from을 달지 않는다 — 이 값은 자기 배열 위치가 아니라 '다른 배열의 위치'를 참조한다."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-set-equal": [
+    {
+      "id": "robot_roster_matches_assignment",
+      "left": "#/plans/*/robot",
+      "right": "mrs.assignment#/assignments/*/robot",
+      "note": "§17-3-1(8). 계획기는 유휴 로봇에도 계획을 낸다 — 유휴 로봇도 정점을 점유하므로 실행 계층이 명부 전체를 알아야 한다. 교차 문서이므로 run 아티팩트 묶음이 없으면 판정 불가(종료 코드 2)."
+    }
+  ],
+  "x-unique-key": [
+    {
+      "id": "plan_robot_unique",
+      "collection": "#/plans/*",
+      "key": "robot",
+      "note": "한 로봇에 계획은 하나. §1-1의 로봇별 계획 구조에서 유도 [유도]."
+    }
+  ],
+  "x-ros-field": {},
+  "x-layer2-note": "표현 불가 조항 5건(A2 인접성 / A3 traversal 역행 / A4 visit_order<->steps 일치 / A5 Type-1+2 비순환 / A6 덮은 범위 내 목표 순서). A1은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1."
+}
