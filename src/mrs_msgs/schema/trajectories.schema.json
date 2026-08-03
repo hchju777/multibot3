@@ -200,6 +200,6 @@
       "note": "한 로봇에 궤적 하나 [유도]."
     }
   ],
-  "x-layer2-note": "표현 불가 조항 3건(A12 limits == config.yaml:robot.* — 대상 파일 부재로 '미정' / A13 위치 유한차분 유도값 <= limits / A14 공통 시간 격자에서 모든 로봇 쌍 거리 >= min_separation_m). 45_schema_source_draft.md §45-1.",
+  "x-layer2-note": "표현 불가 조항 4건(A12 limits == config.yaml:robot.* — 대상 파일 부재로 '미정' / A13 위치 유한차분 유도값 <= limits / A14 공통 시간 격자에서 모든 로봇 쌍 거리 >= min_separation_m / A25 공통 시간 격자에서 각 간선의 동시 점유 로봇 수 <= mrs.roadmap.edges[].capacity_robots). A25는 교차 문서이며 A14와 서로를 함의하지 않는다 — 폭 넓은 간선에 나란히 가는 두 로봇은 거리 조건을 만족하면서 용량 1을 어긴다. A25는 현재 어느 검사기에도 없다(55_contract_holes.md §55-5-4). 45_schema_source_draft.md §45-1.",
   "x-forbidden-note": "차체 다각형·외접 반경·내접 반경은 계약에 없다 — 차체의 효과는 min_separation_m 하나가 나른다(§8). segment_end_sample[]은 거절됐다(§14 15행) — 세그먼트 완료는 mrs.entry_events가 나른다."
 }

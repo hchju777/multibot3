@@ -35,7 +35,7 @@
     "plans": {
       "type": "array",
       "x-todo": "B-1: minItems 미기재.",
-      "description": "인스턴스 로봇 전부. 유휴 로봇도 길이 1 계획으로 등장한다. §17-3-1(8).",
+      "description": "인스턴스 로봇 전부. 유휴 로봇도 반드시 등장한다 — §17-3-1(8) 괄호의 '길이 1'은 예시이며 규범이 아니다(유휴 로봇도 남에게 비켜 주느라 이동할 수 있다. 55_contract_holes.md §55-1-4). 로봇 전부를 덮는 아티팩트를 만들 수 없으면 안전 정지 계획(각 로봇을 현재 정점 또는 이미 커밋된 다음 정점에 세우는 길이 1~2의 steps)을 내고, 그것조차 Type-1+2 비순환이 아니면 아티팩트를 발행하지 않고 run을 중단한다(§1-2(9) · 11b §2-1). 계약은 '계획을 못 냈다'를 나르는 필드를 갖지 않는다.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -49,7 +49,7 @@
           "terminal": {
             "enum": ["goal_reached", "plan_truncated", "no_progress"],
             "x-ros-type": "uint8",
-            "description": "닫힌 어휘 3값. §1-3. 가부·상태이지 기전이 아니다 — 폴백 사용 여부는 경계 금지(§1-3). .msg에서는 uint8 상수이며 문자열<->상수 표는 mrs_core가 유일하게 소유한다(§7-4)."
+            "description": "닫힌 어휘 3값. §1-3. 가부·상태이지 기전이 아니다 — 폴백 사용 여부는 경계 금지(§1-3). .msg에서는 uint8 상수이며 문자열<->상수 표는 mrs_core가 유일하게 소유한다(§7-4). goal_reached는 '이 발행의 잔여 목표 열에 계획이 덮지 못한 목표가 없다'이며 마지막 정점이 최종 목표일 것을 요구하지 않는다 — 유휴 로봇(§17-3-1(8))과 목표 완주 후 자리를 내주려 더 이동한 로봇이 둘 다 이 값을 갖는다. 세 경우의 실행 조치가 같다(점유 유지, 승급하지 않는다). 55_contract_holes.md §55-1-3."
           },
           "steps": {
             "type": "array",
@@ -147,5 +147,5 @@
     }
   ],
   "x-ros-field": {},
-  "x-layer2-note": "표현 불가 조항 5건(A2 인접성 / A3 traversal 역행 / A4 visit_order<->steps 일치 / A5 Type-1+2 비순환 / A6 덮은 범위 내 목표 순서). A1은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1."
+  "x-layer2-note": "표현 불가 조항 5건(A2 인접성 / A3 traversal 역행 / A4 visit_order<->steps 일치 / A5 Type-1+2 비순환 / A6 덮은 범위 내 목표 순서). A1은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1. 그리고 mrs.roadmap.edges[].capacity_robots의 준수는 이 문서로는 어느 층에서도 판정되지 않는다 — 이산 경계에 시각이 없어 cap>=2가 순서로 환원하면 자명히 만족되기 때문이다(§1-2(8)). 판정 자리는 mrs.trajectories + mrs.roadmap이다(A25). 55_contract_holes.md §55-5."
 }

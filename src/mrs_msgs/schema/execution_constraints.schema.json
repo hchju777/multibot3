@@ -34,7 +34,7 @@
         "type": {
           "enum": ["sequential", "ordering"],
           "x-ros-type": "uint8",
-          "description": "닫힌 어휘. sequential은 로봇 내부, ordering은 로봇 간. 어느 실행 계열이든 이 둘로 나뉜다. §2-1. .msg는 uint8 상수(§7-4)."
+          "description": "닫힌 어휘. sequential은 로봇 내부, ordering은 로봇 간. 어느 실행 계열이든 이 둘로 나뉜다. §2-1. .msg는 uint8 상수(§7-4). 검사 가능한 술어: type == 'sequential' <=> from·to 세그먼트의 robot이 같다, type == 'ordering' <=> 다르다. 층 2다(두 세그먼트 조회를 요구하므로 층 1의 구조 검사로 내려오지 않는다). 55_contract_holes.md §55-7-1(B-20)."
         }
       }
     }
@@ -66,8 +66,7 @@
     },
     "segments": {
       "type": "array",
-      "x-todo": "B-1: minItems 미기재. segments에 나타나지 않는 로봇은 세그먼트 0개다(§2-2(7)) — 전 로봇이 그러면 빈 배열이 되므로 하한을 넣지 않았다.",
-      "description": "한 세그먼트 = 간선 하나의 이동. 로봇별 세그먼트 수 = steps 수 - 1(§1-2(6))이며 그 대조는 표현 불가 — A11.",
+      "description": "한 세그먼트 = 간선 하나의 이동. 로봇별 세그먼트 수 = steps 수 - 1(§1-2(6))이며 그 대조는 표현 불가 — A11. segments에 나타나지 않는 로봇은 세그먼트 0개다(§2-2(7)). 하한을 두지 않는 것이 규범이다(§2-2(9)) — 전 로봇의 steps 길이가 1인 안전 정지 계획에서 segments·dependencies·switch_groups 세 배열이 동시에 비고, 그것은 계약이 명시로 요구하는 산출물이다(§1-2(9)). 하한을 두면 그 산출물이 계약 위반이 된다. 55_contract_holes.md §55-4-3.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -143,8 +142,8 @@
           },
           "alternatives": {
             "type": "array",
-            "x-todo": "B-2: 최소 2인지 계약에 없다. 하한을 넣지 않았다.",
-            "description": "대안은 '내용'으로 실린다 — 불투명 인덱스가 아니다. §2-2(3). 한 그룹의 대안들은 상호 배타·완전이고 모두 같은 구성원 집합 위의 다른 통행 순서다(§2-2(2)) — 그 둘은 표현 불가(A8·A9). 구성원 로봇 집합은 필드가 아니라 유도값이다(§2-2(4)).",
+            "minItems": 2,
+            "description": "대안은 '내용'으로 실린다 — 불투명 인덱스가 아니다. §2-2(3). 한 그룹의 대안들은 상호 배타·완전이고 모두 같은 구성원 집합 위의 다른 통행 순서다(§2-2(2)) — 그 둘은 표현 불가(A8·A9). 구성원 로봇 집합은 필드가 아니라 유도값이다(§2-2(4)). 대안은 2개 이상이다(§2-2(8)) — |A_g|=1인 위치는 그룹을 만들지 않고 루트 dependencies의 고정 의존으로 낸다. 선택할 것이 없는 그룹이 남으면 하류가 '선택 대기'로 읽고 그 그룹은 영원히 커밋되지 않는다. 이 하한은 대안 생성 규칙과 무관한 구조적 성질이다. 55_contract_holes.md §55-4.",
             "items": {
               "type": "object",
               "additionalProperties": false,

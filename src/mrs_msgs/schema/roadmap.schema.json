@@ -80,7 +80,7 @@
             "type": "integer", "minimum": 1, "maximum": 255,
             "x-unit": "robots", "x-ros-type": "uint8",
             "x-todo": "B-6: 하한이 1인지 0인지 계약에 없다(정의역이 N이라고만 함). '1이면 교행 불가'가 최소 사례로 서술된 것에서 1을 택했다 [유도].",
-            "description": "동시 통과 로봇 수의 상한. A-G1이 단일 값의 건전성을 보장한다. §4-1."
+            "description": "동시 통과 로봇 수의 상한. A-G1이 단일 값의 건전성을 보장한다. §4-1. 이 값의 준수는 mrs.discrete_plan으로 판정되지 않는다(§1-2(8)) — 용량은 '같은 시각에 몇 대인가'이고 이산 경계에 시각이 없다. cap>=2는 순서로 환원하면 자명히 만족되므로 검사가 아니라 무제약이고, cap=1의 역방향 교차만 Type-1+2 비순환이 간접적으로 배제한다. 판정 자리는 mrs.trajectories + mrs.roadmap의 층 2 검사이며 아직 없다(A25). 궤적이 없는 묶음에서 그 검사는 종료 코드 2다. 55_contract_holes.md §55-5."
           },
           "corridor": {
             "type": "string",
