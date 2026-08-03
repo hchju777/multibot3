@@ -8,10 +8,10 @@
 | 아닌 것 | 왜 |
 |--------|----|
 | ROS 2 패키지가 아니다 | `COLCON_IGNORE`가 있어 `colcon build`가 이 디렉터리를 건너뛴다 |
-| 본 구현이 아니다 | 본 구현은 `src/mrs_*`의 C++이며 계층·어댑터 관례(`src/CLAUDE.md` CN-1~CN-22)를 따른다 |
+| 본 구현이 아니다 | 본 구현은 `src/mrs_*`의 C++이며 계층·어댑터 관례(`multibot3/CLAUDE.md` CN-1~CN-22)를 따른다 |
 | 측정 하네스가 아니다 | 계측·링버퍼·분위수·검열이 하나도 없다 |
 | 사전등록의 발동이 아니다 | `_workspace/27_spike_preregistration.md` §1의 값은 **동결되지 않았다.** `config/scale.yaml`의 수치가 그 문서의 수치와 우연히 같아도 **동결이 아니다** |
-| 실행 계층이 아니다 | 실행 의존 그래프(SADG)·재계획·차단 대응이 없다. 애니메이션 타이밍은 **우리가 지어낸 것**이다 |
+| **완전한 실행 계층이 아니다** | S3에서 **실행 의존 그래프·스위치 그룹·임계 경로**가, S4에서 **릴리스 판정 루프·커밋 적용 지점·게이트 ①②③④·진입 사건·재발행 발화**가 생겼다. 그러나 **재선택(스위칭) 선택기·승급 사다리·계측(링버퍼·분위수·예산 측정)이 여전히 없다.** 애니메이션 타이밍은 **우리가 지어낸 것**이다 |
 | 계약 만족의 판정이 아니다 | 아래 검사는 생성자가 자기 산출물에 돌린 것이다. 판정은 `boundary-verifier`의 몫이다 |
 
 ## 이것인 것
@@ -20,7 +20,13 @@
 2. **태스크 배정 생성기**(`gen_assignment.py`, 가장 가까운 것부터) → `mrs.assignment` 1.1.0
 3. **경로 계획기**(`gen_plan.py`, 우선순위 기반 시공간 A\*) → `mrs.discrete_plan` 2.0.0
 4. **로봇별 노드 순서표**(`plan_table.py`) → `out/plan_table.md`
-5. **정적 그림**(`viz.py`) → `out/scene.png` · **애니메이션**(`anim.py`) → `out/replay.gif`
+5. **실행 의존 그래프 컴파일러**(`gen_constraints.py`) → `mrs.execution_constraints` 1.1.0
+6. **릴리스 판정 루프**(`tick_core.py` + `release_sim.py`) — 매 틱 릴리스를 판정하고
+   **놓인 세그먼트만** 물리 계층이 시작한다
+7. **정적 그림**(`viz.py`) → `out/scene.png` · **애니메이션 3종**
+   (`anim.py` 공칭 속도 재생 → `out/replay.gif` · `anim_exec.py` **의존 그래프 재생 + 차단**
+   → `out/replay_exec.gif` · `anim_release.py` **릴리스 판정이 화면에 보이는 재생**
+   → `out/replay_release.gif`)
 
 ---
 
@@ -29,12 +35,20 @@
 ## 1. 가장 간단한 네 줄 (전부 기본값)
 
 ```bash
-cd src/prototype
+cd multibot3/src/prototype
 python3 gen_roadmap.py            # out/roadmap.json      (정점 20 · 간선 25 · 통로 2)
 python3 gen_assignment.py         # out/assignment.json   (로봇 6 · 목표 16)
 python3 gen_plan.py --table       # out/discrete_plan.json + out/plan_table.md (화면에도 나온다)
+python3 gen_constraints.py --on-cycle prune --schema-check   # out/execution_constraints.json
 python3 viz.py && python3 anim.py # out/scene.png · out/replay.gif (GIF 생성에 약 9초)
+python3 anim_exec.py --block-robot r0 --block-at 4 --block-seconds 45   # out/replay_exec.gif
+python3 release_sim.py --block-robot r0 --block-at 4 --block-seconds 45 --drop-entry-nth 2
+python3 anim_release.py --block-robot r0 --block-at 4 --block-seconds 45 --drop-entry-nth 2
 ```
+
+**마지막 줄이 「막힘과 회복」이다** — 로봇 하나를 45초 세우고, 나머지가 `visit_order`가 정한
+순서를 **지키며** 기다렸다가 회복하는 것을 보인다. 화면에 «누가 누구의 어느 세그먼트를
+기다리는가»가 그대로 적힌다.
 
 **`gen_plan.py --table`이 사용자가 보고 싶어 하는 그 표다** — 로봇마다
 「시작 → 노드 순서 → 도착」과 어느 단계에서 어느 목표를 덮는지, 그리고 **공유 위치에서 누가 먼저
@@ -70,13 +84,65 @@ python3 viz.py && python3 anim.py # out/scene.png · out/replay.gif (GIF 생성�
 | `--table` / `--table-out` | 노드 순서표를 함께 낸다 | `--table` |
 | `--schema-check` | 표준 JSON Schema 구조 검증을 함께 돌린다 | `--schema-check` |
 
-### 애니메이션 (`anim.py`)
+### 실행 의존 그래프 (`gen_constraints.py`)
+
+| 인자 | 무엇이 바뀌는가 | 예 |
+|------|----------------|-----|
+| `--alt-gen` | 🔴 **확장점 E3 — 대안 생성기.** `lift`(선두 올리기, 정본) / `swap`(인접 쌍 교환, 구판) | `--alt-gen swap` |
+| `--on-cycle` | 어떤 조합이 순환할 때. `report`(기본, 그대로 내고 종료 코드 4) / `prune`(순환을 만드는 대안을 지운다) | `--on-cycle prune` |
+| `--out-dir` | 🔴 **파일 이름은 언제나 `execution_constraints.json`이다.** 변형은 디렉터리로 가른다 | `--out-dir out/swap` |
+| `--max-groups` · `--max-combinations` | 전수 비순환 검사의 상한. 넘으면 **표본으로 강등**하고 그 사실을 표기한다 | `--max-combinations 64` |
+| `--samples` · `--sample-seed` | 표본 강등 시 검사할 조합 수와 시드 | `--samples 5000` |
+| `--inject-cycle` | 🔴 **음성 시험** — 일부러 순환을 만든다. 검사기가 잡는지 보는 용도 | |
+| `--commit-seq` | 판본 번호. **시각이 아니다** | `--commit-seq 3` |
+
+#### `gen_constraints.py`의 종료 코드
+
+| 코드 | 뜻 |
+|:----:|----|
+| 0 | 산출했고 **전수** 비순환 검사 위반 0 |
+| 1 | 산출했으나 **표본으로 강등**했다 — 위반 0이지만 **증명이 아니다** |
+| 2 | 산출물 자체가 깨졌다 — 자체 점검·스키마·어댑터 왕복 위반 |
+| **4** | **어떤 스위칭 조합이 순환한다.** 아티팩트는 **쓴다**(하류 검사기에 먹여야 한다) |
+
+**왜 4를 새로 만들었나** — `gen_plan.py`의 넷으로 부족하기 때문이다. 순환은 (i) 구조가 깨진 것이
+아니라 **의미 불변식**이 깨진 것이라 2와 다르고, (ii) `gen_plan.py`의 3(*"산출물을 쓰지 않았다"*)과
+달리 **아티팩트를 써야 한다** — 그것을 층 1·`check_sadg_acyclic.py`에 먹여야 하기 때문이다.
+
+### 릴리스 판정 루프 (`release_sim.py` · `anim_release.py`)
+
+| 인자 | 무엇이 바뀌는가 |
+|------|----------------|
+| `--block-robot` · `--block-at` · `--block-seconds` | 차단 주입 |
+| `--drop-entry-nth` | 🔴 **n번째 진입 사건을 유실시킨다** — D7(진입 간주) 경로와 «유도 불가 커밋» 재발행 발화를 밟는다 |
+| `--entry-fraction` | 세그먼트의 몇 %에서 진입 사건을 내는가. 🔴 **N(v) 기하가 값 부재라 쓴 임시값이며 사전등록 상수가 아니다** |
+| `--constraints` | 재생할 `mrs.execution_constraints`. 스위치 그룹이 있는 아티팩트를 주면 **진입 커밋**이 발동한다 |
+
+🔴 **S3(`anim_exec.py`)와 다른 점**: S3는 max-plus로 시각을 **한 번에 풀었고**, S4는 **매 틱
+릴리스를 판정하고 놓인 세그먼트만 시작한다.** 즉 *"언제 놓아 주는가"*가 코드의 결정이다.
+차단이 없으면 둘의 완료 시각이 일치하며 **그것이 서로의 교차검증**이다(시험으로 고정).
+
+### 애니메이션 · 공칭 속도 재생 (`anim.py`)
 
 | 인자 | 무엇이 바뀌는가 |
 |------|----------------|
 | `--fps` · `--frames-per-tick` | 재생 속도와 부드러움 |
 | `--priority` · `--horizon` · `--seed` | **계획기와 같은 값을 줘야 한다**(다르면 경고가 뜬다) |
 | `--out` | `.gif`(기본) 또는 `.mp4`. **이 환경에는 `ffmpeg`가 없어 `.mp4`를 주면 GIF로 물러선다** |
+
+### 애니메이션 · **의존 그래프 재생 + 차단** (`anim_exec.py`)
+
+| 인자 | 무엇이 바뀌는가 |
+|------|----------------|
+| `--block-robot` · `--block-at` · `--block-seconds` | 🔴 **차단 주입** — 그 로봇의 그 세그먼트 위에서 몇 초 세운다 |
+| `--constraints` | 재생할 `mrs.execution_constraints` 경로 |
+| `--frames` · `--fps` | 프레임 수와 재생 속도 |
+
+🔴 **`anim.py`와 다른 점 둘.** (1) **계획기를 다시 돌리지 않는다** — 경계 아티팩트만으로 재생한다.
+S2가 *"경계만으로는 재생할 수 없다"*고 적은 것은 옳았고, **잃어버린 것은 대기가 아니라 순서였으며
+그 순서를 실행 의존 그래프가 되돌려 준다.** (2) 세그먼트는 **들어오는 모든 의존이 끝나야** 시작한다.
+🔴 **그래도 릴리스 판정의 완전한 형태가 아니다 — 그것은 S4다**(재선택·커밋 게이트·진입 사건·
+신선도·계측·승급 사다리가 하나도 없다). 그림 안에 빨간 글씨로 적혀 있다.
 
 ## 3. 🔴 막히는 것을 보고 싶다면 — 인자 두 개면 된다
 
@@ -111,10 +177,15 @@ python3 gen_plan.py --horizon 8
 
 ```bash
 cd /path/to/repo
-python3 .claude/skills/multibot3-module-theory/scripts/check_boundary_schema.py \
-    --schema-root src/mrs_msgs/schema \
-    src/prototype/out/roadmap.json src/prototype/out/assignment.json \
-    src/prototype/out/discrete_plan.json
+T=.claude/skills/multibot3-module-theory/scripts
+# 층 1 — 묶음마다 파일을 명시한다 (한 스키마에 파일이 둘이면 종료 코드 2)
+python3 $T/check_boundary_schema.py --schema-root multibot3/src/mrs_msgs/schema \
+    multibot3/src/prototype/out/{roadmap,assignment,discrete_plan,execution_constraints}.json
+# SADG 전수 비순환
+python3 $T/check_sadg_acyclic.py multibot3/src/prototype/out/execution_constraints.json
+# 순수성 (경계 디렉터리와 내부 회계 디렉터리를 따로)
+python3 $T/check_schema_purity.py multibot3/src/prototype/out/
+python3 $T/check_schema_purity.py multibot3/src/prototype/stats/
 ```
 
 | 종료 코드 | 뜻 | 🔴 주의 |
@@ -126,17 +197,29 @@ python3 .claude/skills/multibot3-module-theory/scripts/check_boundary_schema.py 
 - **아티팩트 파일 이름은 `{스키마이름}.json`이어야 한다.** `roadmap_big.json`처럼 꾸미면
   *"대응 스키마가 없다"*로 **UNDECIDED(2)**가 된다. 그래서 변형은 이름이 아니라 디렉터리로 가른다.
 - 🔴 **디렉터리를 통째로 주지 말고 묶음마다 파일을 명시하라.** 하위 디렉터리에 같은 이름의
-  아티팩트가 있으면 **하나만 보고 나머지는 조용히 무시한다** — 일부러 망가뜨린 사본을 하위
-  디렉터리에 두고 확인했더니 **종료 코드 0**이 나왔다.
+  아티팩트가 있으면 **모호로 판정해 종료 코드 2**를 낸다. **3단계에서 다시 재어 고쳤다** —
+  2단계 README는 *"하나만 보고 나머지는 조용히 무시한다"*로 적었으나 **현재 검증기는 그렇지
+  않다.** `check_boundary_schema.py multibot3/src/prototype/out/`를 그대로 주면
+  `[UNDECIDED] 스키마 execution_constraints.schema.json 에 아티팩트가 5개 걸렸다 … `와 함께
+  **종료 코드 2**가 나온다(실측, 3단계).
+- 🔴 **경계 아티팩트 디렉터리에 비경계 JSON을 두지 마라.** 검증기는 파일명 줄기로 스키마를
+  찾으므로 `sadg_stats.json`을 `out/`에 두면 *"스키마에 대응된 아티팩트가 없다"*로
+  **종료 코드 2**가 된다(실측). 그래서 S3의 내부 회계는 **`stats/` 디렉터리**에 쓴다.
+- 🔴 **층 1 통과는 데드락 부재를 뜻하지 않는다.** 일부러 순환을 심은
+  `out/negative/execution_constraints.json`을 층 1에 먹이면 **종료 코드 0**이고,
+  같은 파일이 `check_sadg_acyclic.py`에서 **종료 코드 1**이다(실측). 비순환은 **층 2**다
+  (`execution_constraints.schema.json`의 `x-layer2-note` A7).
 - 순수성(알고리즘 파라미터 유출) 검사:
-  `python3 .claude/skills/multibot3-module-theory/scripts/check_schema_purity.py src/prototype/out/`
+  `python3 .claude/skills/multibot3-module-theory/scripts/check_schema_purity.py multibot3/src/prototype/out/`
 
 ## 5. 시험
 
 ```bash
-cd src/prototype
-python3 -m pytest tests -q                     # 73항목
+cd multibot3/src/prototype
+python3 -m pytest tests -q                     # 152항목
 python3 -m pytest tests/test_plan_core.py -q   # 계획기만
+python3 -m pytest tests/test_sadg_core.py -q   # 실행 의존 그래프만 (53항목)
+python3 -m pytest tests/test_tick_core.py -q   # 릴리스 판정 루프만 (26항목)
 ```
 
 ## 6. 물리 규모를 바꾸려면 — `config/scale.yaml` **하나만** 고친다
@@ -154,15 +237,35 @@ python3 -m pytest tests/test_plan_core.py -q   # 계획기만
 protoscale.py         물리 규모 설정 로더 (수치가 나오는 유일한 곳)
 roadmap_core.py       로드맵 생성 알고리즘        | 셋 다 경계 스키마를 모른다
 assignment_core.py    태스크 배정 알고리즘        |
-plan_core.py          S2 우선순위 기반 시공간 A*  |
+plan_core.py          S2 우선순위 기반 시공간 A*  | 넷 다 경계 스키마를 모른다
+sadg_core.py          S3 실행 의존 그래프·스위치 그룹·전수 비순환 |
+tick_core.py          S4 릴리스 판정·게이트 1234·커밋 적용 지점·원자성 감시 |
 boundary_adapter.py   내부 <-> 경계 변환. **경계 JSON 키가 나오는 유일한 파일**
-gen_roadmap.py · gen_assignment.py · gen_plan.py    CLI
+gen_roadmap.py · gen_assignment.py · gen_plan.py · gen_constraints.py    CLI
 plan_table.py         로봇별 노드 순서표
-viz.py                정적 그림 (anim.py와 정적 층을 공유)
-anim.py               애니메이션 (공칭 속도 재생)
-tests/                코어 시험 · 어댑터 왕복 시험 · 경계 산출물 구조 검증 시험
-out/                  생성물 (json · md · png · gif)
+exec_sim.py           S3 의존 그래프 max-plus 재생 (차단 주입 · 정점 점유 자체 점검)
+release_sim.py        S4 닫힌 고리 — 릴리스 판정이 물리 계층을 움직인다 + CLI
+viz.py                정적 그림 (두 애니메이션과 정적 층을 공유)
+anim.py               애니메이션 — 공칭 속도 재생 (계획기를 다시 돌린다)
+anim_exec.py          애니메이션 — **의존 그래프 재생 + 막힘과 회복** (경계만으로 재생한다)
+anim_release.py       애니메이션 — **릴리스 판정이 화면에 보인다** (무엇이 왜 아직 안 놓였는가)
+tests/                코어 시험 · 어댑터 왕복 시험 · 경계 산출물 구조 검증 시험 · 음성 시험
+out/                  경계 아티팩트와 그림 (json · md · png · gif)
+out/{swap,raw,negative,big,tight}/   변형. **이름이 아니라 디렉터리로 가른다**
+stats/                내부 회계 (lambda* 등). 🔴 **경계가 아니며 out/ 밖에 둔다**
 ```
+
+### 🔴 `out/` 하위 디렉터리가 무엇인가
+
+| 디렉터리 | 무엇 | `check_sadg_acyclic.py` |
+|----------|------|:----------------------:|
+| `out/` | 정본 생성기 `lift` + `--on-cycle prune` | **0** |
+| `out/swap/` | 구판 생성기 `swap` + `--on-cycle prune` | **0** |
+| `out/raw/` | `lift` + `--on-cycle report` — **가지치기하지 않은 날것.** A4가 실제로 깨진 모습 | **1** |
+| `out/negative/` | 🔴 **음성 시험** — 일부러 순환을 심었다 | **1** |
+| `out/big/` | 로봇 8 묶음(`--seed 2 --robots 8 --tasks 14`) | **0** |
+| `out/bigraw/` | 로봇 8 묶음의 날것(`--on-cycle report`) | **1** |
+| `out/tight/` | S2의 미해결 인스턴스(계획 산출물 없음) | — |
 
 ## 검증의 한계 — 읽고 넘어가지 말 것
 
