@@ -1,32 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.task_release/1.0.0",
-  "title": "mrs.task_release 1.0.0 — sim(injector) -> mrta",
-  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-1(1).",
-  "x-contract-version": "1.0.0",
+  "$id": "https://multibot3/schema/mrs.task_release/2.0.0",
+  "title": "mrs.task_release 2.0.0 — sim(injector) -> mrta",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-1(1) / 개정: 97a_seam1_contract.md §97a-6. 🔴 1.0.0 -> 2.0.0 MAJOR 사유 셋 — 셋 다 합법 아티팩트 집합 또는 소비 측 자유를 **좁히는** 방향이라 하위 호환을 깬다. (1) goals에 minItems:1을 넣어 x-todo B-1을 닫았다(사용자 결정 U13-2의 근본 처분: m=0인 릴리스는 계약 위반이다). (2) release_index의 기점을 「첫 값 0」으로 확정해 x-todo B-19를 닫았다 — 미기재였던 동안 「첫 값이 0이 아닌 열」이 합법이었고 그것이 소비 측 gap 검출을 run 첫 릴리스에서 거짓으로 만들었다. (3) goals 배열 순서를 규범으로 명시했다 — 미기재였던 동안 소비 측이 자기 순서를 만들 자유가 있었고, 이제 없다. 애매하면 높은 쪽으로 올린다는 규율을 따랐다. 재검증 대상: 생산 측 mrs_sim/injector_node + 인스턴스 생성기, 소비 측 mrs_mrta.",
+  "x-contract-version": "2.0.0",
   "x-ros-msg": "mrs_msgs/msg/TaskRelease",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "schema_version", "instance_id", "release_index", "task", "goals"],
   "properties": {
     "schema": {"const": "mrs.task_release", "x-ros-type": "string"},
-    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "schema_version": {
+      "const": "2.0.0",
+      "x-ros-type": "string",
+      "description": "봉투. const가 옳다 — B-10은 48_contract_amendment.md §18-8에서 철회됐고 이 자리에 x-todo가 남아 있던 것은 그 철회의 전사 누락이었다(97a §97a-6-4)."
+    },
     "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
     "release_index": {
       "type": "integer", "minimum": 0, "maximum": 9007199254740991,
       "x-ros-type": "uint64",
-      "x-todo": "B-19.",
-      "description": "0-기반 단조 증가. 순서수이며 유실 검출 수단이다. §6. 단조·유실 검출은 발행 열이 필요해 표현 불가 — A21. 상한은 §7-3."
+      "description": "🔴 B-19 확정(2.0.0): **run 전역 단일 공간이고 첫 값이 0이다.** 이후 릴리스마다 정확히 1씩 증가하며 건너뜀 = 유실이다. 공간이 전역인 근거는 생산자가 injector_node 하나이고 릴리스가 태스크 단위 사건이라 로봇에 귀속되지 않는다는 것 — 로봇별로 나눌 축 자체가 없다. 기점을 못 박는 이유: 소비 측이 last_release_index를 「아직 없음」으로 초기화하고 last+1과 대조하는데, 첫 값이 0이라는 보장이 없으면 **run의 첫 릴리스에서 거짓 gap**이 나고 그 거짓이 「유실」로 계상돼 정상 인스턴스가 결함으로 오독된다(수도코드 A08). 순서수이며 유실 검출 수단이다 — 절대 시각이 아니고 발행 간격도 함의하지 않는다. mrs.assignment.revision · mrs.goal_completion.seq와 다른 공간이며 교차 비교하지 않는다. 단조·유실 검출 자체는 발행 열이 필요해 표현 불가 — A21. 상한은 §7-3."
     },
     "task": {
       "type": "string", "x-ros-type": "string",
-      "description": "문제 엔티티. §6."
+      "description": "문제 엔티티. §6. 이 값이 mrs.assignment.assignments[].goals[].task와 mrs.assignment.unassigned_tasks에 그대로 실린다 — 소비 모듈이 만드는 값이 아니라 복사하는 값이다. 한 릴리스 = 한 태스크다."
     },
     "goals": {
       "type": "array",
-      "x-todo": "B-1: minItems 미기재.",
+      "minItems": 1,
       "x-ros-msg": "mrs_msgs/msg/Goal (공유)",
-      "description": "이 태스크의 목표 원소들. goal_id는 mrs.assignment와 같은 식별자 공간이며 발급자는 인스턴스 생성기다(§6). 그 공간 동일성은 두 문서 대응이라 표현 불가 — A21과 같은 계열.",
+      "description": "이 태스크의 목표 원소들. 🔴 순서가 규범이다(2.0.0 확정): **배열 순서가 태스크 안의 수행 순서이며, 소비 모듈은 그 순서를 항등으로 보존해 mrs.assignment.assignments[].goals의 방문 순서로 낸다.** 이 문장이 필요한 이유는 leg(픽업/배달) 필드가 거절돼 있어(§5-4(3)) **배열 순서가 태스크 내 선행 관계를 나르는 유일한 수단**이기 때문이다. 상류만 비규범이면 소비 모듈이 없는 정보를 만드는 자리가 되고, 제약 C2(목표 열 커버·순서 보존)가 「무엇에 대한 보존인가」를 잃어 보존의 기준점이 방법 종속이 된다(91b SR-6). 🔴 minItems:1(B-1 확정, 사용자 결정 U13-2): 목표가 하나도 없는 태스크는 계약 위반이다 — 담을 것이 없어 배정이 항상 상태를 바꾸지 않는데 소비 측이 그것을 「배정됨」으로 처리하면 no-op 발행이 나가 revision 단조 규약을 깨고, 태스크 완료 시각 c_task_j가 완료도 미완료도 아니라 정식화에서 정의되지 않는다(93 §93-2-2). 상한(maxItems)은 두지 않는다 — 큐 상한 Q^ta는 소비 모듈의 사전등록 상수이지 계약 사항이 아니며, 실으면 배정기의 용량이 경계로 샌다. m > Q^ta인 릴리스는 계약상 합법이고 그 처분은 소비 측 기동 검사와 run 제외가 진다(사용자 결정 U13-1). goal_id는 mrs.assignment · mrs.goal_completion과 같은 식별자 공간이며 발급자는 인스턴스 생성기다(가정 A-TA3, §6). 그 공간 동일성은 두 문서 대조라 표현 불가 — A21과 같은 계열.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -34,7 +37,7 @@
         "properties": {
           "goal_id": {
             "type": "string", "x-ros-type": "string",
-            "description": "불투명. mrs.assignment.assignments[].goals[].goal_id와 같은 공간. 파싱하면 계약 위반이므로 pattern을 넣지 않았다(§5-4(1))."
+            "description": "불투명. mrs.assignment.assignments[].goals[].goal_id · mrs.goal_completion.goal_id와 같은 공간. 파싱하면 계약 위반이므로 pattern을 넣지 않았다(§5-4(1))."
           },
           "location": {
             "type": "string", "x-ros-type": "string",
@@ -47,6 +50,6 @@
   "x-unique-key": [
     {"id": "release_goal_id_unique", "collection": "#/goals/*", "key": "goal_id", "note": "한 릴리스 안에서 목표 원소 유일 [유도]."}
   ],
-  "x-layer2-note": "표현 불가 조항 1건(A21 release_index 단조·유실 검출, goal_id 공간 동일성). 45_schema_source_draft.md §45-1.",
-  "x-forbidden-note": "🔴 릴리스 시각을 싣지 않는다 — 미래 시각을 실으면 배정기가 그것을 볼 수 있고 '온라인 순차 탐욕'이 구조적으로 성립하지 않는다(§6-1(1)). 발화 시점 자체가 시각을 나른다."
+  "x-layer2-note": "표현 불가 조항 1건(A21 release_index 단조·유실 검출, goal_id 공간 동일성). 🔴 2.0.0에서 층 1로 내려온 것 둘: goals의 개수 하한(minItems)과 release_index의 기점(minimum:0 + 문언). 기점의 「첫 값이 실제로 0인가」는 발행 열이 필요하므로 여전히 A21 안에 남는다 — 층 1이 보는 것은 「음수가 아니다」뿐이다. 배열 순서의 규범성도 층 1이 보지 못한다(순서가 「옳은가」는 인스턴스 정의와의 대조다). 45_schema_source_draft.md §45-1.",
+  "x-forbidden-note": "🔴 릴리스 시각을 싣지 않는다 — 미래 시각을 실으면 배정기가 그것을 볼 수 있고 「온라인 순차 탐욕」이 구조적으로 성립하지 않는다(§6-1(1)). 발화 시점 자체가 시각을 나른다. 함께 싣지 않는 것: 태스크 우선순위·마감·보상 등 배정 목적함수에 들어갈 값(방법 종속이며 실으면 배정 정책이 계약이 된다) · leg(픽업/배달, §5-4(3)에서 거절 — 배열 순서가 그 자리다) · maxItems로 표현되는 큐 상한 Q^ta(소비 모듈의 사전등록 상수) · W · mu_rel · nu_rel_max(창당 유한성 파라미터이며 인스턴스 생성기 config와 사전등록에 산다). additionalProperties:false가 재진입을 막는다."
 }
