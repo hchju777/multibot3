@@ -190,5 +190,5 @@
     }
   ],
   "x-layer2-note": "표현 불가 조항 4건(A7 스위치 조합 전수 비순환 / A8 대안 상호배타·완전 / A9 대안별 구성원 집합 동일 / A11 세그먼트 수 == steps 수 - 1). A10은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1.",
-  "x-forbidden-note": "경계에 올리자는 요구를 받았으나 넣지 않은 것: Heads(A_g) · lift/FirstOcc · ctrl 우선순위 · entry_rule_path · 릴리스 비트 · 뒤집기 이득 · z_{g,a} · 재발행 주기 · tau_nom/lambda*. §2 말미. additionalProperties:false가 이것들의 재진입을 구조적으로 막는다."
+  "x-forbidden-note": "경계에 올리자는 요구를 받았으나 넣지 않은 것: Heads(A_g) · lift/FirstOcc · ctrl 우선순위 · entry_rule_path · 현재 지정 d(g,t) · 뒤집기 이득 · z_{g,a} · 재발행 주기 · tau_nom/lambda*. §2 말미. additionalProperties:false가 이것들의 재진입을 구조적으로 막는다. 🔴 12차 정정 — 「릴리스 비트」를 이 목록에서 내렸다(85_seams.md §85-4-0). 그 배제에는 「저수준이 자체 산출을 포기하고 릴리스 비트를 소비하기로 하면 뒤집힌다」는 조건이 명문으로 붙어 있었고(11c_req_sadg_r2_p2.md §R3-3 · 12c_arch_sadg_p3.md §A-10-3), 11d_req_trajopt_r2.md §W-4가 그 조건을 충족시켰다. 릴리스 가부는 이 스키마가 아니라 별도 채널 mrs.segment_release 1.0.0이 나르며 이 스키마의 필드는 하나도 바뀌지 않았다 — 이 정정은 description 층위이고 1.1.0의 필드 집합·의미는 불변이다. 여기서 여전히 금지인 것은 「어느 대안이 지정인가」이며 그것은 릴리스 채널에서도 금지다."
 }
