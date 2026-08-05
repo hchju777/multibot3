@@ -641,6 +641,202 @@ def heads_of(group: SwitchGroup) -> set[str]:
     return {alt.order[0][0] for alt in group.alternatives}
 
 
+# ---------------------------------------------------------------------------
+# LIFT-CUT — 1단 컴파일 사후 단계 (`68_formulation_r7.md` §R7-1 · `11c_req_sadg_r4.md` §V-1)
+#
+# 🔴 `compile_graph`를 고치지 않는다. r4 §V-1-1이 *"r3의 대안 생성기는 존속한다. 그 위에
+# **컴파일 사후 단계**를 얹는다"*이므로, 여기 있는 것은 전부 이미 만들어진 `ExecGraph`를
+# 입력으로 받는 별도 패스다. 기존 경로(LIFT-CUT 미적용)는 그대로 남는다.
+# ---------------------------------------------------------------------------
+
+ItemPair = tuple[Item, Item]
+
+TOTAL_ORDER = "total_order"  # (L3′) 정본 — 각 대안의 **전순서 선행쌍 전부** 위에서 교집합
+COVER_RELATION = "cover"  # 🔴 대조용 — 커버 관계(인접 쌍) 교집합. 반례 W1이 겨누는 구현
+
+
+def total_order_pairs(order: tuple[Item, ...]) -> set[ItemPair]:
+    """$\\prec_a$ — 순열 하나가 유도하는 **선행쌍 전부**. `68` §R7-1-1의 정의 그대로다."""
+    return {(order[p], order[q]) for p in range(len(order)) for q in range(p + 1, len(order))}
+
+
+def cover_pairs(order: tuple[Item, ...]) -> set[ItemPair]:
+    """$\\mathrm{cov}(a)$ — **인접 쌍만**(전이 축소).
+
+    🔴 이 함수 자체는 잘못이 아니다. 잘못이 되는 것은 **이것을 교집합의 재료로 쓸 때**다
+    (`68b` §68b-4b: `Alternative.edges`가 정확히 이 표현이며 «가장 가까이 있는 필드»다).
+    """
+    return set(zip(order, order[1:]))
+
+
+def transitive_closure(pairs: set[ItemPair]) -> set[ItemPair]:
+    """관계의 이행 폐포. 항목 수가 한 자리인 그룹 크기라 $O(n^3)$ Floyd–Warshall로 충분하다."""
+    items = sorted({x for pair in pairs for x in pair})
+    reach = {x: {y for (a, y) in pairs if a == x} for x in items}
+    for k in items:
+        for i in items:
+            if k in reach[i]:
+                reach[i] |= reach[k]
+    return {(i, j) for i in items for j in reach[i]}
+
+
+def forced_pairs(
+    alternatives: list[Alternative], representation: str = TOTAL_ORDER
+) -> set[ItemPair]:
+    """$I_g$(정본) 또는 $\\mathrm{tc}(J_g)$(대조) — **어느 표현 위에서 교집합을 잡는가**로 갈린다.
+
+    - `TOTAL_ORDER`: $I_g=\\bigcap_a\\prec_a$. 보조정리 LC-1로 **이미 이행적**이라 폐포가 불필요하다.
+    - `COVER_RELATION`: $J_g=\\bigcap_a\\mathrm{cov}(a)$의 이행 폐포. 🔴 `68` 반례 W1이
+      $\\mathrm{tc}(J_g)\\subsetneq I_g$인 최소 목격자이며, 그때 **종점 항목이 안 막힌다.**
+
+    돌려주는 것: 항목 쌍 집합. 대안이 없으면 빈 집합.
+    """
+    if representation not in (TOTAL_ORDER, COVER_RELATION):
+        raise ValueError(f"알 수 없는 표현: {representation}")
+    if not alternatives:
+        return set()
+    if representation == TOTAL_ORDER:
+        sets = [total_order_pairs(alt.order) for alt in alternatives]
+        return set.intersection(*sets)
+    sets = [cover_pairs(alt.order) for alt in alternatives]
+    return transitive_closure(set.intersection(*sets))
+
+
+def minimal_items(pairs: set[ItemPair], items: tuple[Item, ...]) -> set[Item]:
+    """$\\mathrm{Min}(I_g)$ — 선행자가 없는 항목. 릴리스가 선두로 허용하는 자리다."""
+    has_pred = {y for (_, y) in pairs}
+    return {x for x in items if x not in has_pred}
+
+
+def head_items(alternatives: list[Alternative]) -> set[Item]:
+    """$\\mathrm{Heads}(A_g)$ — **항목 층위**. `heads_of`(로봇 층위)와 자매이며 층이 다르다."""
+    return {alt.order[0] for alt in alternatives}
+
+
+def satisfies_lc4(group: SwitchGroup, representation: str = TOTAL_ORDER) -> bool:
+    """조건 LC-4 — $\\mathrm{Min}(I_g)=\\mathrm{Heads}(A_g)$인가 (`68` §R7-1-4).
+
+    🔴 **정리가 아니라 생성기에 대한 요구**다. 일반 $A_g$에서는 거짓이며(반례 W3), 정본
+    생성기 아래에서 성립하는지가 §R7-9-2의 R7-a다. 이 함수는 **판정하지 않고 술어만 계산한다.**
+    """
+    pairs = forced_pairs(group.alternatives, representation)
+    return minimal_items(pairs, group.original) == head_items(group.alternatives)
+
+
+def pair_edge(view: PlanView, a: Item, b: Item) -> Precedence | None:
+    """항목 쌍 «a가 b보다 앞»을 의존 하나로 옮긴다. **같은 로봇 쌍과 표현 불가는 None.**
+
+    `ordering_edges`가 인접 쌍에 대해 하는 일과 같은 규칙이며, 여기서는 **임의의 쌍**에
+    적용한다 — (L3′)가 커버 관계가 아니라 전순서 위에서 계산하라고 요구하기 때문이다.
+    """
+    if a[0] == b[0]:
+        return None
+    src = departing_segment(view, a)
+    dst = arriving_segment(view, b)
+    if src is None or dst is None:
+        return None
+    return Precedence(src, dst, INTER_ROBOT)
+
+
+@dataclass
+class LiftCutStats:
+    """LIFT-CUT 패스의 부산물. 🔴 **경계로 나가지 않는다** — 전부 내부 회계다."""
+
+    representation: str = TOTAL_ORDER
+    groups_seen: int = 0
+    promoted_pairs: int = 0  # I_g의 항목 쌍 수 (전 그룹 합)
+    promoted_edges: int = 0  # 그중 실제로 발행된 간선 수
+    promoted_same_robot_pairs: int = 0  # 같은 로봇 쌍 — Type-1이 이미 준다
+    promoted_unrepresentable_pairs: int = 0  # dep/arr 부재로 못 실은 쌍
+    free_pairs: int = 0  # 차집합에서 발행된 간선 수 (전 대안 합)
+    groups_with_terminal_item: int = 0
+    terminal_items_blocked: int = 0  # 🔴 종점 항목의 arr를 막는 승격 간선이 하나라도 있는 그룹 수
+    groups_folded_degenerate: int = 0  # 자유부가 대안을 구별하지 못해 접힌 그룹 수
+    lc4_groups_checked: int = 0
+    lc4_violations: int = 0
+
+
+def apply_lift_cut(
+    graph: ExecGraph,
+    view: PlanView,
+    representation: str = TOTAL_ORDER,
+    fold_degenerate: bool = True,
+) -> LiftCutStats:
+    """정리 LIFT-CUT을 **제자리에서** 적용한다 — $I_g$를 고정 의존으로 올리고 자유부만 남긴다.
+
+    각 그룹 $g$에 대해
+    1. $I_g$를 `representation`이 정한 표현 위에서 계산하고,
+    2. $I_g$의 **모든** 쌍을 `graph.fixed`로 올리고(간선 중복은 `is_acyclic`이 견딘다),
+    3. 각 대안의 간선을 $\\prec_a\\setminus I_g$의 간선으로 **교체**한다.
+
+    `fold_degenerate=True`면 «모든 대안의 간선 집합이 같아진» 그룹을 고정 의존으로 접는다 —
+    선택할 것이 남지 않은 그룹이기 때문이다(`11c_r2` §R2-2의 $|A_g|=1$ 처리와 같은 자리).
+
+    🔴 **왜 «모든 쌍»인가**: $I_g$의 이행 축소만 실어도 Type-1 사슬이 다리를 놓아 도달 관계는
+    같지만, (L3′)의 문언은 표현 층위 요구이므로 **가장 문자 그대로인 쪽**을 골랐다. 대가는
+    간선 수 증가이며 §72의 비용 표에 그 값을 남긴다.
+
+    돌려주는 것: `LiftCutStats`. **판정하지 않는다.**
+    """
+    stats = LiftCutStats(representation=representation)
+    survivors: list[SwitchGroup] = []
+    for group in graph.groups:
+        stats.groups_seen += 1
+        promoted = forced_pairs(group.alternatives, representation)
+        stats.promoted_pairs += len(promoted)
+
+        promoted_edges: list[Precedence] = []
+        for a, b in sorted(promoted):
+            if a[0] == b[0]:
+                stats.promoted_same_robot_pairs += 1
+                continue
+            edge = pair_edge(view, a, b)
+            if edge is None:
+                stats.promoted_unrepresentable_pairs += 1
+                continue
+            promoted_edges.append(edge)
+        stats.promoted_edges += len(promoted_edges)
+        graph.fixed.extend(promoted_edges)
+
+        terminals = [it for it in group.original if departing_segment(view, it) is None]
+        if terminals:
+            stats.groups_with_terminal_item += 1
+            blocked_targets = {e.dst for e in promoted_edges}
+            if any(arriving_segment(view, it) in blocked_targets for it in terminals):
+                stats.terminal_items_blocked += 1
+
+        new_alternatives: list[Alternative] = []
+        for alt in group.alternatives:
+            free = total_order_pairs(alt.order) - promoted
+            edges: list[Precedence] = []
+            for a, b in sorted(free):
+                edge = pair_edge(view, a, b)
+                if edge is not None:
+                    edges.append(edge)
+            stats.free_pairs += len(edges)
+            new_alternatives.append(
+                Alternative(alt.order, tuple(edges), alt.is_original, alt.source_index)
+            )
+        group.alternatives = new_alternatives
+
+        if fold_degenerate and len({a.edges for a in new_alternatives}) <= 1:
+            graph.fixed.extend(new_alternatives[0].edges)
+            stats.groups_folded_degenerate += 1
+            graph.stats.groups_folded_single += 1
+            continue
+        survivors.append(group)
+
+    graph.groups = survivors
+    graph.stats.groups_emitted = len(graph.groups)
+    total = 1
+    for g in graph.groups:
+        total *= len(g.alternatives)
+    graph.stats.total_combinations = total
+    graph.stats.same_robot_ordering_edges = _count_duplicate_direction_edges(graph)
+    graph.stats.critical_path_segments = critical_path_segments(graph)
+    return stats
+
+
 def inject_cycle(graph: ExecGraph) -> str:
     """🔴 **일부러 순환을 만든다.** 음성 시험 전용이며 정상 경로에서 부르지 않는다.
 
