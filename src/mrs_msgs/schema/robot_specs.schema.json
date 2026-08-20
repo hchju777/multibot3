@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.robot_specs/1.0.0",
+  "title": "mrs.robot_specs 1.0.0 — 인스턴스 생성기 -> mapf · sadg · trajopt (공통 입력)",
+  "description": "계약 정본: _workspace/171b_contract_closure.md §2 / 초안 출처: 160_seam2_contract.md §160-4-3 / 이름 개명·평가 시점: 162a_seam2_contract_r2.md §2-3·§2-5 / S-2 정본 지정: 171b §2. 로봇 명세의 유일 정본이며 인스턴스 데이터다 — 139_pp_frame_decisions.md:31 D-5 '로봇마다 속도가 다르다. 값은 서버에 로봇을 등록할 때 스펙과 함께 등록한다'. 로드맵과 같은 취급이다: latched · 기동 1회 발행 · run 내 불변(139:215 S-1 · 139:258 U-1). 유실 = 기동 불가이며 예외 + 종료 코드 1(CN-15, 로드맵과 같은 자리). 값이 하나도 정해지지 않았다 — 아래는 부호·단위·정의역만 규정한다.",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/RobotSpecs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "robots"],
+  "properties": {
+    "schema": {
+      "const": "mrs.robot_specs",
+      "x-ros-type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "x-ros-type": "string",
+      "description": "§0-1 버전표 규약 승계. const가 옳다(48_contract_amendment.md §18-8). 이 판은 미발행 초판이며 파일 신설이 곧 1.0.0의 내용 확정이다 — 판번호를 올리지 않은 이유는 소비 측이 어떤 판도 읽은 적이 0회이기 때문이다(13_interface_contract.md §3-3 (iii): 미용을 위해 MAJOR를 쓰면 버전 번호가 무엇이 깨졌는지 말하지 못한다). 🔴 163_seam2_gate_r2.md가 조건부 승인한 초안은 필드 둘(robot · 속도 하나)이었고 이 판은 여섯이다 — 그 조건부 승인의 재확인 대상이다."
+    },
+    "instance_id": {
+      "type": "string",
+      "x-ros-type": "string",
+      "x-todo": "B-9."
+    },
+    "robots": {
+      "type": "array",
+      "minItems": 1,
+      "x-ros-msg": "mrs_msgs/msg/RobotSpec",
+      "description": "로봇 명세 배열. minItems:1 — 로봇 0대 인스턴스는 정의되지 않는다(mrs.assignment.assignments와 같은 잣대). 배열 순서에는 뜻이 없다. run 중 로봇 증감이 없다는 전제(139:258 U-1) 아래 순서수를 두지 않았다 — 갱신이 필요해지면 순서수 추가는 MINOR이며 이 판이 그 길을 막지 않는다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "robot", "avg_traversal_speed_mps", "v_max",
+          "brake_decel_min_mps2", "curvature_max_invm", "reverse_motion_allowed"
+        ],
+        "properties": {
+          "robot": {
+            "type": "string",
+            "x-ros-type": "string",
+            "description": "인스턴스 로봇 식별자. 세계의 사실. mrs.assignment.assignments[].robot과 같은 이름 공간이며 그 명부와의 집합 동일성은 아래 x-set-equal이 진다."
+          },
+          "avg_traversal_speed_mps": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-unit": "m/s",
+            "x-ros-type": "float64",
+            "description": "0 초과. 로봇의 공칭 평균 주행 속도. 스칼라 크기이며 방향이 없다(0 = 정지). 하드웨어·등록 스펙이 정한다 — 솔버를 바꿔도 같은 값이다(139:31 D-5). v_max(하드웨어 한계)와 다른 양이며 139:32 D-6이 '평균 속도를 쓴다 — 가감속·회전을 반영한 정밀한 값을 쓰지 않는다'로 뜻을 못 박았다. 🔴 이름이 nominal_speed_mps가 아닌 이유: 그 이름은 27_spike_preregistration.md §1-1의 단일 동결 상수 v_nom의 config 키이자 NOTATION.md:357의 binding이고, 같은 이름을 로봇별 경계 필드에 쓰면 check_prereg_frozen.py의 walk()가 중첩 어디에 있든 키 이름만으로 찾아 config 쪽만 보고 종료 0을 낸다(162a §2-2). 소비자: mapf(139:30 D-4의 순서 축) · sadg(LADP.4의 공칭 소요). trajopt는 이 필드의 소비자가 아니다. 정격인가 실측인가(139:260 U-3)는 계약이 규정하지 않는다 — 계약이 요구하는 것은 '계획과 실행이 같은 값을 쓴다'뿐이다. 접미사 규율의 대상이다(48 §18-4-2)."
+          },
+          "v_max": {
+            "type": "number",
+            "minimum": 0,
+            "x-unit": "m/s",
+            "x-ros-type": "float64",
+            "x-unit-suffix-exempt": true,
+            "description": "0 이상, 크기(부호 없음). 기준점 속도의 하드웨어 한계. 하드웨어가 정한다. S-2 판정으로 이 값의 정본이 여기로 왔다 — 166a_trajopt_req.md §2-3 항목 1(로봇별 필수): 하류가 fleet-min으로 묶으면 빠른 로봇의 실행 소요가 상류 공칭보다 커지고 그 어긋남이 경로 길이에 비례해 누적해 정시 운행 중인 로봇이 승급된다. 🔴 정의역은 mrs.trajectories 1.1.0의 limits.v_max에서 그대로 승계했다(minimum:0) — 정의역을 좁히는 것은 의미 변경이고 이 라운드의 판정 대상이 아니다. 면제 사유: 로봇별 인스턴스 데이터라 동결 단일 상수로 등재될 수 없다(48 §18-4-2) + v0 이름 유지(13 §3-3)."
+          },
+          "brake_decel_min_mps2": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-unit": "m/s^2",
+            "x-ros-type": "float64",
+            "description": "0 초과. '보장되는 최소 제동 감속'의 하한이며 상한이 아니다 — 이름의 _min이 그 사실을 박는다(13 §3-3). 로봇별 필수(166a §2-3 항목 7): 한 벌로 접으면 fleet-min이 가장 나쁜 로봇의 제동 거리로 전 편대를 보수화하고, 그 보수화가 늘리는 것이 폴백 3(제자리 유지)·4(정지 선언)의 발동률이며 그 발동률이 SC-16·SC-1이 재려는 현상 자체다. 🔴 v_max가 로봇별이 되는 순간 짝이 맞아야 한다 — 제동 거리는 속도와 제동 감속의 비로 정해지므로 분자만 로봇별이고 분모가 한 벌이면 로봇마다 다른 보수성이 생기고 그 차이가 방법이 아니라 로봇의 차이로 지표에 들어온다."
+          },
+          "curvature_max_invm": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-unit": "1/m",
+            "x-ros-type": "float64",
+            "description": "0 초과. 기준점 경로 곡률 상한. 최소 회전 반경은 1/curvature_max_invm이며 별도 필드를 만들지 않는다. 낱말형 이름을 쓴 이유는 kappa가 NOTATION.md에서 승급 횟수이기 때문이다(13 §3-3). 로봇별 필수(166a §2-3 항목 8): 한 벌(fleet-min)로 잡으면 작은 로봇이 물리적으로 갈 수 있는 간선을 '못 간다'로 판정하고, 그 판정은 mrs.realizability로 경계를 넘어가 서버의 지정을 바꾼다 — 표현상의 선택이 상위 계층의 거동을 바꾸는 것은 SC-4가 금지하는 형태다. fleet-max는 큰 로봇이 못 도는 곡선을 돈다고 광고하게 되어 불건전하다."
+          },
+          "reverse_motion_allowed": {
+            "type": "boolean",
+            "x-ros-type": "bool",
+            "description": "후진 가부. 명제 (G2-d)의 전제 B5(최대 제동 입력이 정지 후 후진으로 넘어가지 않는다)를 나른다. 로봇별 필수(166a §2-3 항목 9): 전제가 로봇마다 다른데 한 비트로 접으면 OR는 성립하지 않는 로봇에 결론을 쓰고(위험), AND는 후진 가능한 로봇의 회복 수단을 지워 SC-16이 재는 폴백 발동률을 아래로 편향시킨다."
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {
+      "id": "spec_robot_unique",
+      "collection": "#/robots/*",
+      "key": "robot",
+      "note": "run 내 유일. 한 로봇에 명세 하나 [유도] — 계약에 명시가 없고 '명세'라는 성격에서 유도했다. mrs.trajectories의 trajectory_robot_unique와 같은 계열이다."
+    }
+  ],
+  "x-set-equal": [
+    {
+      "id": "spec_roster_matches_assignment",
+      "left": "#/robots/*/robot",
+      "right": "mrs.assignment#/assignments/*/robot",
+      "note": "로봇 명부의 진실 원천은 mrs.assignment이고 이 배열은 그 명부와 같은 집합이어야 한다. 평가 단위는 같은 instance_id의 run 아티팩트 묶음이고 평가 시점은 기동 검사 1회다. 묶음이 없으면 판정 불가(종료 코드 2) — mrs.discrete_plan의 robot_roster_matches_assignment와 같은 규약이다. 이 대조가 발행 판본에 무관한 것은 139:258 U-1(run 중 로봇 증감 없음) 아래에서다. U-1이 깨지면 이 규칙은 재정의되어야 한다."
+    }
+  ],
+  "x-layer2-note": "🔴 이 주석의 A숫자는 goal_completion.schema.json:44가 규정한 세 이름 공간 중 (2) 층 2 조항이며 하이픈이 없다. 신설 셋의 번호는 이 파일 작성 시점의 최대 배정 A32(mrs.goal_completion) 다음이다 — 배정 정본 45_schema_source_draft.md §45-1이 A24까지만 실어 A25~A32가 미등재인 상태를 그대로 승계했고 그 정본의 갱신은 이 라운드의 몫이 아니다. 표현 불가 조항 3건. 🔴 층 2 조항 A33(신설) — mapf·sadg는 robots[]의 물리 한계 넷(v_max · brake_decel_min_mps2 · curvature_max_invm · reverse_motion_allowed)을 읽지 않는다. 그 둘의 합법 소비는 robot과 avg_traversal_speed_mps 둘뿐이다. 읽으면 이산 계획 단계가 물리 모델에 묶여 모듈 교체 가능성이 깨지고 SC-4가 실험 없이 반증된다 — mrs.roadmap의 A16(provenance 소비자 등록 금지·값 분기 금지)과 같은 형태이며 아티팩트에 관측 경로가 없어 구조 검사로만 가능하다. 🔴 층 2 조항 A34(신설) — 같은 항목 안에서 avg_traversal_speed_mps <= v_max. 두 값의 수치 비교라 층 1의 확장 키워드로 표현되지 않는다(x-derived-from은 pattern-group 비교뿐이다). 대조하지 않으면 공칭이 한계보다 빠른 인스턴스가 조용히 통과한다(166a §2-3 항목 1). 🟢 두 값이 한 문서 안에 있으므로 이 조항은 단일 문서 층 2이며 교차 문서가 아니다 — S-2 정본을 이 파일로 지정한 직접 이득이다. 🔴 층 2 조항 A35(신설) — 어블레이션 조건 (B): 같은 시드가 같은 로봇 집합·같은 스펙을 준다. 이것은 run 묶음 사이의 성질이라 단일 아티팩트로 표현되지 않는다(166a §2-4 (B)). 계약이 지는 것은 절반뿐이다 — 이 파일의 어느 필드도 method.modules.* 트리를 참조하지 않는다는 구조적 사실이고, 조건 간 동일성 자체는 실험 하네스가 진다. 조건 (C)(로봇 스펙 사상의 지문)는 runs/{run_id}/result.json의 것이며 계약 조항이 아니다 — 다만 이 파일이 결정론적으로 직렬화되므로 지문의 입력이 된다.",
+  "x-forbidden-note": "경계에 올리지 않은 것과 사유. 차체 다각형·외접 반경·내접 반경: mrs.trajectories §8이 명시로 거절했고 이 파일이 그 거절을 뒤집지 않는다 — 교행을 채택할 때만 재검토 대상이며 그 결정은 사용자의 것이다(166a §1-4). min_separation_m: 두 로봇 사이의 양이라 한 로봇에 귀속되지 않는다 — 로봇별이 될 수 없고 mrs.trajectories.limits에 한 벌로 남는다(166a 발주 정정 4). a_max · j_max · omega_max_radps · yaw_accel_max_radps2: «자기 궤적 생성과 사후 검사» 용도에서는 한 벌(fleet-min)로 접어도 건전하고 측정을 편향시키지 않는다 — 필수와 권고를 가르지 않으면 '필수'라는 낱말이 정보를 잃는다(166a §2-3 항목 2·3·5·6). 🔴 2026-08-15 단서: 소비 용도가 하나 늘었다(204b §3-4k (2) 「남의 모델」). 그 용도에서는 fleet-min이 상대를 과소평가하므로 위 판정이 성립하지 않는다 — 이 판의 봉투는 그 셋을 쓰지 않고 robot_specs의 로봇별 값만으로 세워야 한다(207a §207a-3-1). 이 단서는 필드·required·정의역을 바꾸지 않는다. 절대 시각·타임스텝·makespan·cost: 이 아티팩트는 기동 1회 latched이고 시각을 나르지 않는다. 솔버·지평·가중치·시드·반복 상한·서브옵티멀 계수: 알고리즘 파라미터이며 src/mrs_bringup/config/{모듈}.yaml에 산다. 로봇 우선순위·타이브레이크 순서: 순서를 정하는 방식은 방법 종속이고 (S-c) 전역 타이브레이크는 식별자에서만 나온다. 배터리·적재량·센서 목록: 오늘 소비자가 0이며 소비자가 0인 정보는 스키마 오염의 전조다. additionalProperties:false가 이 전부의 재진입을 구조로 막는다."
+}
