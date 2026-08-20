@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.execution_constraints/1.1.0",
-  "title": "mrs.execution_constraints 1.1.0 — SADG(T0) -> 궤적 최적화 (SC-4 freeze target)",
+  "$id": "https://multibot3/schema/mrs.execution_constraints/2.0.0",
+  "title": "mrs.execution_constraints 2.0.0 — SADG(T0) -> 궤적 최적화 (SC-4 freeze target)",
   "description": "계약 정본: 13_interface_contract.md §2 / 정정: 48_contract_amendment.md §18-6(A10). 릴리스 조건은 그래프가 함축한다 — 시간을 주지 않는다(§2-2(5)).",
-  "x-contract-version": "1.1.0",
+  "x-contract-version": "2.0.0",
   "x-ros-msg": "mrs_msgs/msg/ExecutionConstraints",
   "$defs": {
     "dependency": {
       "type": "object",
+      "description": "［D］ from → to 는 선행 → 후행이다. 뜻은 「from 세그먼트가 완료된 뒤에만 to 세그먼트가 개시될 수 있다」이며, 코드가 to 에서 from 으로 훑으면 방향이 뒤집힌다. 🔴 정점은 언제나 배타다. mrs.discrete_plan.visit_order[v].sequence 가 그 정점의 전순서를 주고, 이 배열로 가는 사상은 하나뿐이다 — 「퇴거 → 진입」: 선행 관계에 있는 두 항목 (r,i)·(s,j) 에 대해 from = out(r,i) = {r}#{i}, to = in(s,j) = {s}#{j-1}. 즉 선행 로봇이 그 정점에서 나가는 세그먼트가 후행 로봇이 그 정점으로 들어오는 세그먼트를 앞선다. 🔴 간선 용량으로 분기하지 않는다 — mrs.roadmap.edges[].capacity_robots 는 이 사상에 들어오지 않으며, 그 값의 준수 판정 자리는 mrs.trajectories + mrs.roadmap 이다(A25). r=s 인 쌍(같은 로봇의 재방문)은 의존을 만들지 않는다 — 그 순서는 dependencies 의 sequential 사슬이 이미 강제하고, 뒤집을 수 없는 관계를 스위치 대안에 실으면 §2-2(2)의 「완전」이 실현 불가능한 대안을 포함하게 된다. 이 아크가 무엇을 막는가는 mrs.segment_release 가 정본이다(개시 금지) — 이 스키마는 그 정의를 되풀이하지 않는다. 정본 162a_seam2_contract_r2.md §162a-1-2 ［D］ · 171b_contract_closure.md §1-4 · 사용자 결정 2026-08-11 규칙 1 · 게이트 163·172·177.",
       "additionalProperties": false,
       "required": ["from", "to", "type"],
       "properties": {
@@ -48,7 +49,7 @@
       "x-ros-type": "string"
     },
     "schema_version": {
-      "const": "1.1.0",
+      "const": "2.0.0",
       "x-ros-type": "string",
       "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
     },
@@ -114,7 +115,7 @@
     },
     "dependencies": {
       "type": "array",
-      "description": "고정 의존. 빈 배열은 세그먼트가 0~1개일 때 정상이다.",
+      "description": "고정 의존. ［D3］ 각 로봇의 연속한 두 세그먼트 {r}#{k}·{r}#{k+1} 마다 type:\"sequential\" 의존이 이 배열에 반드시 실린다 — 같은 로봇의 비인접 쌍 (k,k+2) 의 관계는 이 사슬을 따라 전이한다. ［D4］ 각 스위치 그룹 g 에 대해 edges_of(I_g) 를 type:\"ordering\" 으로 이 배열에 싣는다. I_g 는 그 그룹의 모든 대안이 공유하는 선행쌍의 이행 폐포이며(［D2′］), 그 쌍은 모든 대안에서 같은 방향이라 스위칭이 뒤집을 수 없다 — 뒤집을 수 없는 관계를 대안에 실으면 §2-2(2)의 「완전」이 실현 불가능한 대안을 포함하게 된다(［D］가 r=s 에 적용한 원칙 그대로). 🔴 I_g 를 커버 관계의 교집합에서 계산하지 않는다 — tc(∩_a cover(a)) ⊊ I_g 이고 그 차이가 종점 항목을 안 막는다. 🔴 빈 배열은 모든 로봇의 세그먼트가 0~1개이고 스위치 그룹이 하나도 없을 때만 정상이다. 정본 171b_contract_closure.md §1-4 ［D4］ · 162a §162a-1-2 ［D3］.",
       "items": {
         "$ref": "#/$defs/dependency"
       }
@@ -143,7 +144,7 @@
           "alternatives": {
             "type": "array",
             "minItems": 2,
-            "description": "대안은 '내용'으로 실린다 — 불투명 인덱스가 아니다. §2-2(3). 한 그룹의 대안들은 상호 배타·완전이고 모두 같은 구성원 집합 위의 다른 통행 순서다(§2-2(2)) — 그 둘은 표현 불가(A8·A9). 구성원 로봇 집합은 필드가 아니라 유도값이다(§2-2(4)). 대안은 2개 이상이다(§2-2(8)) — |A_g|=1인 위치는 그룹을 만들지 않고 루트 dependencies의 고정 의존으로 낸다. 선택할 것이 없는 그룹이 남으면 하류가 '선택 대기'로 읽고 그 그룹은 영원히 커밋되지 않는다. 이 하한은 대안 생성 규칙과 무관한 구조적 성질이다. 55_contract_holes.md §55-4.",
+            "description": "대안은 '내용'으로 실린다 — 불투명 인덱스가 아니다. §2-2(3). 한 그룹의 대안들은 상호 배타·완전이고 모두 같은 구성원 집합 위의 다른 통행 순서다(§2-2(2)) — 그 둘은 표현 불가(A8·A9). 구성원 로봇 집합은 필드가 아니라 유도값이다(§2-2(4)). 대안은 2개 이상이다(§2-2(8)) — |A_g|=1인 위치는 그룹을 만들지 않고 루트 dependencies의 고정 의존으로 낸다. 선택할 것이 없는 그룹이 남으면 하류가 '선택 대기'로 읽고 그 그룹은 영원히 커밋되지 않는다. 이 하한은 대안 생성 규칙과 무관한 구조적 성질이다. 55_contract_holes.md §55-4. ［D2′］ 한 그룹의 각 대안은 mrs.discrete_plan.visit_order[location].sequence 의 항목들의 순열 중 적합성 조건 ［M］((M1) 첫 항목을 제외한 모든 항목 (s,j) 는 j>=1 / (M2) 마지막 항목을 제외한 모든 항목 (r,i) 는 i<=|steps_r|-2 / (M3) 같은 로봇의 두 항목은 index 오름차순으로만) 를 만족한다. 🔴 어떤 순열들이 대안으로 실리는지(대안 집합의 크기)는 경계가 규정하지 않는다 — 그것은 생성기의 것이고 경계에 넣으면 생성기 교체가 계약 변경이 되어 어블레이션이 정의상 깨진다. 각 대안이 ［M］를 만족하는가만 경계가 판정한다. 각 대안 a 에 대해 prec(a) 를 그 통행 순서가 정하는 선행쌍 전부(인접 쌍이 아니라 이행 폐포)로 두고, 그룹 공통부를 I_g := tc(∩_{a∈A_g} prec(a)) 로 두며, 이 배열에는 차집합 prec(a) \\ I_g 에 $defs.dependency 의 사상을 적용한 결과만 싣는다. r=s 인 쌍은 만들지 않는다(［D］). 🔴 대안의 dependencies 는 자기 완결적이지 않다 — 소비 측이 대안 하나만 읽고 전순서를 재구성하면 조용히 틀린다. 전순서는 루트 dependencies ∪ 지정된 대안 에서만 나온다. 순열이 하나뿐인 위치는 그룹을 만들지 않고 그 결과를 루트 dependencies 에 낸다(§2-2(8)). 결과가 공집합이면 아무것도 내지 않는다. 🔴 ［M］가 Y-1(세그먼트 0개 로봇)을 유도로 닫는다 — 신설 필드 0건. 정본 171b_contract_closure.md §1-4 ［D2′］ — 162a §162a-1-2 ［D2］는 철회됐다 · ［M］는 162a §162a-1-4.",
             "items": {
               "type": "object",
               "additionalProperties": false,

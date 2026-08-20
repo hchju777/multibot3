@@ -1,33 +1,32 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.replan_request/1.0.0",
-  "title": "mrs.replan_request 1.0.0 — sadg_t0 -> mapf (action goal 부)",
-  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-2 / 정정: §17-2(committed_segment_count). 절대 시각을 싣지 않는다.",
-  "x-contract-version": "1.0.0",
+  "$id": "https://multibot3/schema/mrs.replan_request/5.0.0",
+  "title": "mrs.replan_request 5.0.0 — sadg_t0 -> mapf (action goal 부)",
+  "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-2 / 정정: §17-2(committed_segment_count). 절대 시각을 싣지 않는다. 🔴 3.0.0 MAJOR 사유(필드 추가·삭제 0건): blocked의 x-todo 「reason과의 관계가 미기재」를 ctrl_stop_declared에 대해 닫았고, 그 값의 요청에 blocked:[]를 실은 아티팩트가 이후 불법이 된다 — 합법 아티팩트 집합의 축소이며 13_interface_contract.md :37·:39·:40·:45가 네 번 쓴 잣대와 같다. 정본 196 §196-4-1, 게이트 198 §198-3-4. 🔴 4.0.0 MAJOR 사유(필드 추가·삭제 0건, 어휘 확장 0건): (1) infeasible_subgoal ↔ unresolvable_locally 판별식 확정 — 미정이던 의미의 확정이라 «남의 약속이 원인인데 infeasible_subgoal 을 실은 아티팩트»가 이후 불법이 된다. (2) 항등 중계를 ctrl_stop_declared 한 값에서 전 reason 으로 확장 — 열린 선언이 있는데 blocked 에 그것을 안 실은 아티팩트가 이후 불법이 된다. 둘 다 합법 아티팩트 집합의 축소이며 13 :37·:39·:40·:43·:45 가 다섯 번 쓴 잣대와 같다. 정본 207a §207a-4 · §207a-11 · §207a-17. 🔴 5.0.0 MAJOR 사유(필드 추가·삭제 0건, 어휘 확장 0건): (1) reason 판별식을 2분법 → 3분법 총순서로 바꿨다 — 개정 전에는 「벽」처럼 두 시험이 반대 답을 주는 사건에 어느 값을 실어도 합법이었고(판별식이 함수가 아니었다) 이후 하나만 합법이다. (2) blocked[] 항등 중계의 정의역을 「열린 모든 선언」 → 「열린 exogenous_block 선언」으로 좁혔다 — 4.0.0 에서 합법이던 아티팩트(비-exogenous 열린 간선을 실은 것)가 불법이 되고, 4.0.0 에서 불법이던 것(그것을 안 실은 것)이 합법이 된다. 양방향 변경이며 (1)은 합법 아티팩트 집합의 축소, (2)는 소비 측 전제의 파괴다. 정본 231 §231-1 · §231-2.",
+  "x-contract-version": "5.0.0",
   "x-ros-msg": "mrs_msgs/action/Replan (goal 부)",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "schema_version", "instance_id", "reason", "affected_robots", "blocked", "blocked_hash", "ordering_constraints", "baseline"],
   "properties": {
     "schema": {"const": "mrs.replan_request", "x-ros-type": "string"},
-    "schema_version": {"const": "1.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "schema_version": {"const": "5.0.0", "x-ros-type": "string", "x-todo": "B-10."},
     "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
     "reason": {
       "enum": ["exogenous_block", "ctrl_stop_declared", "infeasible_subgoal", "orientation_flip", "unresolvable_locally", "horizon_exhausting"],
       "x-ros-type": "uint8",
-      "description": "닫힌 어휘 6값(§6-2). blocked는 exogenous_block으로 흡수했다 — 짧은 이름이 '누가 막았는가'를 지우고 그 구별이 SC-6의 정온 창 판정이 요구하는 것이다. first_goal_idle은 넣지 않았다(계획기 내부 트리거이며 요청으로 오지 않는다). 승급 단 번호가 어휘에 없다 — unresolvable_locally는 관측 사실이지 L2/L3 구별이 아니다. 값 horizon_exhausting은 키가 아니라 값이므로 check_schema_purity.py의 horizon 패턴에 걸리지 않는다(그 스크립트는 키만 훑는다) — 다만 §10-1이 같은 이유로 terminal의 값 후보를 바꾼 전례가 있다."
+      "description": "닫힌 어휘 6값(§6-2). blocked는 exogenous_block으로 흡수했다 — 짧은 이름이 '누가 막았는가'를 지우고 그 구별이 SC-6의 정온 창 판정이 요구하는 것이다. first_goal_idle은 넣지 않았다(계획기 내부 트리거이며 요청으로 오지 않는다). 승급 단 번호가 어휘에 없다 — unresolvable_locally는 관측 사실이지 L2/L3 구별이 아니다. 값 horizon_exhausting은 키가 아니라 값이므로 check_schema_purity.py의 horizon 패턴에 걸리지 않는다(그 스크립트는 키만 훑는다) — 다만 §10-1이 같은 이유로 terminal의 값 후보를 바꾼 전례가 있다. 🔴 5.0.0 판별식(3분법·총순서. 4.0.0 의 2분법을 대체한다): 가르는 축은 «이 차단이 누구에 대한 사실인가»이고 조작적으로는 «로봇 식별자를 바꾸면 사라지는가» 하나다. 아래 순서로 한 번만 답한다. (Q1) 이 유향 간선이 «로봇 식별자와 무관하게» 지금 통과 불가임을 확정할 수 있는가 — 그렇다면 exogenous_block. 확정할 수 없으면 이 값을 싣지 않는다(blocked 는 하한이고 부재를 «안 막혔다»로 읽지 않는다, §6-2-2). (Q2) 남(다른 로봇과 그들의 공표 약속)과 상류의 결정(릴리스 상태 = 금지 영역·상류가 준 통행 순서·지나온 노드 제약)을 전부 이상적으로 치워도 후보 공집합이 남는가 — 그렇다면 infeasible_subgoal. (Q3) 그 밖은 unresolvable_locally. 🔴 Q1>Q2>Q3 는 총순서다 — 4.0.0 의 «둘 다 성립하면 infeasible_subgoal» 을 그대로 승계하고 그 앞에 exogenous_block 을 둔다(세계의 사실은 남에게도 필요하므로 안전 쪽 정보를 늦추지 않는다). 우선순위가 없으면 판별식이 함수가 아니다. 🔴 infeasible_subgoal 의 «자신의»는 «원인이 로봇 안에만 있다»가 아니다 — 벽은 로봇 밖에 있지만 다른 차체라면 지나가므로 Q2 가 참이고 이 값이다. 4.0.0 의 «원인의 소재»라는 말이 이 오독을 만들었고 5.0.0 은 «차단의 귀속»으로 바꿔 적는다. 이 판정은 «원인»이지 «해소 가능성»이 아니다: unresolvable_locally 를 실었다고 상류가 해소할 수 있다는 뜻이 아니며, A-LOCK · N1 표현 불가 · 지나온 노드 회귀 금지 셋이 함께 걸리는 배치에서는 해소되지 않는다(205 §205-5-2). 정본 13_interface_contract_p2.md §6-2 · 231 §231-1. 🔴 정본을 판번호로 인용하지 않는다 — 4.0.0 이 mrs.stop_declaration 에 «replan_request 4.0.0 과 같은 것» 을 적게 해서 이 채널이 판을 올릴 때마다 저쪽 문장이 거짓이 되는 구조를 만들었다."
     },
     "affected_robots": {
       "type": "array",
       "uniqueItems": true,
       "x-todo": "B-1: minItems 미기재.",
       "items": {"type": "string", "x-ros-type": "string"},
-      "description": "요청 범위. 확장된 집합 A*는 싣지 않는다. §6."
+      "description": "요청 범위 A^req. 🔴 이 배열은 하한이다 — 「1차 목록(반드시 포함)」이며 계획기는 이것을 반드시 포함하고 효율을 이유로 넓힐 수 있다(D-10). 계획기가 확장한 집합 A^pln 은 싣지 않는다 — 그것은 효율 휴리스틱의 산물이며 실으면 계열 교체가 계약 변경이 된다. 🔴 따라서 이 배열 밖 로봇의 계획이 바뀌는 것은 계약 위반이 아니다 — 이 배열만으로 「부분 재계획 diff」를 판정하면 정당한 확장을 위반으로 계상한다. 정본 160 §160-9."
     },
     "blocked": {
       "type": "array",
-      "x-todo": "B-1: 빈 배열 허용 여부와 reason과의 관계가 미기재.",
-      "description": "유향 간선. 세계의 사실(차단). §6. 동적 방향 배정은 로드맵이 아니라 여기와 실행 계층의 커밋 상태에 있다(§4-2).",
+      "description": "유향 간선. 세계의 사실(차단). §6. 동적 방향 배정은 로드맵이 아니라 여기와 실행 계층의 커밋 상태에 있다(§4-2). 🔴 5.0.0 중계 규칙(요청 사유 무관 · 선언 사유 한정): reason 과 무관하게 모든 요청에서 이 배열은 그 시점에 열려 있는(개시됐고 아직 해제되지 않은) mrs.stop_declaration.declarations[] 중 reason 이 exogenous_block 인 것의 blocked_edge 를 원소로 포함한다. 사상은 항등이며 노드 조회·「가장 가까운 노드」·기하 계산을 하지 않는다. 🔴 축이 둘이라는 것을 명시한다: 「요청의 reason 에 의존하지 않는다」는 4.0.0 그대로 유지하고(그것이 196 §196-10 미해결 7 을 닫았다), 5.0.0 이 새로 좁히는 것은 「선언의 reason」이다 — 4.0.0 은 그 축에 대해 침묵했다. 🔴 이 배열은 하한이되 그 하한은 affected_robots와 성격이 다르다 — affected_robots의 확장은 효율(D-10)이고, 간선 용량에서 유도되는 역방향 배향의 추가는 안전이다. 후자를 「더할 수 있다」로만 두지 않는다: 오늘 계약이 요구하는 것은 위 항등의 하한뿐이고 역방향 유도 규칙은 미해결이며(196 §196-10 미해결 2) 「합법」이 아니다. 정본 196 §196-2-2. 🔴 4.0.0: 중계 조건을 없앴다 — 3.0.0 은 이 규칙을 ctrl_stop_declared 한 값에만 걸었고 나머지 5값은 미기재였다(196 §196-10 미해결 7). blocked 는 「세계의 사실」이므로 «왜 지금 요청하는가»에 의존하지 않는다. 그 조건이 있는 동안 둘이 성립했다: (i) reason: exogenous_block 에 blocked: [] 를 실은 아티팩트가 합법이라는 자기모순 (ii) mrs.stop_declaration 은 trajopt -> sadg_t0 채널이라 mapf 로 가지 않으므로, 다른 사유로 요청하면 열린 차단이 계획기에 전달되지 않는다. 이 확장으로 미해결 7 이 닫힌다. 🔴 빈 배열은 합법이며 minItems 를 넣지 않는다 — 열린 선언도 외생 차단도 0건인 시점의 요청이 합법이므로 전역 하한을 걸면 그 아티팩트를 거절하게 된다. reason 별 하한은 층 1이 아니라 층 2가 진다. 🔴 infeasible_subgoal · unresolvable_locally 는 「그 사유 자체로」 이 배열에 더하는 원소가 0개다 — 두 사유의 원인은 남의 약속 · 금지 영역 · 지나온 노드 제약 · 자기 기하이고 그중 어느 것도 «그 간선이 차단됐다»가 아니다. 후보 간선 (v,u) 를 싣는 것은 거짓 사실을 싣는 것이며 기각한다(205a §R4-6-4 기각 대안 ②, S-B7 과 같은 잣대: 경계는 사실을 나르고 유도를 나르지 않는다). 그 두 사유의 요청에서도 위 항등 중계는 그대로 걸린다 — 「이 사유가 더하는 것이 0개」이지 「이 배열이 항상 비어 있다」가 아니다. 🔴 5.0.0 정밀화: 위 문장은 「요청의 사유」에 대한 것이었고 참이다. 「선언의 사유」에도 같은 잣대를 적용해 이제 둘 다 닫힌다 — reason 이 infeasible_subgoal · unresolvable_locally 인 열린 선언의 blocked_edge 는 이 배열에 들어가지 않는다. 그 값의 blocked_edge 는 «이 로봇이 그 방향으로 못 나아간다»이고 «그 간선이 차단됐다»가 아니므로, 실으면 남의 로봇은 지나갈 수 있는 간선을 계획기가 차단으로 읽는다 — 같은 문단이 기각한 거짓 사실과 같은 형태다. 4.0.0 까지 이 누수가 열려 있었고 표본이 그것을 발화시키지 않았다(207a_p3 §207a-19-2 · 230 §230-5-2). 정본 13_interface_contract_p2.md §6-2 · 207a §207a-11 · §207a-17.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -52,7 +51,7 @@
     },
     "ordering_constraints": {
       "type": "array",
-      "description": "mrs.discrete_plan.visit_order와 동형. 순서수 전용이며 시간이 없다. §6.",
+      "description": "mrs.discrete_plan.visit_order 와 같은 모양이며 같은 값이 아니다. 각 location 의 sequence 는 그 정점의 이미 실현된(진입이 관측된) 통행 순서이고, mrs.discrete_plan.visit_order 의 같은 location 의 sequence 의 접두(prefix)다. 아직 실현되지 않은 순서는 싣지 않는다 — 실으면 밖 로봇의 순번을 끼울 자리가 없어져 재계획이 원리적으로 불가능해진다. 계획기는 이것을 고정 제약으로 받고 여기에 없는 순서는 자유다. 순서수 전용이며 시간이 없다. 🔴 접두이므로 minItems 는 1이다 — 실현된 항목이 하나여도 「이 로봇이 먼저 지나갔다」를 나른다. 정본 160 §160-8.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -64,8 +63,7 @@
           },
           "sequence": {
             "type": "array",
-            "minItems": 2,
-            "x-todo": "B-17: '항목 수 >= 2'가 여기에도 적용되는지 계약이 명시하지 않았다. '동형'의 자연스러운 읽기로 적용했다.",
+            "minItems": 1,
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -101,6 +99,6 @@
   "x-unique-key": [
     {"id": "baseline_robot_unique", "collection": "#/baseline/*", "key": "robot", "note": "한 로봇에 기준점 하나 [유도]."}
   ],
-  "x-layer2-note": "표현 불가 조항 0건 — 11종 중 유일하게 의미 조항까지 스키마로 덮인다. 45_schema_source_draft.md §45-6.",
-  "x-forbidden-note": "확장된 집합 A*·해소 예상 시각·대안 선호도는 싣지 않는다(§6 · §8). 릴리스 시각도 없다."
+  "x-layer2-note": "🔴 5.0.0 개정 — 층 2 조항 1건(번호 미발급, 207a_p3 §207a-19-2 → 231 §231-2): 항등 중계. 요청 시점에 열려 있는 mrs.stop_declaration.declarations[] 중 reason 이 exogenous_block 인 것의 blocked_edge 가 blocked[] 의 원소인가. 🔴 4.0.0 문언은 「열린 모든 선언」이었고 5.0.0 이 정의역을 좁혔다 — 이 줄이 안 바뀌면 같은 스키마의 :29(필드 설명)와 여기가 한 표본에 서로 다른 답을 준다(232 최대 발견). 요청의 reason 에 의존하지 않는다는 것은 4.0.0 그대로다 — 좁아진 것은 선언의 reason 축이다. 층 1은 두 끝이 정점인지만 본다. 🔴 평가 시점은 기동도 단일 아티팩트도 아니다 — 「그 시점의 열린 집합」은 seq 순 재생이 필요하므로 run 후 로그로만 판정된다(13 §4A-2 #5 와 같은 형태). 🔴 오늘 이 조항을 재는 검사기는 0건이다. 🔴 3.0.0 정정 — 「표현 불가 조항 0건」은 거짓이었다. 1건: A36 blocked[]의 (from,to)가 mrs.roadmap.edges에 어느 배향으로든 실재하고 그 배향을 traversal이 허용하는가. 층 1은 두 끝이 정점인지만 본다. 조항의 정의는 mrs.stop_declaration의 x-layer2-note에 있고 두 스키마가 같은 번호를 인용한다(A21의 선례). 45_schema_source_draft.md §45-6.",
+  "x-forbidden-note": "계획기가 확장한 집합 A^pln ·해소 예상 시각·대안 선호도는 싣지 않는다(§6 · §8). 릴리스 시각도 없다."
 }

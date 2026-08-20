@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.trajectories/1.1.0",
-  "title": "mrs.trajectories 1.1.0 — 궤적 최적화 출력 (SC-4 freeze target)",
+  "$id": "https://multibot3/schema/mrs.trajectories/2.0.0",
+  "title": "mrs.trajectories 2.0.0 — 궤적 최적화 출력 (SC-4 freeze target)",
   "description": "계약 정본: 13_interface_contract.md §3 / 출처 규범: _p3 §17-1 / 정정: 48_contract_amendment.md §18-1(B-4) · §18-2(B-5) · §18-4(B-16). 연속 시간은 이 스키마에만 등장한다. 물리 제약도 이 스키마에만 있다.",
-  "x-contract-version": "1.1.0",
+  "x-contract-version": "2.0.0",
   "x-ros-msg": "mrs_msgs/msg/Trajectories",
   "type": "object",
   "additionalProperties": false,
@@ -14,7 +14,7 @@
       "x-ros-type": "string"
     },
     "schema_version": {
-      "const": "1.1.0",
+      "const": "2.0.0",
       "x-ros-type": "string",
       "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
     },
@@ -27,22 +27,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "v_max", "a_max", "j_max", "min_separation_m",
-        "omega_max_radps", "yaw_accel_max_radps2",
-        "brake_decel_min_mps2", "curvature_max_invm", "reverse_motion_allowed"
+        "a_max", "j_max", "min_separation_m",
+        "omega_max_radps", "yaw_accel_max_radps2"
       ],
       "x-ros-msg": "mrs_msgs/msg/Limits",
-      "description": "물리 한계만. 값의 유일한 출처는 config.yaml:robot.* 이고 이 아홉은 사본이다(§17-1-1). 값이 하나도 정해지지 않았다 — 아래는 부호·단위·정의역만 규정한다(§13-1 값 미정). config.yaml과의 동일성 대조는 표현 불가(A12). 아홉 전부가 접미사 규율의 대상이다(§18-4-2 — 동결 상수로 등재될 수 있는 스칼라).",
+      "description": "물리 한계 중 fleet 접기값 한 벌만. 🔴 2.0.0에서 로봇별 넷(v_max·brake_decel_min_mps2·curvature_max_invm·reverse_motion_allowed)이 mrs.robot_specs로 옮겨갔다 — 정본은 거기이며 여기 사본을 두지 않는다(사본이 둘이면 어긋나도 컴파일이 통과한다). 남은 다섯의 의미: a_max·j_max·omega_max_radps·yaw_accel_max_radps2는 fleet-min, min_separation_m은 쌍의 양이라 로봇별이 될 수 없고 fleet-max다. 값은 여전히 하나도 정해지지 않았다 — 아래는 부호·단위·정의역만 규정한다(§13-1 값 미정). config.yaml과의 동일성 대조는 표현 불가(A12). 다섯 전부가 접미사 규율의 대상이다(§18-4-2). 적용 근거: 171b_contract_closure.md 치환 #16 · 172_correction_gate.md 6/6 PASS · 139 S-2.",
       "properties": {
-        "v_max": {
-          "type": "number",
-          "minimum": 0,
-          "x-unit": "m/s",
-          "x-ros-type": "float64",
-          "x-unit-suffix-exempt": true,
-          "x-equal-to": {"target": "config.yaml#/robot/v_max_mps", "note": "§17-1-2 대응표. 대상 파일이 아직 없다 — A12."},
-          "description": "0 이상, 크기(부호 없음). 기준점 속도. 하드웨어가 정한다. 면제 사유: v0 이름 유지 — NOTATION binding·config 키 아님·미용을 위한 MAJOR 금지(§3-3)."
-        },
         "a_max": {
           "type": "number",
           "minimum": 0,
@@ -75,7 +65,7 @@
           "x-unit": "rad/s",
           "x-ros-type": "float64",
           "x-equal-to": {"target": "config.yaml#/robot/omega_max_radps", "note": "§17-1-2."},
-          "description": "0 초과, 크기. 요각 속도 상한. 확장 유니사이클의 상태 제약 — 두 저수준이 다른 값을 쓰면 비교되는 것이 방법이 아니라 로봇이 된다. §18-2 정정: §3-1의 '0 이상'은 부호 규약이고 §12의 정의역 R_{>0}가 0을 배제한다 — 두 열이 다른 질문에 답하며 모순이 아니었다. omega_max=0은 회전 불가 로봇이고 같은 limits의 curvature_max_invm>0과 서로를 부정한다."
+          "description": "0 초과, 크기. 요각 속도 상한. 확장 유니사이클의 상태 제약 — 두 저수준이 다른 값을 쓰면 비교되는 것이 방법이 아니라 로봇이 된다. §18-2 정정: §3-1의 '0 이상'은 부호 규약이고 §12의 정의역 R_{>0}가 0을 배제한다 — 두 열이 다른 질문에 답하며 모순이 아니었다. omega_max=0은 회전 불가 로봇이고 mrs.robot_specs.robots[].curvature_max_invm>0과 서로를 부정한다 — 그 필드는 2.0.0에서 mrs.robot_specs로 옮겨갔고 이 limits에 없다(13 §3-1-1). 이 문장은 exclusiveMinimum의 사유이지 대조 규칙이 아니다 — 층 2 조항을 새로 발급하지 않는다."
         },
         "yaw_accel_max_radps2": {
           "type": "number",
@@ -84,28 +74,6 @@
           "x-ros-type": "float64",
           "x-equal-to": {"target": "config.yaml#/robot/yaw_accel_max_radps2", "note": "§17-1-2."},
           "description": "0 초과. 각가속도 상한. 입력 제약. 기호는 alpha^yaw이며 alpha(노드당 시뮬 초)와 상첨자로 구별한다(§12). 하한 사유는 omega_max_radps와 같다(§18-2)."
-        },
-        "brake_decel_min_mps2": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "x-unit": "m/s^2",
-          "x-ros-type": "float64",
-          "x-equal-to": {"target": "config.yaml#/robot/brake_decel_min_mps2", "note": "§17-1-2."},
-          "description": "0 초과. '보장되는 최소 제동 감속'의 하한이며 상한이 아니다 — 이름의 _min이 그 사실을 박는다(§3-3). 없으면 검증자가 제동 관련 어떤 것도 재현 검증하지 못하고 저수준 config를 읽어야 하며 그 순간 검증자가 방법에 종속된다. 🔴 이 행이 '0 초과'를 명시한다는 사실이 §18-2 판정의 근거다 — §3-1은 0의 합법성을 말할 때 '0 초과'라고 쓴다."
-        },
-        "curvature_max_invm": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "x-unit": "1/m",
-          "x-ros-type": "float64",
-          "x-equal-to": {"target": "config.yaml#/robot/curvature_max_invm", "note": "§17-1-2."},
-          "description": "0 초과. 기준점 경로 곡률 상한. 낱말형 이름을 쓴 이유는 kappa가 NOTATION.md에서 승급 횟수이기 때문이다(§3-3). 최소 회전 반경은 R_min = 1/curvature_max_invm이며 별도 필드를 만들지 않는다(§17-5)."
-        },
-        "reverse_motion_allowed": {
-          "type": "boolean",
-          "x-ros-type": "bool",
-          "x-equal-to": {"target": "config.yaml#/robot/reverse_motion_allowed", "note": "§17-1-2."},
-          "description": "명제 (G2-d)의 전제 B5(최대 제동 입력이 정지 후 후진으로 넘어가지 않는다)가 계약 수준에서 표현되지 않으면 두 저수준이 다른 가정 위에서 돈다(§3-1). 🔴 이 불리언의 존재가 §18-1 판정을 지지한다 — 후진 가부를 별도 필드로 나른다는 것은 '후진을 points[].v의 부호로 나른다'는 설계가 채택되지 않았음을 뜻한다. 둘 다 있으면 같은 사실에 진실 원천이 둘이 된다."
         }
       }
     },
