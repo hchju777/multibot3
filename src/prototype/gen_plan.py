@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """S2 — 우선순위 기반 시공간 A* 경로 계획기 CLI (탐색용 시제).
 
-로드맵·배정 아티팩트를 읽어 `mrs.discrete_plan` 2.0.0 아티팩트를 만든다.
+로드맵·배정 아티팩트를 읽어 `mrs.discrete_plan` 4.0.0 아티팩트를 만든다.
 
     python3 gen_plan.py --priority most_goals --horizon 96 --schema-check --table
 

@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.segment_release/1.1.0",
-  "title": "mrs.segment_release 1.1.0 — sadg_t0(서버) -> trajopt(온보드) 하향 릴리스 채널",
+  "$id": "https://multibot3/schema/mrs.segment_release/2.0.0",
+  "title": "mrs.segment_release 2.0.0 — sadg_t0(서버) -> trajopt(온보드) 하향 릴리스 채널",
   "description": "계약 정본: 69_contract_check_p2.md §69-9(필드표·확정 문장 1~5) + 75_boundary_eligibility.md §75-7 S19(확정 문장 6) + 85_seams.md §85-4 + 88e_pseudocode_seams.md §88e-1. 1.0.0 신설 사유: 13_interface_contract_p2.md §6-1 확정 문장 3(「릴리스 비트 스키마를 만들지 않는다 — 소비자가 0이다」)에 뒤집힘 조건이 명문으로 붙어 있었고(11c_req_sadg_r2_p2.md §R3-3 · 12c_arch_sadg_p3.md §A-10-3) 11d_req_trajopt_r2.md §W-4가 그 조건을 충족시켰다. 1.1.0 상승 사유(MINOR, 필드 추가): entry_seq_ack 신설 — 86_arch_closures_p2.md §86-5 결정 5(「선택지 가 — 릴리스 채널에 싣는다」). 기존 7필드를 하나도 지우거나 바꾸지 않았다. 이 채널은 가부와 순서수만 나른다 — 순서도 시간도 지정도 나르지 않는다.",
-  "x-contract-version": "1.1.0",
+  "x-contract-version": "2.0.0",
   "x-ros-msg": "mrs_msgs/msg/SegmentRelease",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   "properties": {
     "schema": {"const": "mrs.segment_release", "x-ros-type": "string"},
     "schema_version": {
-      "const": "1.1.0",
+      "const": "2.0.0",
       "x-ros-type": "string",
       "description": "§0-1 버전표. const가 옳다(§18-8에서 B-10 철회). 1.0.0 -> 1.1.0은 MINOR(필드 추가)다. 필수 필드 추가이므로 「생산 측 재검증 필요」에 해당하며(§11), 깨질 생산자는 0이다 — 코드 트리가 아직 없다."
     },
@@ -45,7 +45,7 @@
     "segments": {
       "type": "array",
       "x-ros-msg": "mrs_msgs/msg/SegmentReleaseItem",
-      "description": "이 로봇의 세그먼트별 개시 가부. 🔴 전수 게재를 요구하지 않는다 — 여기 없는 세그먼트는 released:false(금지)로 읽는다(확정 문장 1). 지평이 긴 계획에서 배열이 무의미하게 커지는 것을 막는다. 빈 배열은 합법이며 「지금 개시해도 되는 세그먼트가 없다」를 뜻한다 — 전 로봇의 steps 길이가 1인 안전 정지 계획에서 mrs.execution_constraints.segments가 비는 것과 짝을 이룬다(§2-2(9)). 하한을 두면 그 산출물이 계약 위반이 된다.",
+      "description": "이 로봇의 세그먼트별 개시 가부. 🔴 전수 게재를 요구하지 않는다 — 여기 없는 세그먼트는 released:false(도착 정점 영역 진입 금지)로 읽는다(확정 문장 1). 지평이 긴 계획에서 배열이 무의미하게 커지는 것을 막는다. 빈 배열은 합법이며 「지금 개시해도 되는 세그먼트가 없다」를 뜻한다 — 전 로봇의 steps 길이가 1인 안전 정지 계획에서 mrs.execution_constraints.segments가 비는 것과 짝을 이룬다(§2-2(9)). 하한을 두면 그 산출물이 계약 위반이 된다.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -64,7 +64,7 @@
           "released": {
             "type": "boolean",
             "x-ros-type": "bool",
-            "description": "true = 이 세그먼트를 지금 개시해도 된다. 🔴 가부다 — 이유·기한·마진·선호·잔여 시간·「누가 나를 막는가」를 싣지 않는다. 접기·집합 소속형·지정형·고정 기저 어느 실행 계열이든 「이 세그먼트를 지금 개시해도 되는가」를 판정하며 그 판정의 결과가 이 비트다. 접기 칸에서는 이 값이 루트 dependencies가 함의하는 값과 항상 같고, 그래도 같은 채널·같은 필드를 낸다 — 그것이 SC-4의 「어느 칸을 켜도 경계 필드 집합이 같다」를 구조로 세운다. 소비 측은 released == false인 세그먼트의 to를 mrs.execution_constraints.segments[]에서 조회해 금지 영역을 읽어서 구성하며, 순서 비교·우선순위·타이브레이크를 하지 않는다(§85-4-1)."
+            "description": "true = 이 세그먼트의 도착 정점 영역 N(to) 에 지금 진입해도 된다. 🔴 2.0.0: 이 비트가 금지하는 것은 「개시」가 아니라 「도착 정점 진입」이다 — 1.1.0 까지 이 설명의 첫 문장은 개시 금지(REL-START)를, 마지막 문장은 금지 영역 구성(REL-ENTER)을 말해 한 필드가 두 뜻을 동시에 나르고 있었다. 강제자가 있는 쪽이 정본이다: 온보드가 물리로 지키는 것은 영역이고 「from 을 떠나지 마라」를 지키는 장치는 어느 층에도 없다. 정본 200b_rc1_sadg.md §4. 🔴 이 비트는 여전히 세그먼트당 하나다 — mrs.execution_constraints 3.0.0 이 관계를 둘로 갈랐어도 둘이 막는 사건이 같아서(도착 정점 진입) 비트가 늘지 않는다. 갈리는 것은 서버가 이 비트를 켜는 관측뿐이다: 비대향(［D6］)이면 선행 세그먼트의 entered:false, 대향(［D7］)이면 entered:true. 🔴 type:\"sequential\" 의존은 이 비트에 조건을 더하지 않는다 — 같은 로봇이 두 구간에 동시에 있을 수 없다는 물리가 그것을 강제한다. 🔴 가부다 — 이유·기한·마진·선호·잔여 시간·「누가 나를 막는가」를 싣지 않는다. 접기·집합 소속형·지정형·고정 기저 어느 실행 계열이든 「이 세그먼트를 지금 개시해도 되는가」를 판정하며 그 판정의 결과가 이 비트다. 접기 칸에서는 이 값이 루트 dependencies가 함의하는 값과 항상 같고, 그래도 같은 채널·같은 필드를 낸다 — 그것이 SC-4의 「어느 칸을 켜도 경계 필드 집합이 같다」를 구조로 세운다. 소비 측은 released == false인 세그먼트의 to를 mrs.execution_constraints.segments[]에서 조회해 금지 영역을 읽어서 구성하며, 순서 비교·우선순위·타이브레이크를 하지 않는다(§85-4-1)."
           }
         }
       }

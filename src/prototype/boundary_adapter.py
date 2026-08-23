@@ -1,9 +1,9 @@
 """어댑터 — 내부 표현 <-> 경계 스키마. **경계 JSON 키가 나오는 유일한 파일이다.**
 
-경계 스키마 정본: src/mrs_msgs/schema/roadmap.schema.json (mrs.roadmap 2.0.0)
+경계 스키마 정본: src/mrs_msgs/schema/roadmap.schema.json (mrs.roadmap 3.0.0)
                  src/mrs_msgs/schema/assignment.schema.json (mrs.assignment 2.0.0)
-                 src/mrs_msgs/schema/discrete_plan.schema.json (mrs.discrete_plan 3.0.0)
-                 src/mrs_msgs/schema/execution_constraints.schema.json (2.0.0)
+                 src/mrs_msgs/schema/discrete_plan.schema.json (mrs.discrete_plan 4.0.0)
+                 src/mrs_msgs/schema/execution_constraints.schema.json (3.0.0)
 정정분: _workspace/48_contract_amendment.md §18 (앞 전부를 이긴다)
 
 여기서 지키는 것:
@@ -31,7 +31,8 @@ from sadg_core import (
 )
 
 ROADMAP_SCHEMA = "mrs.roadmap"
-ROADMAP_SCHEMA_VERSION = "2.0.0"
+# 2026-08-22: 2.0.0 -> 3.0.0. U33-1 「추종 실현 = 계약 의존 의미론 분리」 개정 (`282_contract_applied.md`).
+ROADMAP_SCHEMA_VERSION = "3.0.0"
 ASSIGNMENT_SCHEMA = "mrs.assignment"
 # 2026-08-13: 1.1.0 -> 2.0.0. 스키마 const 가 2.0.0 인데 여기가 안 따라와 구조 검증 5건이
 # 실패하고 있었다(`175`·`177` 게이트). 구조 자체는 이미 2.0.0 을 낸다 — 실패하던 단언이
@@ -39,10 +40,12 @@ ASSIGNMENT_SCHEMA = "mrs.assignment"
 ASSIGNMENT_SCHEMA_VERSION = "2.0.0"
 DISCRETE_PLAN_SCHEMA = "mrs.discrete_plan"
 # 2026-08-13: 2.0.0 -> 3.0.0. visit_order 동점 해소 규칙 + ［P］ 참조가 들어가 MAJOR (160 §160-3-3).
-DISCRETE_PLAN_SCHEMA_VERSION = "3.0.0"
+# 2026-08-22: 3.0.0 -> 4.0.0. U33-1 「추종 실현 = 계약 의존 의미론 분리」 개정 (`282_contract_applied.md`).
+DISCRETE_PLAN_SCHEMA_VERSION = "4.0.0"
 EXEC_CONSTRAINTS_SCHEMA = "mrs.execution_constraints"
 # 2026-08-13: 1.1.0 -> 2.0.0. $defs.dependency 에 ［D］(퇴거→진입) 신설 + ［D2］［D3］ (162a §162a-1-2).
-EXEC_CONSTRAINTS_SCHEMA_VERSION = "2.0.0"
+# 2026-08-22: 2.0.0 -> 3.0.0. U33-1 「추종 실현 = 계약 의존 의미론 분리」 개정 (`282_contract_applied.md`).
+EXEC_CONSTRAINTS_SCHEMA_VERSION = "3.0.0"
 
 NO_CORRIDOR = ""  # 센티널. corridors[].id는 minLength:1이므로 값 공간 밖이다.
 
@@ -168,7 +171,7 @@ def plan_to_boundary(result: PlanResult) -> dict:
 
 
 def constraints_to_boundary(graph: ExecGraph) -> dict:
-    """내부 ExecGraph를 mrs.execution_constraints 2.0.0 아티팩트로 옮긴다.
+    """내부 ExecGraph를 mrs.execution_constraints 3.0.0 아티팩트로 옮긴다.
 
     🔴 **여기서 막는 것**(스키마 x-forbidden-note): Heads(A_g) · lift/FirstOcc ·
     lambda*/tau^nom · 대안 생성기 이름 · 조합 수 · 표본 시드. 전부 `graph.stats`에 남고

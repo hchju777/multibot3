@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """S3 — 실행 의존 그래프(SADG) 컴파일 CLI (탐색용 시제).
 
-`mrs.roadmap` + `mrs.discrete_plan`을 읽어 `mrs.execution_constraints` 1.1.0을 만든다.
+`mrs.roadmap` + `mrs.discrete_plan`을 읽어 `mrs.execution_constraints` 3.0.0을 만든다.
 
     python3 gen_constraints.py --alt-gen lift --schema-check
 

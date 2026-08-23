@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.replan_request/5.0.0",
-  "title": "mrs.replan_request 5.0.0 — sadg_t0 -> mapf (action goal 부)",
+  "$id": "https://multibot3/schema/mrs.replan_request/6.0.0",
+  "title": "mrs.replan_request 6.0.0 — sadg_t0 -> mapf (action goal 부)",
   "description": "계약 정본: 13_interface_contract_p2.md §6 · §6-2 / 정정: §17-2(committed_segment_count). 절대 시각을 싣지 않는다. 🔴 3.0.0 MAJOR 사유(필드 추가·삭제 0건): blocked의 x-todo 「reason과의 관계가 미기재」를 ctrl_stop_declared에 대해 닫았고, 그 값의 요청에 blocked:[]를 실은 아티팩트가 이후 불법이 된다 — 합법 아티팩트 집합의 축소이며 13_interface_contract.md :37·:39·:40·:45가 네 번 쓴 잣대와 같다. 정본 196 §196-4-1, 게이트 198 §198-3-4. 🔴 4.0.0 MAJOR 사유(필드 추가·삭제 0건, 어휘 확장 0건): (1) infeasible_subgoal ↔ unresolvable_locally 판별식 확정 — 미정이던 의미의 확정이라 «남의 약속이 원인인데 infeasible_subgoal 을 실은 아티팩트»가 이후 불법이 된다. (2) 항등 중계를 ctrl_stop_declared 한 값에서 전 reason 으로 확장 — 열린 선언이 있는데 blocked 에 그것을 안 실은 아티팩트가 이후 불법이 된다. 둘 다 합법 아티팩트 집합의 축소이며 13 :37·:39·:40·:43·:45 가 다섯 번 쓴 잣대와 같다. 정본 207a §207a-4 · §207a-11 · §207a-17. 🔴 5.0.0 MAJOR 사유(필드 추가·삭제 0건, 어휘 확장 0건): (1) reason 판별식을 2분법 → 3분법 총순서로 바꿨다 — 개정 전에는 「벽」처럼 두 시험이 반대 답을 주는 사건에 어느 값을 실어도 합법이었고(판별식이 함수가 아니었다) 이후 하나만 합법이다. (2) blocked[] 항등 중계의 정의역을 「열린 모든 선언」 → 「열린 exogenous_block 선언」으로 좁혔다 — 4.0.0 에서 합법이던 아티팩트(비-exogenous 열린 간선을 실은 것)가 불법이 되고, 4.0.0 에서 불법이던 것(그것을 안 실은 것)이 합법이 된다. 양방향 변경이며 (1)은 합법 아티팩트 집합의 축소, (2)는 소비 측 전제의 파괴다. 정본 231 §231-1 · §231-2.",
-  "x-contract-version": "5.0.0",
+  "x-contract-version": "6.0.0",
   "x-ros-msg": "mrs_msgs/action/Replan (goal 부)",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "schema_version", "instance_id", "reason", "affected_robots", "blocked", "blocked_hash", "ordering_constraints", "baseline"],
   "properties": {
     "schema": {"const": "mrs.replan_request", "x-ros-type": "string"},
-    "schema_version": {"const": "5.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "schema_version": {"const": "6.0.0", "x-ros-type": "string", "x-todo": "B-10."},
     "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
     "reason": {
       "enum": ["exogenous_block", "ctrl_stop_declared", "infeasible_subgoal", "orientation_flip", "unresolvable_locally", "horizon_exhausting"],
@@ -80,7 +80,7 @@
     "baseline": {
       "type": "array",
       "x-todo": "B-15: 전 로봇을 덮어야 하는지 미기재.",
-      "description": "재계획 기준점. 진입 사건이 VOLATILE이라 늦게 뜬 계획기의 기준점이 통째로 비는 것을 막는다. §6.",
+      "description": "재계획 기준점. 진입 사건이 VOLATILE이라 늦게 뜬 계획기의 기준점이 통째로 비는 것을 막는다. §6. 🔴 6.0.0: k 가 가리키는 steps 는 「이 요청을 받는 계획기가 직전에 발행한 mrs.discrete_plan(그 인스턴스에서 그 계획기가 낸 것 중 plan_revision 이 가장 큰 것)의 plans[robot].steps」다. 요청자는 그 판본을 만들지 않으므로 이 문장은 소비 측에 보관 의무를 지운다 — 계약은 「어떻게 보관하는가」를 규정하지 않는다. 🔴 이 규약은 「소비자가 자기 최신 발행을 항상 보유한다」를 가정한다. 재기동·유실로 그 가정이 깨지는 배치에서는 요청이 가리키는 판본이 소실되고 이 필드는 해석 불가가 된다 — 그때의 처분(요청 거절인가 start 기준 폴백인가)은 이 판이 정하지 않는다.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -90,7 +90,7 @@
           "committed_segment_count": {
             "type": "integer", "minimum": 0, "maximum": 4294967295,
             "x-unit": "segments", "x-ros-type": "uint32",
-            "description": "🔴 그 로봇이 완료 커밋한 세그먼트의 개수. 값 k이면 {robot}#0 ... {robot}#(k-1) k개가 완료됐고 계획 시작 정점은 steps[k]다. index가 아니라 count인 이유: (i) 센티널이 필요 없다(-1이 사라진다), (ii) 소비 측이 필요로 한 '로봇별 시작 인덱스' 변환이 항등이 되어 오프바이원을 만들 자리가 없다, (iii) 이름이 단위를 나른다. §17-2-1. 남는 [미확인]: 생산 측(12c)이 이 정의대로 낼 수 있는지 확인되지 않았다. 옛 이름 committed_index는 폐기됐다."
+            "description": "🔴 6.0.0(사용자 결정 U32-9): 그 로봇이 개시 커밋한 세그먼트의 개수다 — 5.0.0 까지의 「완료 커밋」에서 기준점이 바뀌었다. 값 k 이면 {robot}#0 ... {robot}#(k-1) k 개가 개시됐고(각각 그 출발 정점을 퇴거했고) 계획 시작 정점은 steps[k] — 로봇이 지금 향하고 있는 정점이다. 🔴 여기서 「개시」는 mrs.entry_events 의 entered:false(그 세그먼트의 출발 정점 해제)이지 entered:true 가 아니다 — 두 낱말이 다 「진입」으로 불려 왔고 그 둘은 반대 사건이다(entered:true 는 세그먼트 완료다). k = 1 + max{m : 그 로봇의 m 번 세그먼트에 대한 entered:false 를 관측했다}, 관측이 0 건이면 k = 0. 🔴 완료 기준을 필요로 하는 소비자는 이 값에서 max(0, k-1) 을 유도해 쓴다 — 이동 중인 로봇에 대해 완료 수는 k-1, 정점에 서 있는 로봇에 대해서는 k 이므로 max(0, k-1) 은 완료 수의 하한이고 그것으로 만든 잔여 집합은 참 잔여 집합을 포함한다(과대 = 보수 방향). 두 수를 다 싣지 않는 이유: 같은 사실에 진실 원천이 둘이 되고 이동 중 로봇에 대해 정확히 1 차이나는 두 값이 어긋나도 타입이 같아 컴파일이 통과한다 — mrs.roadmap 의 directed 삭제(§4-2)와 mrs.trajectories.limits 의 사본 금지(§3-1-1)가 쓴 잣대 그대로다. 정본 135_scope_direction_verify.md §G-3 · 270_user_decisions_u32_commit_basis.md §270-6. 🔴 6.0.0 단서 — 이 유도값 max(0, k-1) 은 「영향 가능 경계」(재계획이 건드릴 수 있는 잔여 그래프 · 시드가 놓이는 자리) 전용이다. 「재라우팅 가능 경계」로 쓰면 안 된다: 정점에 서 있는 로봇에 대해 이 값은 이미 완료된 세그먼트 하나를 더 담고, 그것을 「다시 써도 되는 것」으로 읽으면 실현 접두 보존(C10)이 깨진다. 두 경계는 다른 집합이며 둘 다 res(S) 로 불려 온 것이 21차 F3 이 지적한 자리다(135_scope_direction_verify.md §G-3). index가 아니라 count인 이유: (i) 센티널이 필요 없다(-1이 사라진다), (ii) 소비 측이 필요로 한 '로봇별 시작 인덱스' 변환이 항등이 되어 오프바이원을 만들 자리가 없다, (iii) 이름이 단위를 나른다. §17-2-1. 남는 [미확인]: 생산 측(12c)이 이 정의대로 낼 수 있는지 확인되지 않았다. 옛 이름 committed_index는 폐기됐다."
           }
         }
       }

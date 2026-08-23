@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.discrete_plan/3.0.0",
-  "title": "mrs.discrete_plan 3.0.0 — MAPF -> SADG (SC-4 freeze target)",
+  "$id": "https://multibot3/schema/mrs.discrete_plan/4.0.0",
+  "title": "mrs.discrete_plan 4.0.0 — MAPF -> SADG (SC-4 freeze target)",
   "description": "계약 정본: 13_interface_contract.md §1 / 정정: _p3 §17-3-1(8) · 48_contract_amendment.md §18-6(A1). 이 스키마는 계약의 파생물이 아니라 원본이다.",
-  "x-contract-version": "3.0.0",
+  "x-contract-version": "4.0.0",
   "x-ros-msg": "mrs_msgs/msg/DiscretePlan",
   "type": "object",
   "additionalProperties": false,
@@ -15,7 +15,7 @@
       "description": "봉투. §1-1."
     },
     "schema_version": {
-      "const": "3.0.0",
+      "const": "4.0.0",
       "x-ros-type": "string",
       "description": "봉투. §0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
     },
@@ -89,7 +89,7 @@
     "visit_order": {
       "type": "array",
       "x-todo": "B-12: location 중복 허용 여부 미기재. B-1: minItems 미기재(빈 배열은 공유 정점 없음을 뜻하므로 합법으로 읽었다).",
-      "description": "대기 접기 전 원본에서 각 정점의 최초 진입 순으로 뽑고, index는 접은 뒤 순번으로 재매핑한다. §1-2(2). 이것이 SADG Type-2 의존의 유일한 근거다. 🔴 진입 순이 동점이면(같은 사건 시각) 결정적 전순서로 가른다 — ① 로봇 식별자 문자열의 UTF-8 코드포인트 오름차순 ② 같으면 그 로봇의 steps[].index 오름차순. 이 규칙은 전역이다: 정점마다 다른 우선순위를 쓰지 않는다. 배열 위치(plans·assignments)를 순서 축으로 쓰지 않는다 — 그것은 생산 측 내부 순회 순서이며 방법을 바꾸면 달라진다. 이 규칙은 정렬을 강제하지 않는다 — 비교만 한다. ［P］ 이 배열이 하류에서 어떤 의존으로 사상되는지의 정본은 mrs.execution_constraints 의 $defs.dependency 이며 그 사상은 「퇴거 → 진입」이다. 따라서 plans 가 요구하는 Type-1+2 비순환은 그 사상 아래에서 판정된다 — Type-2 간선은 (r,i)→(s,j) 가 아니라 (r,i+1)→(s,j) 다. 생산 측은 발행 전 자기 검사를 같은 관례로 수행해야 한다. 정본 160 §160-3-3 · 162a §162a-1-2 ［P］.",
+      "description": "대기 접기 전 원본에서 각 정점의 최초 진입 순으로 뽑고, index는 접은 뒤 순번으로 재매핑한다. 🔴 4.0.0 확정: steps[0](그 로봇이 출발하는 정점)도 방문 항목이며 그 최초 진입은 열의 시작으로 친다 — 즉 그 정점을 나중에 방문하는 모든 항목보다 앞선다. 배포 검사기가 이미 그렇게 세고 있었으나(check_mapf_solution.py 가 enumerate(steps) 를 0 부터 돈다) 계약 문언은 「최초 진입」이라고만 적어 출발 정점이 방문인지 아닌지가 미기재였다. 미기재인 동안 두 읽기가 다 합법이었고, 안 싣는 읽기에서는 mrs.execution_constraints 3.0.0 ［D8］의 대향 배제가 통로 끝에 처음부터 서 있던 로봇에 대해 성립하지 않는다. §1-2(2). 이것이 SADG Type-2 의존의 유일한 근거다. 🔴 진입 순이 동점이면(같은 사건 시각) 결정적 전순서로 가른다 — ① 로봇 식별자 문자열의 UTF-8 코드포인트 오름차순 ② 같으면 그 로봇의 steps[].index 오름차순. 이 규칙은 전역이다: 정점마다 다른 우선순위를 쓰지 않는다. 배열 위치(plans·assignments)를 순서 축으로 쓰지 않는다 — 그것은 생산 측 내부 순회 순서이며 방법을 바꾸면 달라진다. 이 규칙은 정렬을 강제하지 않는다 — 비교만 한다. ［P］ 이 배열이 하류에서 어떤 의존으로 사상되는지의 정본은 mrs.execution_constraints 의 $defs.dependency 이며 그 사상은 「퇴거 → 진입」이다. 🔴 4.0.0: 그 사상이 잇는 간선은 2.0.0 과 같고, 갈린 것은 각 간선이 뜻하는 관계다(［D5］~［D7］) — 비대향은 「퇴거 ≺ 도착 정점 진입」, 대향은 「완료 ≺ 도착 정점 진입」. 따라서 이 배열의 어느 순서가 통로 전체를 직렬화하고 어느 것이 추종을 허용하는지는 이 스키마가 아니라 그 술어가 정한다. 따라서 plans 가 요구하는 Type-1+2 비순환은 그 사상 아래에서 판정된다 — Type-2 간선은 (r,i)→(s,j) 가 아니라 (r,i+1)→(s,j) 다. 생산 측은 발행 전 자기 검사를 같은 관례로 수행해야 한다. 정본 160 §160-3-3 · 162a §162a-1-2 ［P］.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -147,5 +147,5 @@
     }
   ],
   "x-ros-field": {},
-  "x-layer2-note": "표현 불가 조항 5건(A2 인접성 / A3 traversal 역행 / A4 visit_order<->steps 일치 / A5 Type-1+2 비순환 / A6 덮은 범위 내 목표 순서). A1은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1. 그리고 mrs.roadmap.edges[].capacity_robots의 준수는 이 문서로는 어느 층에서도 판정되지 않는다 — 이산 경계에 시각이 없어 cap>=2가 순서로 환원하면 자명히 만족되기 때문이다(§1-2(8)). 판정 자리는 mrs.trajectories + mrs.roadmap이다(A25). 55_contract_holes.md §55-5."
+  "x-layer2-note": "표현 불가 조항 5건(A2 인접성 / A3 traversal 역행 / A4 visit_order<->steps 일치 / A5 Type-1+2 비순환 / A6 덮은 범위 내 목표 순서). A1은 §18-6-1에서 x-derived-from으로 층 1에 들어왔다. 45_schema_source_draft.md §45-1. 그리고 mrs.roadmap.edges[].capacity_robots의 준수는 이 문서로는 어느 층에서도 판정되지 않는다 — 이산 경계에 시각이 없어 cap>=2가 순서로 환원하면 자명히 만족되기 때문이다(§1-2(8)). 판정 자리는 mrs.trajectories + mrs.roadmap이다(A25). 55_contract_holes.md §55-5. 🔴 4.0.0 A5 정밀화 — 판정 그래프의 규범: A5(Type-1+2 비순환)가 요구하는 비순환은 「세그먼트 그래프」위의 것이다. 노드는 세그먼트 (r,i) = steps[i] -> steps[i+1] 이며 방문 항목 (robot, index) 가 아니다. Type-1 간선은 r#i -> r#(i+1), Type-2 간선은 mrs.execution_constraints 의 ［D］ 사상이 낸 out(r,i) -> in(s,j) = r#i -> s#(j-1) 이다. 🔴 방문 항목을 노드로 두고 visit_order 의 이웃끼리 직접 잇는 그래프(resolved[k] -> resolved[k+1])는 다른 그래프이며 이 조항이 요구하는 것이 아니다 — 계약 사상은 도착 간선을 후행 항목의 한 칸 앞에 꽂고 그 한 칸이 로봇 내부 사슬과 만나 되돌이를 만드는데, 항목끼리 직접 이으면 그 되돌이가 생기지 않는다. 따라서 항목 그래프 위의 「비순환 통과」는 이 조항의 성립을 증거하지 않으며 그 통과를 A5 의 충족으로 계상하지 않는다. 274_algo_gate.md §274-1-3(F-1)이 실행으로 확인했다 — 계약 사상으로 길이 4 의 순환인 계획이 항목 그래프에서 종료 0 을 받았다. 🔴 4.0.0 부기 — 이 규범은 판정 대상을 정할 뿐 집행하지 않는다: 오늘 배포 검사기(check_mapf_solution.py)는 방문 항목 그래프를 재므로 이 조항을 실제로 재는 검사가 0건이다. 따라서 「Type-1+2 비순환」이 함의하는 양끝 순서 정합(H-cons)은 계약상 무료이면서 실물에서 미집행이며, 그 미집행을 「위반 0건」으로 읽지 않는다."
 }

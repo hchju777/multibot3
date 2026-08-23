@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.roadmap/2.0.0",
-  "title": "mrs.roadmap 2.0.0 — 공통 입력 (생성기 -> mapf · sadg · trajopt)",
+  "$id": "https://multibot3/schema/mrs.roadmap/3.0.0",
+  "title": "mrs.roadmap 3.0.0 — 공통 입력 (생성기 -> mapf · sadg · trajopt)",
   "description": "계약 정본: 13_interface_contract.md §4 / 정정: 48_contract_amendment.md §18-3(B-7) · §18-4(B-16) · §18-6(A15). MAJOR 사유: 전역 directed 불리언을 삭제하고 간선별 traversal로 대체했다(§4-2). 로드맵은 정적 제약만 준다. 값은 하나도 정해지지 않았다(§13-1).",
-  "x-contract-version": "2.0.0",
+  "x-contract-version": "3.0.0",
   "x-ros-msg": "mrs_msgs/msg/Roadmap",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   "properties": {
     "schema": {"const": "mrs.roadmap", "x-ros-type": "string"},
     "schema_version": {
-      "const": "2.0.0", "x-ros-type": "string",
+      "const": "3.0.0", "x-ros-type": "string",
       "description": "§0-1 버전표. §18-8에서 B-10을 철회했다 — const가 옳고 계약의 구멍이 아니었다."
     },
     "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
@@ -80,7 +80,7 @@
             "type": "integer", "minimum": 1, "maximum": 255,
             "x-unit": "robots", "x-ros-type": "uint8",
             "x-todo": "B-6: 하한이 1인지 0인지 계약에 없다(정의역이 N이라고만 함). '1이면 교행 불가'가 최소 사례로 서술된 것에서 1을 택했다 [유도].",
-            "description": "동시 통과 로봇 수의 상한. A-G1이 단일 값의 건전성을 보장한다. §4-1. 이 값의 준수는 mrs.discrete_plan으로 판정되지 않는다(§1-2(8)) — 용량은 '같은 시각에 몇 대인가'이고 이산 경계에 시각이 없다. cap>=2는 순서로 환원하면 자명히 만족되므로 검사가 아니라 무제약이고, cap=1의 역방향 교차만 Type-1+2 비순환이 간접적으로 배제한다. 판정 자리는 mrs.trajectories + mrs.roadmap의 층 2 검사이며 아직 없다(A25). 궤적이 없는 묶음에서 그 검사는 종료 코드 2다. 55_contract_holes.md §55-5."
+            "description": "🔴 3.0.0 의미 확정: 같은 간선 위에서 서로 앞지르거나 마주칠 수 있는 로봇 수의 상한이다 — 폭 방향으로 나란히 설 수 있는 대수(차로 수)이며 「그 간선 위에 동시에 있는 로봇 수」가 아니다. 1 이면 교행 불가이고 추월도 불가이며, 같은 방향 종렬(앞뒤로 줄지어 통과)은 이 값이 제한하지 않는다 — 종렬의 상한은 간선 길이 length_m 과 mrs.trajectories.limits.min_separation_m 이 정하고 그 강제자는 온보드 궤적이다(사용자 결정 U32-10). 2.0.0 문언 「동시 통과 로봇 수의 상한」은 종렬을 금지하는 것으로 읽혔고 그 금지는 기하의 사실이 아니라 배타 점유 정책의 진술이었다 — 정책이 세계의 사실을 나르는 필드에 들어와 있었다. 이 확정은 값을 하나도 바꾸지 않는다: 1 차로 통로는 개정 전에도 후에도 1 이다. A-G1 이 단일 값의 건전성을 보장한다. §4-1. 이 값의 준수는 mrs.discrete_plan으로 판정되지 않는다(§1-2(8)) — 용량은 '같은 시각에 몇 대인가'이고 이산 경계에 시각이 없다. 🔴 3.0.0 정정: cap>=2 는 순서로 환원하면 자명히 만족되므로 검사가 아니라 무제약이다. cap=1 에 대해 Type-1+2 비순환이 간접적으로 배제하는 것은 「역방향 교차」만이 아니다 — mrs.execution_constraints 3.0.0 아래에서 대향 쌍은 ［D8］로, 같은 방향의 양끝 순서 어긋남(= 추월 요구)은 길이 4 의 순환으로 배제된다. 🔴 그리고 후자의 배제는 cap>=2 인 간선에서는 필요 이상이다 — 2 차로 이상이면 추월이 물리적으로 가능한데 비순환 요구가 그것을 막는다. 그 보수성은 안전한 방향이며 이 판이 완화하지 않는다. 이 값의 준수 그 자체(같은 시각에 몇 대인가)는 여전히 mrs.discrete_plan 으로 판정되지 않는다(§1-2(8)) — 이산 경계에 시각이 없다. 판정 자리는 mrs.trajectories + mrs.roadmap 의 층 2 검사이며 아직 없다(A25). 궤적이 없는 묶음에서 그 검사는 종료 코드 2 다. 🔴 3.0.0 단서 — 이 보수성을 완화하려면 같은 방향 양끝 순서 정합(H-cons)을 재는 검사가 먼저 있어야 한다. 오늘 그 정합을 실제로 지고 있는 장치가 이 과잉 배제뿐이고, 그것을 풀면 mrs.discrete_plan 이 그 정합을 보장하지 못한다 — 그리고 그 정합은 배치 인코딩 정리의 가정이다. 판정 자리는 mrs.trajectories + mrs.roadmap의 층 2 검사이며 아직 없다(A25). 궤적이 없는 묶음에서 그 검사는 종료 코드 2다. 55_contract_holes.md §55-5."
           },
           "corridor": {
             "type": "string",
