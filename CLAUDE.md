@@ -137,7 +137,7 @@ src/
 
 | # | 관례 | 강제 |
 |:-:|------|:----:|
-| **CN-1** | **레이어 5디렉터리**: `node/`(ROS 의존) · `service/`(유스케이스 1회) · `core/`(순수 알고리즘) · `adapter/`(경계↔내부) · `ports/`(시임). `include/{pkg}/`와 `src/`가 같은 이름으로 미러링. **다섯 밖의 이름 금지**(`core/` 하위 세분은 허용) | CI |
+| **CN-1** | **레이어 디렉터리는 최대 6개**: `node/`(ROS 의존) · `service/`(유스케이스 1회) · `core/`(순수 알고리즘) · `adapter/`(경계↔내부) **필수 넷** · `ports/`(시임 — 모듈 고유 시임 있는 모듈만) · **`io/`(경계 JSON 텍스트 ↔ 경계 표현 구조체를 다루는 모듈만)**. `io/`는 `adapter/boundary_types`에만 의존하고 **`core`를 모른다**(JSON을 core·adapter 어디에도 넣지 않는다 — CN-2/CN-3의 확장). ROS wire만 쓰고 파일 코덱이 없는 모듈은 `io/`를 두지 않는다(가법적 차이 CN-4). `include/{pkg}/`와 `src/`가 같은 이름으로 미러링. **여섯 밖의 이름 금지**(`core/` 하위 세분은 허용). 45차 FIX-1 처분(가) — `_workspace/337b_fix1_disposition.md` | CI |
 | **CN-2** | **`core/`·`ports/`는 별도 타깃 `mrs_{모듈}_core`이고 `rclcpp`·`rosidl`·`mrs_msgs`·JSON·`pluginlib`에 하나도 링크하지 않는다.** 플러그인 `.so`도 이 타깃 + 등록 매크로만. **어기면 링크가 깨진다 — 이것이 육각형의 전부다** | **빌드** |
 | **CN-3** | **`mrs_core`는 두 타깃**: `mrs_core_pure`(시임·링버퍼·히스토그램·그래프 술어 — ROS·JSON 미링크) / `mrs_core_msgs`(경계 표현·JSON). `core/`·`ports/`·`plugins/`는 **pure에만**. 한 타깃이면 `core/`가 `mrs_msgs`를 전이로 얻어 `CN-2`가 이름뿐이 된다 | **빌드** |
 | **CN-4** | **`ports/`는 «모듈 고유» 시임이 있을 때만 둔다.** 공용 시임(`ISteadyClock`·`IInstrSink`)은 `mrs_core`에 하나만 있고 **모듈이 재정의하지 않는다.** `ports/`가 없는 것은 위반이 아니다 | CI |
@@ -208,6 +208,7 @@ python3 check_layer_layout.py --src-root src/
 
 | 날짜 | 버전 | 변경 내용 | 대상 | 사유 |
 |------|------|----------|------|------|
+| 2026-08-27 | - | **FIX-1 처분 확정(45차, `_workspace/337b_fix1_disposition.md`)**: `io/`를 **여섯째 레이어로 승인**(모듈 선택적). `mrs_trajopt`의 `io/json_io`는 JSON 텍스트↔경계 표현 구조체 변환이고 `adapter/`(경계 표현↔내부 표현)와 **다른 관심사**임을 실물로 확인(`io/json_io.hpp` 의존이 `boundary_types`뿐, core 미의존). 재배치(나)를 기각한 이유: JSON을 adapter에 들이면 wire-format churn과 표현 매핑 churn이 결합되고 adapter 순수성이 약해진다. U45 리플레이·원클릭 재현이 JSON 경계 아티팩트를 첫급으로 요구. 다른 모듈도 같은 배치 허용. 아래 편차 기록 행은 발견의 기록으로 보존한다 | `mrs_trajopt`·`mrs_sadg` 배치 · 이 표 · CN-1 | 편차→정본 승격 |
 | 2026-08-27 | - | **편차 기록(처분 미정)**: `mrs_trajopt`가 `include/·src/` 아래 **`io/` 디렉터리**를 둔다 — `CN-1` 5레이어(node/service/core/adapter/ports) 밖이다. 경계 JSON 파일 입출력을 어댑터와 갈라 두려는 배치이며, **코어 순수성(`CN-2`/`CN-3`)은 유지됨을 44차 코드 게이트가 실물로 확인했다**(`_workspace/22_code_review.md` FIX-1). 🔴 **처분은 다음 라운드 결정이다** — (가) `CN-1`을 개정해 `io/`를 여섯째 레이어로 승인(다른 모듈도 같은 배치 허용) (나) `adapter/` 아래로 재배치(5레이어 유지). 그때까지 다른 모듈이 이 편차를 **선례로 복제하지 않는다.** `check_layer_layout.py`는 이 레포에 아직 없어 `CN-1`은 수기 판정이다 | `mrs_trajopt` 배치 · 이 표 | 관례 정본의 원칙 — *어기려면 사유를 남기고 이 절을 개정한다. 조용히 다르게 쓰지 않는다* |
 | {YYYY-MM-DD} | 0.1.0 | 초기 구성 | 전체 | - |
 | 2026-08-02 | 0.2.0 | **「모듈 공통 관례」 절 신설**(`CN-1`~`CN-22`) — 정본을 `12a_arch_mrta_p2.md` §10-3에서 이 파일로 이동. 어긋난 여섯 항목 해소(계층 디렉터리 수·오류 반환 타입·플러그인 키 형식·config 위치·단방향 어댑터·`mrs_core` 타깃 분할) + 관례마다 **강제 수단** 명시 | 이 파일 | 모듈 아키텍처 문서 안에 있으면 **구현 단계에 아무도 열지 않는다.** 그리고 **강제 수단이 없는 관례는 안 읽으면 그만이므로** 있는 것과 없는 것을 갈라 적어야 한다. 근거는 `_workspace/46_convention_canon.md` |
