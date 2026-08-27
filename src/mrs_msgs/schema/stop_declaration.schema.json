@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://multibot3/schema/mrs.stop_declaration/5.0.0",
-  "title": "mrs.stop_declaration 5.0.0 — trajopt -> sadg_t0 (상향 채널)",
+  "$id": "https://multibot3/schema/mrs.stop_declaration/5.0.1",
+  "title": "mrs.stop_declaration 5.0.1 — trajopt -> sadg_t0 (상향 채널)",
   "description": "계약 정본: 13_interface_contract_p2.md §6 / 정정: §17-4(생산자별 reason 부분집합). 🔴 2.0.0 MAJOR 사유: 필수 필드 location(로드맵 노드 참조)을 삭제하고 필수 필드 blocked_edge(유향 간선)를 신설했다. 운반 대상의 정의역이 V에서 E로 바뀐다 — 사용자 결정 2026-08-13, 정본 196_blocked_representation.md §196-1, 게이트 198 §198-3-1. 🔴 4.0.0 MAJOR 사유(필드 추가·삭제 0건 · 새 낱말 0건): reason 부분집합을 2값 → 3값으로 넓혔다(unresolvable_locally 추가). 합법 집합은 넓어지지만 «미지 값이 오면 계약 위반이며 카운터로 센다»는 소비 측 의무가 뒤집히므로 MAJOR다 — 개정 전 그 의무를 지킨 소비자는 개정 후 «합법 값을 위반으로 계상»한다. 근본 사유는 어휘 부족이 아니라 mrs.replan_request 4.0.0 의 파급 미반영이다: 그 판번호가 unresolvable_locally 를 «누가 판정했나» → «원인이 어디 있나»로 재정의했는데 §17-4 의 배제 근거가 옛 정의 그대로였다. 정본 228 §228-1-3. 🔴 5.0.0 MAJOR 사유(필드 추가·삭제 0건 · 새 낱말 0건): (1) reason 판별식이 3분법 총순서가 됐다 — mrs.replan_request 와 같은 개정이며 채널마다 다르지 않다. (2) blocked_edge 의 뜻을 «세계의 사실» → «이 로봇에 대해 통과 불가인 유향 간선»으로 바꿨다. 소비 측이 이 필드를 세계의 사실로 읽고 상류로 중계하던 전제가 깨진다. 정본 231 §231-1 · §231-2.",
-  "x-contract-version": "5.0.0",
+  "x-contract-version": "5.0.1",
   "x-ros-msg": "mrs_msgs/msg/StopDeclarations",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "schema_version", "instance_id", "declarations"],
   "properties": {
     "schema": {"const": "mrs.stop_declaration", "x-ros-type": "string"},
-    "schema_version": {"const": "5.0.0", "x-ros-type": "string", "x-todo": "B-10."},
+    "schema_version": {"const": "5.0.1", "x-ros-type": "string", "x-todo": "B-10."},
     "instance_id": {"type": "string", "x-ros-type": "string", "x-todo": "B-9."},
     "declarations": {
       "type": "array",
@@ -51,7 +51,7 @@
           "reason": {
             "enum": ["exogenous_block", "infeasible_subgoal", "unresolvable_locally"],
             "x-ros-type": "uint8",
-            "description": "🔴 6값 어휘의 부분집합 3값이다 — 저수준이 직접 관측할 수 있는 것만 남겼다(§17-4, 4.0.0 개정). 판별식은 3분법 총순서이며 정본은 13_interface_contract_p2.md §6-2 하나다 — 채널마다 다르지 않고, 🔴 판번호를 인용하지 않는다(4.0.0 이 여기에 «replan_request 4.0.0» 을 박아 저쪽이 판을 올릴 때마다 이 문장이 거짓이 되게 했다). (Q1) 간선이 로봇 식별자와 무관하게 통과 불가임을 확정할 수 있으면 exogenous_block, (Q2) 남과 상류의 결정을 전부 치워도 남으면 infeasible_subgoal, (Q3) 그 밖은 unresolvable_locally. 🔴 «자신의»는 «로봇 안에만»이 아니다 — 벽은 다른 차체라면 지나가므로 Q2 가 참이고 infeasible_subgoal 이다. 🔴 V^blk(=V^cmt ∪ V^des)는 전부 상류에서 오므로 그것이 막은 정지는 exogenous_block 이 아니다. 그 밖의 값이 오면 계약 위반이며 수신 측이 카운터로 센다. 개시의 분류이지 비용·선호가 아니다. SC-6의 정온 창 판정은 replan_request.reason(6값)이 내생 개시를 분류하고 이 3값이 저수준 개시를 세분한다(4.0.0) — 두 층이 각자 자기가 아는 것만 말한다. .msg는 uint8 상수이며 표는 mrs_core가 유일하게 소유한다(§7-4)."
+            "description": "🔴 6값 어휘의 부분집합 3값이다 — 저수준이 직접 관측할 수 있는 것만 남겼다(§17-4, 4.0.0 개정). 판별식은 3분법 총순서이며 정본은 13_interface_contract_p2.md §6-2 하나다 — 채널마다 다르지 않고, 🔴 판번호를 인용하지 않는다(4.0.0 이 여기에 «replan_request 4.0.0» 을 박아 저쪽이 판을 올릴 때마다 이 문장이 거짓이 되게 했다). (Q1) 간선이 로봇 식별자와 무관하게 통과 불가임을 확정할 수 있으면 exogenous_block, (Q2) 남과 상류의 결정을 전부 치워도 남으면 infeasible_subgoal, (Q3) 그 밖은 unresolvable_locally. 🔴 «자신의»는 «로봇 안에만»이 아니다 — 벽은 다른 차체라면 지나가므로 Q2 가 참이고 infeasible_subgoal 이다. 🔴 경계 사례(상류 지정 서브골 도달 불가): 상류(이산 층)가 지정한 서브골(예: 통로 복귀·대기 자리)이라도, 그 도달 불가의 원인이 로봇 자신의 물리(후진 불가·곡률·퇴화)이면 Q2 가 참이다 — 남과 상류의 결정을 다 치우는 것이 바로 그 «지정을 이상적으로 치운다»이고, 치워도 이 로봇은 그 서브골에 못 가므로 infeasible_subgoal 이다. 상류가 지정했다는 사실은 unresolvable_locally 로도 exogenous_block 으로도 만들지 않는다. 🔴 V^blk(=V^cmt ∪ V^des)는 전부 상류에서 오므로 그것이 막은 정지는 exogenous_block 이 아니다. 그 밖의 값이 오면 계약 위반이며 수신 측이 카운터로 센다. 개시의 분류이지 비용·선호가 아니다. SC-6의 정온 창 판정은 replan_request.reason(6값)이 내생 개시를 분류하고 이 3값이 저수준 개시를 세분한다(4.0.0) — 두 층이 각자 자기가 아는 것만 말한다. .msg는 uint8 상수이며 표는 mrs_core가 유일하게 소유한다(§7-4)."
           }
         }
       }

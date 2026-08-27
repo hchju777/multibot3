@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multibot3/schema/mrs.operator_command/1.0.0",
+  "title": "mrs.operator_command 1.0.0 — operator console -> onboard trajopt · mrta (하향 개입 채널)",
+  "description": "계약 정본: _workspace/333_operator_channel_amendment.md §1 / 13_interface_contract.md §4B. 로봇 단위 오퍼레이터 개입의 하향 채널이다(사용자 결정 U45-11). 상향 채널(stop_declaration·replan_request)과 방향이 반대다 — 저수준·실행 계층이 «자기» 상태를 상류로 선언하는 것이 아니라, 오퍼레이터 콘솔이 특정 로봇에게 개입을 내린다. 세 개입을 나른다: hold(정지/재개) · speed_cap(속도 상한 덮어쓰기) · goal_override(목표 변경). 각 개입은 (robot, verb) 키의 latched 상태이며 active 불리언으로 개시·해제한다 — stop_declaration.declared · entry_events.entered · segment_release.released와 같은 가부 래치 관례다. E-stop은 싣지 않는다(U45-12 — 시뮬 전용이라 생략, 전역 일시정지로 충분; 실기 이행 시 MAJOR로 재설계). 전역 일시정지는 이 채널이 나르지 않는다 — 시뮬 클록을 멈추는 실행부(mrs_sim) 몫이며 로봇별 경계 정보가 없다. hold는 어떤 상향 채널도 촉발하지 않는다: 정지 로봇은 커밋 세그먼트·점유 노드를 유지하고 후행 로봇은 기존 SADG 의존 순서로 대기하며(entry_events 부재 = 진행 없음), 이는 SADG가 흡수하는 지연이지 교착이 아니다. hold를 stop_declaration.reason 3분법에 넣으면 Q1·Q2·Q3 어디에도 안 맞아(오퍼레이터가 로봇을 콕 집어 세운 것이라 로봇 식별자 무관 통과 불가가 아니고, 로봇은 물리적으로 갈 수 있으므로 후보 공집합이 아니며, 국소 재정렬 실패도 아니다) 별개 채널이 필요하다. 시뮬 기준으로 설계됐고 실기 확장 여지는 문서 메모로만 둔다(U45-13). 값은 speed_cap_mps 하나뿐이며 운용 제약이지 알고리즘 파라미터가 아니다.",
+  "x-contract-version": "1.0.0",
+  "x-ros-msg": "mrs_msgs/msg/OperatorCommands",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "instance_id", "commands"],
+  "properties": {
+    "schema": {"const": "mrs.operator_command", "x-ros-type": "string"},
+    "schema_version": {"const": "1.0.0", "x-ros-type": "string"},
+    "instance_id": {"type": "string", "x-ros-type": "string"},
+    "commands": {
+      "type": "array",
+      "x-ros-msg": "mrs_msgs/msg/OperatorCommand",
+      "description": "오퍼레이터 개입 명령 배열. 각 원소는 한 로봇에 대한 한 개입의 latched 상태 갱신이다. 빈 배열은 합법이다(개입 없음) — minItems를 넣지 않는다. 재생 규약: 각 (robot, verb) 키마다 seq 최대 원소가 그 래치의 현재 상태다 — highest-seq-wins. blocked_edge의 개시/해제 증분과 다른 이유: hold·speed_cap·goal_override는 각각 (robot,verb)당 래치 하나이고 마지막(최고 seq) 명령이 그 값을 정한다. 유실·역순 도착에 강건하다 — 중간 명령이 유실돼도 최신이 도착하면 상태가 수렴하고, 역순 도착도 seq 최대가 이기므로 결과가 같으며, 최신이 유실되면 이전 상태가 유지된다(안전 쪽 — active:true 개입이 남는다).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seq", "robot", "verb", "active"],
+        "properties": {
+          "seq": {
+            "type": "integer", "minimum": 0, "maximum": 9007199254740991,
+            "x-ros-type": "uint64",
+            "description": "순서수. 로봇별·0 기점 단조 증가이며 건너뜀 = 유실이다 — mrs.stop_declaration.seq · mrs.entry_events.seq와 같은 공간 규약(로봇별). 생산자는 오퍼레이터 콘솔 하나지만 명령이 로봇에 귀속되므로 로봇별이다 — 소비 측이 (robot,verb) 래치를 로봇별로 재구성하기 때문이다. 절대 시각이 아니고 발행 간격을 함의하지 않는다. mrs.assignment.revision · mrs.task_release.release_index와 다른 공간이며 교차 비교하지 않는다. 단조·유실 검출 자체는 발행 열이 필요해 표현 불가. 상한은 2^53 미만(JSON 배정도 안전망)."
+          },
+          "robot": {
+            "type": "string", "x-ros-type": "string",
+            "description": "개입 대상 로봇. 세계의 사실. mrs.assignment.assignments[].robot · mrs.robot_specs.robots[].robot과 같은 이름 공간이다."
+          },
+          "verb": {
+            "enum": ["hold", "speed_cap", "goal_override"],
+            "x-ros-type": "uint8",
+            "description": "닫힌 어휘 3값. hold = 전진 정지/재개(소비: 온보드 trajopt) · speed_cap = 속도 상한 덮어쓰기(소비: 온보드 trajopt) · goal_override = 목표 변경(소비: mrs_mrta). 개입의 종류이지 방법·비용·선호가 아니다. .msg는 uint8 상수이며 문자열↔상수 표는 mrs_core가 유일하게 소유한다(§7-4). 동사별 소비 모듈이 달라 이음매가 동사에 따라 갈린다."
+          },
+          "active": {
+            "type": "boolean", "x-ros-type": "bool",
+            "description": "가부. true = 이 개입이 효력 중(래치 개시), false = 해제(래치 닫음). (robot,verb) 키의 latched 상태다. hold active:true = 감속 정지 후 위치 유지, false = 재개(기존 계획 이어감). speed_cap active:true = 상한 부과, false = 상한 해제. goal_override active:true = 목표 덮어쓰기 적용, false = 덮어쓰기 철회(원 배정 복귀). 세 개입은 독립 래치라 한 로봇에 동시 성립할 수 있으며 hold의 물리 정지가 나머지를 덮는다."
+          },
+          "speed_cap_mps": {
+            "type": "number", "exclusiveMinimum": 0,
+            "x-unit": "m/s", "x-ros-type": "float64", "x-ros-optional-flag": "has_speed_cap_mps",
+            "description": "선택. verb=speed_cap 이고 active=true 일 때만 실린다. 오퍼레이터가 이 로봇에 부과하는 속도 상한(운용 제약). 유효 상한 = min(mrs.robot_specs.robots[].v_max, speed_cap_mps)이며 접기 규칙은 온보드 유도다 — 하드웨어 한계를 위로 덮어쓰지 않는다. fleet 접기값 mrs.trajectories.limits와 무관하다(로봇별 개입이라 편대 값을 건드리지 않는다). 알고리즘 파라미터가 아니다 — 어떤 궤적 생성 방법을 갈아끼워도 «이 속도를 넘지 마라»는 같은 뜻으로 지켜지는 제약이며 min_separation_m과 같은 부류다(솔버를 튜닝하는 값이 아니다). 소비자는 온보드 trajopt 하나이며 mapf·sadg는 읽지 않는다(A33과 같은 형태 — 읽으면 이산 계획이 운용 제약에 묶여 SC-4가 실험 없이 반증된다). 지속: active:false가 올 때까지 유지. .msg에는 옵셔널이 없어 has_speed_cap_mps 불리언을 함께 두고 JSON에는 부재로 둔다(§7-5). 접미사 규율 대상(_mps, 신필드)."
+          },
+          "goal_location": {
+            "type": "string", "x-ros-type": "string",
+            "x-ref": {"target": "mrs.roadmap#/endpoints/*", "note": "목표 변경 — endpoints의 원소여야 한다. §5-3과 같은 잣대."},
+            "description": "선택. verb=goal_override 이고 active=true 일 때만 실린다. 오퍼레이터가 이 로봇을 재지향할 목표 위치(로드맵 엔드포인트). 소비자 mrs_mrta는 이것을 이 로봇 배정의 덮어쓰기로 받아 새 mrs.assignment를 revision++로 발행한다 — goal_id 발급은 여전히 인스턴스 생성기 공간이다(가정 A-TA3 불변). 오퍼레이터는 목적지를 이름 짓고 식별자를 짓지 않는다. .msg에는 부재를 빈 문자열 \"\"로 사상한다(§7-2, corridor:null 관례) — 엔드포인트는 L## 형식이라 \"\"와 충돌하지 않는다. 실행 중 목표 변경의 의미: 취소+재할당이 아니라 이 로봇 배정의 덮어쓰기이며 active:false가 원 배정으로 복귀시킨다. 적용 확인은 새 필드가 아니라 소비 측이 내는 mrs.assignment의 revision 상승과 바뀐 goals[]로 관측된다."
+          }
+        }
+      }
+    }
+  },
+  "x-unique-key": [
+    {
+      "id": "operator_command_robot_verb_seq_unique",
+      "collection": "#/commands/*",
+      "key": ["robot", "verb", "seq"],
+      "note": "한 (robot, verb, seq) 삼중키는 한 발행 안에서 유일하다 [유도] — 같은 래치에 같은 순서수가 둘이면 highest-seq-wins가 함수가 아니게 된다."
+    }
+  ],
+  "x-layer2-note": "표현 불가 조항 3건. (1) seq 로봇별 단조·유실 검출 — 발행 열이 필요하다. (2) verb=speed_cap 이고 active=true 이면 speed_cap_mps 필수, verb=goal_override 이고 active=true 이면 goal_location 필수 — 조건부 필수라 층 1 required로 못 내린다(if/then을 쓰지 않고 형제 스키마 관례대로 층 2 조항으로 둔다). active:false 명령은 (robot,verb)로 래치를 식별하므로 payload를 생략해도 된다. (3) 유효 속도 상한 = min(mrs.robot_specs.robots[].v_max, speed_cap_mps)의 온보드 접기 — 교차 문서 비교라 층 1로 못 내린다. 소비 측 A-번호 배정은 45_schema_source_draft.md §45-1의 후속이며 이 개정 밖(미발급).",
+  "x-forbidden-note": "경계에 올리지 않은 것과 사유. 전역 일시정지: 시뮬 클록을 멈추는 실행부(mrs_sim) 몫이며 로봇별 경계 정보가 없다. E-stop: U45-12로 생략(시뮬 전용, 실기 이행 시 MAJOR). 적용 확인(ack) 필드: 소비 측 처리 상태를 실으면 «어떻게 처리했는가»가 새므로 신설하지 않는다 — 효과는 mrs.assignment(goal_override)·mrs.trajectories(hold·speed_cap)로 이미 관측된다. 감속 프로파일·재배정 알고리즘: 소비 모듈의 «어떻게»라 경계 아님. 명령 우선순위·큐 정책·재시도 간격·오퍼레이터 식별자·타임스탬프: 도구·전송 계층이며 경계 아님. 절대 시각·타임스텝·makespan·cost·solver·seed·가중치·서브옵티멀 계수: 알고리즘·실험 상수이며 config/{모듈}.yaml·실험 설정에 산다. additionalProperties:false가 이 전부의 재진입을 구조로 막는다."
+}
