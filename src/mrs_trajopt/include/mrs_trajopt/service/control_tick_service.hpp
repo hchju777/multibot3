@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-#ifndef MRS_TRAJOPT_CORE_CONTROL_TICK_SERVICE_HPP
-#define MRS_TRAJOPT_CORE_CONTROL_TICK_SERVICE_HPP
+#ifndef MRS_TRAJOPT_SERVICE_CONTROL_TICK_SERVICE_HPP
+#define MRS_TRAJOPT_SERVICE_CONTROL_TICK_SERVICE_HPP
 
 #include <cstdint>
 #include <string>
@@ -26,27 +26,29 @@
 /// 🔴 SIMPLIFIED where a full algorithm is out of scope (round back-off,
 /// check-recheck gate) — those places are marked in code and in 20d "알려진
 /// 한계". The structure (gates, INV-2 hold, reverse-infeasible declaration,
-/// puncture advance) is faithful and testable. This is a `core/` class: no ROS,
-/// no JSON, no boundary types (the adapter is called by the node layer, not here).
+/// puncture advance) is faithful and testable. This is a `service/` class
+/// (CN-23 Application layer, the tick use case): no ROS, no JSON, no boundary
+/// types (the adapter is called by the node layer, not here). It depends on
+/// `core/` (Domain) only.
 
-namespace mrs_trajopt::core
+namespace mrs_trajopt::service
 {
 
 /// @brief Wiring for one robot's onboard service.
 struct ServiceWiring
 {
-    ITrajectorySearch* search = nullptr;     ///< extension point (i).
-    ISubgoalCandidates* subgoals = nullptr;  ///< extension point (ii).
-    IPeerChannel* channel = nullptr;         ///< extension point (iv).
-    IInstrSink* instr = nullptr;             ///< instrumentation sink (may be null).
-    VelocityProfiler profiler;               ///< core class (§3-4).
-    SafetyMonitor* safety = nullptr;         ///< braking-filter dynamic half.
+    core::ITrajectorySearch* search = nullptr;     ///< extension point (i).
+    core::ISubgoalCandidates* subgoals = nullptr;  ///< extension point (ii).
+    core::IPeerChannel* channel = nullptr;         ///< extension point (iv).
+    core::IInstrSink* instr = nullptr;             ///< instrumentation sink (may be null).
+    core::VelocityProfiler profiler;               ///< core class (§3-4).
+    core::SafetyMonitor* safety = nullptr;         ///< braking-filter dynamic half.
 };
 
 /// @brief One control-tick input (CT-in).
 struct TickInput
 {
-    Pose2 pose;                             ///< current odom pose.
+    core::Pose2 pose;                       ///< current odom pose.
     double v = 0.0;                         ///< current signed speed [m/s].
     bool staged_constraints_fresh = false;  ///< A5: fresh staged constraints?
     bool tube_pierced = false;              ///< CT09a: was the promise tube pierced this tick?
@@ -55,10 +57,11 @@ struct TickInput
 /// @brief One control-tick output (CT-out).
 struct TickOutput
 {
-    StateSample cmd;        ///< CT20: the command sample to track.
+    core::StateSample cmd;  ///< CT20: the command sample to track.
     bool has_stop = false;  ///< CT25: is a stop declaration emitted?
-    StopReason stop_reason = StopReason::kUnresolvableLocally;  ///< the reason if has_stop.
-    bool horizon_truncated = false;  ///< CT19: was the horizon truncated this tick?
+    core::StopReason stop_reason =
+        core::StopReason::kUnresolvableLocally;  ///< the reason if has_stop.
+    bool horizon_truncated = false;              ///< CT19: was the horizon truncated this tick?
 };
 
 /// @brief Orchestrates one robot's three nested ticks.
@@ -74,10 +77,10 @@ public:
     /// @param goal the current segment goal pose.
     ControlTickService(std::string self,
                        ServiceWiring wiring,
-                       TrajoptConfig cfg,
-                       RobotLimits lim,
-                       FleetLimits fleet,
-                       Pose2 goal);
+                       core::TrajoptConfig cfg,
+                       core::RobotLimits lim,
+                       core::FleetLimits fleet,
+                       core::Pose2 goal);
 
     /// @brief Run one control tick (CT00-CT28). Never throws (CN-16).
     ///
@@ -96,14 +99,14 @@ public:
 
     /// @brief Read-only view of the committed trajectory buffer.
     /// @return const reference to the committed state chain.
-    const std::vector<StateSample>& committed() const
+    const std::vector<core::StateSample>& committed() const
     {
         return buffer_.view();
     }
 
     /// @brief The fairness metrics accumulated so far (328 six observables).
     /// @return const reference to this robot's fairness metrics.
-    const FairnessMetrics& fairness() const
+    const core::FairnessMetrics& fairness() const
     {
         return fairness_;
     }
@@ -121,23 +124,23 @@ private:
 
     std::string self_;
     ServiceWiring w_;
-    TrajoptConfig cfg_;
-    RobotLimits lim_;
-    FleetLimits fleet_;
-    Pose2 goal_;
-    ThreeClockGate gate_;
-    TrajectoryBuffer buffer_;
-    RoundLedger ledger_;
-    FairnessMetrics fairness_;
+    core::TrajoptConfig cfg_;
+    core::RobotLimits lim_;
+    core::FleetLimits fleet_;
+    core::Pose2 goal_;
+    core::ThreeClockGate gate_;
+    core::TrajectoryBuffer buffer_;
+    core::RoundLedger ledger_;
+    core::FairnessMetrics fairness_;
 
     std::int64_t tick_seq_ = 0;
     bool subgoal_advance_req_ = false;  // CT09b puncture advance request.
-    std::vector<StateSample> cand_traj_;
-    std::vector<PassWindow> subgoals_;
+    std::vector<core::StateSample> cand_traj_;
+    std::vector<core::PassWindow> subgoals_;
     std::int64_t publish_count_ = 0;
-    std::vector<PassWindow> committed_subgoals_;  // for order-deviation check.
+    std::vector<core::PassWindow> committed_subgoals_;  // for order-deviation check.
 };
 
-}  // namespace mrs_trajopt::core
+}  // namespace mrs_trajopt::service
 
-#endif  // MRS_TRAJOPT_CORE_CONTROL_TICK_SERVICE_HPP
+#endif  // MRS_TRAJOPT_SERVICE_CONTROL_TICK_SERVICE_HPP

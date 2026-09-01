@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "mrs_trajopt/core/control_tick_service.hpp"
+#include "mrs_trajopt/service/control_tick_service.hpp"
 
 #include <cmath>
 #include <cstring>
 #include <utility>
 
-namespace mrs_trajopt::core
+namespace mrs_trajopt::service
 {
 
 namespace
 {
 
 /// @brief FNV-1a hash of a subgoal sequence (fairness subgoal_sequence_hash).
-std::uint64_t hash_subgoals(const std::vector<PassWindow>& sgs)
+std::uint64_t hash_subgoals(const std::vector<core::PassWindow>& sgs)
 {
     std::uint64_t h = 1469598103934665603ull;
     auto mix = [&h](double d)
@@ -37,13 +37,14 @@ std::uint64_t hash_subgoals(const std::vector<PassWindow>& sgs)
 }
 
 /// @brief Sample the committed chain at (index into) the current tick.
-StateSample sample_committed(const std::vector<StateSample>& chain, const Pose2& fallback)
+core::StateSample sample_committed(const std::vector<core::StateSample>& chain,
+                                   const core::Pose2& fallback)
 {
     if (!chain.empty())
     {
         return chain.front();
     }
-    StateSample s;
+    core::StateSample s;
     s.x = fallback.x;
     s.y = fallback.y;
     s.theta = fallback.theta;
@@ -54,10 +55,10 @@ StateSample sample_committed(const std::vector<StateSample>& chain, const Pose2&
 
 ControlTickService::ControlTickService(std::string self,
                                        ServiceWiring wiring,
-                                       TrajoptConfig cfg,
-                                       RobotLimits lim,
-                                       FleetLimits fleet,
-                                       Pose2 goal)
+                                       core::TrajoptConfig cfg,
+                                       core::RobotLimits lim,
+                                       core::FleetLimits fleet,
+                                       core::Pose2 goal)
     : self_(std::move(self)),
       w_(std::move(wiring)),
       cfg_(std::move(cfg)),
@@ -84,7 +85,7 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
         }
 
         // CT15 sample the committed state chain (t,x,y,theta,v,omega).
-        StateSample s_now = sample_committed(buffer_.view(), in.pose);
+        core::StateSample s_now = sample_committed(buffer_.view(), in.pose);
 
         // CT16-CT19 braking-filter dynamic half: truncate at last stoppable.
         if (w_.safety != nullptr && !buffer_.view().empty())
@@ -117,7 +118,7 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
     {
         // CN-16: a tick-path violation becomes a stop declaration, not a crash.
         out.has_stop = true;
-        out.stop_reason = StopReason::kUnresolvableLocally;
+        out.stop_reason = core::StopReason::kUnresolvableLocally;
     }
     return out;
 }
@@ -125,7 +126,7 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
 void ControlTickService::recompute_trajectory(const TickInput& in)
 {
     // TT00 tube = my last published promise (INV-2 fallback source).
-    Tube tube;
+    core::Tube tube;
     if (!buffer_.view().empty())
     {
         tube.centerline = buffer_.view();
@@ -133,14 +134,14 @@ void ControlTickService::recompute_trajectory(const TickInput& in)
     }
 
     // TT01-TT02 two-stage dynamic search inside the tube (hard constraint).
-    SearchContext sctx;
+    core::SearchContext sctx;
     sctx.start = in.pose;
     sctx.start_v = in.v;
     sctx.subgoals = subgoals_;
     sctx.tube = tube;
     sctx.limits = lim_;
 
-    SearchOutput res;
+    core::SearchOutput res;
     bool found = false;
     if (w_.search != nullptr && !subgoals_.empty())
     {
@@ -150,7 +151,7 @@ void ControlTickService::recompute_trajectory(const TickInput& in)
     if (found)  // TT03 Found = F^srch != empty (RQ5-EX witness).
     {
         // TT04 profiler fills (t,v,omega) + braking tail.
-        ProfileResult prof = w_.profiler.parameterize(res.chain, lim_, fleet_, in.v);
+        core::ProfileResult prof = w_.profiler.parameterize(res.chain, lim_, fleet_, in.v);
         if (prof.ok)
         {
             cand_traj_ = prof.chain;  // TT07 candidate state chain.
@@ -178,7 +179,7 @@ void ControlTickService::recompute_trajectory(const TickInput& in)
             if (!lim_.reverse_motion_allowed)
             {
                 // 🔴 고정 결정 2 / 관문 324: reverse forbidden => infeasible_subgoal.
-                (void)DeclarationRegulator::reverse_forbidden_infeasible();
+                (void)core::DeclarationRegulator::reverse_forbidden_infeasible();
             }
         }
     }
@@ -187,7 +188,7 @@ void ControlTickService::recompute_trajectory(const TickInput& in)
         buffer_.hold_previous();  // TT10 (INV-2 a1, BT-FAIL-SOUND: no partial).
         if (res.reverse_required && !lim_.reverse_motion_allowed)  // TT12.
         {
-            (void)DeclarationRegulator::reverse_forbidden_infeasible();  // TT13.
+            (void)core::DeclarationRegulator::reverse_forbidden_infeasible();  // TT13.
         }
     }
 
@@ -216,10 +217,10 @@ void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
     // Generate the subgoal pass windows for this tick (ST07 candidate source).
     if (w_.subgoals != nullptr)
     {
-        SubgoalContext sc;
+        core::SubgoalContext sc;
         sc.start = in.pose;
         sc.goal = goal_;
-        std::vector<PassWindow> generated;
+        std::vector<core::PassWindow> generated;
         if (w_.subgoals->generate(sc, generated))
         {
             subgoals_ = generated;
@@ -231,21 +232,21 @@ void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
     // through RoundLedger + YieldHandles; those are implemented and unit-tested
     // separately (test_round_ledger.cpp) but not wired into this single-robot
     // path — see 20d "알려진 한계".
-    RoundOutcome outcome = RoundOutcome::kConverged;  // ST12.
+    core::RoundOutcome outcome = core::RoundOutcome::kConverged;  // ST12.
 
-    if (outcome == RoundOutcome::kConverged)
+    if (outcome == core::RoundOutcome::kConverged)
     {
         // ST25 subgoals = pass windows (adopt).
         // ST26 recompute trajectory with the new subgoals.
-        SearchContext sctx;
+        core::SearchContext sctx;
         sctx.start = in.pose;
         sctx.start_v = in.v;
         sctx.subgoals = subgoals_;
         sctx.limits = lim_;
-        SearchOutput res;
+        core::SearchOutput res;
         if (w_.search != nullptr && !subgoals_.empty() && w_.search->solve(sctx, res))
         {
-            ProfileResult prof = w_.profiler.parameterize(res.chain, lim_, fleet_, in.v);
+            core::ProfileResult prof = w_.profiler.parameterize(res.chain, lim_, fleet_, in.v);
             if (prof.ok)
             {
                 cand_traj_ = prof.chain;
@@ -262,7 +263,7 @@ void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
                 publish_count_ += 1;                                // ST30 publish the tube.
                 if (w_.channel != nullptr && !cand_traj_.empty())
                 {
-                    Pose2 anchor;
+                    core::Pose2 anchor;
                     anchor.x = cand_traj_.front().x;
                     anchor.y = cand_traj_.front().y;
                     anchor.theta = cand_traj_.front().theta;
@@ -282,4 +283,4 @@ void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
     }
 }
 
-}  // namespace mrs_trajopt::core
+}  // namespace mrs_trajopt::service

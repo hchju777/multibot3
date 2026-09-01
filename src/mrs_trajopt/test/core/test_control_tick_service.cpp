@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "../test_util.hpp"
-#include "mrs_trajopt/core/control_tick_service.hpp"
 #include "mrs_trajopt/plugins/peer_channel_impls.hpp"
 #include "mrs_trajopt/plugins/search_fixed_path_gating.hpp"
 #include "mrs_trajopt/plugins/search_hybrid_astar.hpp"
 #include "mrs_trajopt/plugins/subgoal_candidates.hpp"
+#include "mrs_trajopt/service/control_tick_service.hpp"
 
 using namespace mrs_trajopt::core;
 using namespace mrs_trajopt::plugins;
+using namespace mrs_trajopt::service;
 
 namespace
 {

@@ -15,15 +15,10 @@ find_package(mrs_core REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs.
-#     🔴 ControlTickService (a service/-layer orchestrator by name) lives here,
-#     not in a service/ directory — 351_e4_correction.md logged this as a
-#     tracked, non-blocking exception (F-2 exemption expiring, not fixed by
-#     integration; see 21_integration.md J1). ---
+# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs. ---
 add_library(mrs_trajopt_core STATIC
   src/core/velocity_profiler.cpp
-  src/core/startup_checks.cpp
-  src/core/control_tick_service.cpp)
+  src/core/startup_checks.cpp)
 target_include_directories(mrs_trajopt_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(mrs_trajopt_core PUBLIC mrs_core::mrs_core_pure)
 
@@ -47,10 +42,15 @@ add_library(mrs_trajopt_io STATIC
   src/io/json_io.cpp)
 target_link_libraries(mrs_trajopt_io PUBLIC mrs_trajopt_adapter)
 
+# --- service (Application layer, CN-23): the three-clock tick use case. ---
+add_library(mrs_trajopt_service STATIC
+  src/service/control_tick_service.cpp)
+target_link_libraries(mrs_trajopt_service PUBLIC mrs_trajopt_core)
+
 # --- measurement spike runner (output c) ---
 add_executable(mrs_trajopt_spike spike/measure_spike.cpp)
 target_link_libraries(mrs_trajopt_spike PRIVATE
-  mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_trajopt_io)
+  mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_trajopt_io mrs_trajopt_service)
 
 # --- tests (CTest; no gtest dependency — self-contained assert mains) ---
 enable_testing()
@@ -58,7 +58,7 @@ enable_testing()
 function(add_trajopt_test name path)
   add_executable(${name} ${path})
   target_link_libraries(${name} PRIVATE
-    mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_trajopt_io)
+    mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_trajopt_io mrs_trajopt_service)
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
