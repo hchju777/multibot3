@@ -7,7 +7,7 @@
 > 서브모듈을 만든 뒤 이 파일을 `CLAUDE.md`로 복사하고 `{}` 자리를 채운다.
 > `templates/.clang-format`도 함께 루트로 복사한다.
 >
-> **이 파일은 네 모듈 공통 관례(`CN-1`~`CN-22`)의 정본이다.** 관례가 어긋났을 때 이기는 것은
+> **이 파일은 네 모듈 공통 관례(`CN-1`~`CN-23`)의 정본이다.** 관례가 어긋났을 때 이기는 것은
 > 이 파일이고, 모듈 아키텍처 문서(`_workspace/12*_arch_*.md`)가 아니다 — **왜냐하면 구현 단계에
 > 아무도 남의 모듈 아키텍처 문서를 열지 않기 때문이다.** 사유와 대안은 `_workspace/46_convention_canon.md`.
 
@@ -123,7 +123,7 @@ src/
 6. **내부 표현은 어댑터를 통해서만 경계로 나간다.** 알고리즘 자료구조가 메시지에
    그대로 실리면 모듈 교체 가능성이 깨진다.
 
-## 모듈 공통 관례 (`CN-1`~`CN-22`) — **이 절이 정본이다**
+## 모듈 공통 관례 (`CN-1`~`CN-23`) — **이 절이 정본이다**
 
 네 모듈(`mrs_mrta`·`mrs_mapf`·`mrs_sadg`·`mrs_trajopt`)에 **같은 어휘**를 쓴다.
 어기려면 사유를 남기고 이 절을 개정한다. **조용히 다르게 쓰지 않는다** — 어휘가 갈리면
@@ -137,7 +137,7 @@ src/
 
 | # | 관례 | 강제 |
 |:-:|------|:----:|
-| **CN-1** | **레이어 디렉터리는 최대 6개**: `node/`(ROS 의존) · `service/`(유스케이스 1회) · `core/`(순수 알고리즘) · `adapter/`(경계↔내부) **필수 넷** · `ports/`(시임 — 모듈 고유 시임 있는 모듈만) · **`io/`(경계 JSON 텍스트 ↔ 경계 표현 구조체를 다루는 모듈만)**. `io/`는 `adapter/boundary_types`에만 의존하고 **`core`를 모른다**(JSON을 core·adapter 어디에도 넣지 않는다 — CN-2/CN-3의 확장). ROS wire만 쓰고 파일 코덱이 없는 모듈은 `io/`를 두지 않는다(가법적 차이 CN-4). `include/{pkg}/`와 `src/`가 같은 이름으로 미러링. **여섯 밖의 이름 금지**(`core/` 하위 세분은 허용). 45차 FIX-1 처분(가) — `_workspace/337b_fix1_disposition.md` | CI |
+| **CN-1** | **레이어 디렉터리는 최대 6개**: `node/`(ROS 의존) · `service/`(유스케이스 1회) · `core/`(순수 알고리즘) · `adapter/`(경계↔내부) **필수 넷** · `ports/`(시임 — 모듈 고유 시임 있는 모듈만) · **`io/`(경계 JSON 텍스트 ↔ 경계 표현 구조체를 다루는 모듈만)**. `io/`는 `adapter/boundary_types`에만 의존하고 **`core`를 모른다**(JSON을 core·adapter 어디에도 넣지 않는다 — CN-2/CN-3의 확장). ROS wire만 쓰고 파일 코덱이 없는 모듈은 `io/`를 두지 않는다(가법적 차이 CN-4). `include/{pkg}/`와 `src/`가 같은 이름으로 미러링. **여섯(+`plugins/`, CN-5) 밖의 이름 금지**(`core/` 하위 세분은 허용). `plugins/`는 CN-5가 요구하는 교체 구현 자리라 화이트리스트에 포함된다 — `check_layer_layout.py`도 7종을 허용한다. 45차 FIX-1 처분(가) — `_workspace/337b_fix1_disposition.md` | CI |
 | **CN-2** | **`core/`·`ports/`는 별도 타깃 `mrs_{모듈}_core`이고 `rclcpp`·`rosidl`·`mrs_msgs`·JSON·`pluginlib`에 하나도 링크하지 않는다.** 플러그인 `.so`도 이 타깃 + 등록 매크로만. **어기면 링크가 깨진다 — 이것이 육각형의 전부다** | **빌드** |
 | **CN-3** | **`mrs_core`는 두 타깃**: `mrs_core_pure`(시임·링버퍼·히스토그램·그래프 술어 — ROS·JSON 미링크) / `mrs_core_msgs`(경계 표현·JSON). `core/`·`ports/`·`plugins/`는 **pure에만**. 한 타깃이면 `core/`가 `mrs_msgs`를 전이로 얻어 `CN-2`가 이름뿐이 된다 | **빌드** |
 | **CN-4** | **`ports/`는 «모듈 고유» 시임이 있을 때만 둔다.** 공용 시임(`ISteadyClock`·`IInstrSink`)은 `mrs_core`에 하나만 있고 **모듈이 재정의하지 않는다.** `ports/`가 없는 것은 위반이 아니다 | CI |
@@ -146,6 +146,21 @@ src/
 | **CN-7** | **config 키 경로는 `method.modules.{모듈}.*`.** 알고리즘 교체는 이 트리의 **한 줄** | CI |
 | **CN-21** | **형제 의존 0건.** `package.xml`·`CMakeLists.txt`에 `mrs_msgs`·`mrs_core`·자기 자신 밖의 `mrs_*`가 없다 | CI(grep) |
 | **CN-22** | **`test/core/`·`test/adapter/`가 각각 파일 1개 이상** — 노드를 띄우지 않고 도는 시험 | CI |
+| **CN-23** | **Clean Architecture 대응**(U46-1): Domain=`core/` · Application=`service/`+`ports/` · Infrastructure=`adapter/`+`io/`(+swap `plugins/`) · Presentation=`node/`. **의존은 항상 바깥→안**; `core/`는 ROS·JSON·pluginlib 무지(CN-2/CN-3의 재진술, 새 강제 없음). 확장점 `I{역할}`은 **core/(Domain) 소유**, plugins가 구현(의존 역전). 매핑표는 「Clean Architecture 대응」절 | CI |
+
+### Clean Architecture 대응 (CN-23 상세)
+
+| CA 레이어 | 디렉터리 | 소유 |
+|---|---|---|
+| Domain | `core/`(+세분, `I{역할}` 포함) | 순수 알고리즘·엔티티·확장점 인터페이스 |
+| Application | `service/`+`ports/` | 팩토리(CN-11)·2차 시임(CN-4) |
+| Infrastructure | `adapter/`+`io/`(+`plugins/`) | 경계 변환·JSON 코덱·교체 구현 |
+| Presentation | `node/` | ROS 노드 |
+
+의존은 바깥→안(`node→service→core`, `adapter→core`, `io→adapter`, `plugins→core`).
+`ports/`는 Application의 2차(driven) 시임 자리다. **알고리즘 교체 인터페이스 `I{역할}`은
+그보다 안쪽인 `core/`(Domain)가 소유한다(CN-10)** — 이것이 어블레이션 교체가 `core/` 아래로
+국한되는 근거다. 물리 디렉터리 재편은 하지 않는다(U46-1: 대응 명문화, 재편 기각).
 
 ### 명명
 
