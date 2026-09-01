@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_mrta</name>
+  <version>0.1.0</version>
+  <description>태스크 할당(MRTA) 모듈 — 온라인 순차 탐욕 + 5단 사전식 동점 해소. 코어는 ROS 비의존.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 🔴 형제 알고리즘 패키지 의존 0건 (CN-21). 경계는 mrs_msgs만. -->
+  <!-- mrs_core는 이 체크아웃에 없어 코어가 Status/Result/ContractViolation을 로컬 정의한다
+       (20d 선례와 동일 사유). 통합 라운드에 mrs_core가 서면 아래 depend를 켜고 로컬 정의를 지운다. -->
+  <depend>mrs_msgs</depend>
+  <!-- <depend>mrs_core</depend> -->
+  <depend>rclcpp</depend>
+  <depend>pluginlib</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <!-- 통합 라운드에 활성: <mrs_mrta plugin="${prefix}/plugins.xml"/> -->
+  </export>
+</package>

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_sadg</name>
+  <version>0.1.0</version>
+  <description>실행 계층(SADG) 모듈 — discrete_plan -> execution_constraints(+가부 비트). 지연 하 재순서화·봉투·통로 복귀. 코어는 ROS 비의존.</description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 🔴 형제 알고리즘 패키지 의존 0건 (CN-21). 경계는 mrs_msgs만. -->
+  <!-- mrs_core는 이 체크아웃에 없어 코어가 Status/Result/ContractViolation을 로컬 정의한다
+       (20c_impl_sadg.md "알려진 한계"). 통합 시 아래 depend를 켜고 로컬 정의를 지운다. -->
+  <depend>mrs_msgs</depend>
+  <!-- <depend>mrs_core</depend> -->
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>pluginlib</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,9 @@
+<library path="mrs_mrta_plugins">
+  <!-- CN-12: type="mrs_mrta/{ClassName}" — config 값도 같은 형식. 맨키 name= 금지. -->
+  <class type="mrs_mrta/GreedyTailAppend" base_class_type="mrs_mrta::core::IAssigner">
+    <description>정상 정책 — 온라인 순차 탐욕 + 5단 사전식 동점 해소 (336_mrta_canon.md §336-2)</description>
+  </class>
+  <class type="mrs_mrta/FaultyOverflow" base_class_type="mrs_mrta::core::IAssigner">
+    <description>결함 변형 — Q^ta 정책 상한을 무시하고 물리 상한까지 채운다 (어블레이션 대상)</description>
+  </class>
+</library>
