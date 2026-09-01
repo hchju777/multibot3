@@ -1,0 +1,2 @@
+string id
+Dependency[] dependencies
