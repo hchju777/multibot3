@@ -87,7 +87,7 @@ std::string to_json(const adapter::BoundaryStopDeclarations& doc)
     std::ostringstream o;
     o << "{\n";
     o << "  \"schema\": \"mrs.stop_declaration\",\n";
-    o << "  \"schema_version\": \"5.0.0\",\n";
+    o << "  \"schema_version\": \"5.0.1\",\n";
     o << "  \"instance_id\": " << str(doc.instance_id) << ",\n";
     o << "  \"declarations\": [\n";
     for (std::size_t i = 0; i < doc.declarations.size(); ++i)

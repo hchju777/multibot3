@@ -136,7 +136,7 @@ int main(int argc, char** argv)
     CHECK(ok(StopDeclarationAdapter::to_boundary(decls, "spike-emit", sd)));
     const std::string sj = mrs_trajopt::io::to_json(sd);
     CHECK(sj.find("\"infeasible_subgoal\"") != std::string::npos);
-    CHECK(sj.find("\"schema_version\": \"5.0.0\"") != std::string::npos);
+    CHECK(sj.find("\"schema_version\": \"5.0.1\"") != std::string::npos);
 
     // Write the artifacts for the python checkers.
     std::ofstream(dir + "/emitted_trajectories.json") << tj;
