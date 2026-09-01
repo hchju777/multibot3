@@ -1,0 +1,21 @@
+<library path="mrs_sadg_plugins">
+  <!-- CN-12: type="mrs_sadg/{ClassName}" — config 값도 같은 형식. 맨키 name= 금지. -->
+  <class type="mrs_sadg/AltHeadLift" base_class_type="mrs_sadg::core::IAlternativeGenerator">
+    <description>정본 대안 생성기(안1) — 계약 사상(퇴거→진입)의 위임 순서를 그대로 낸다.</description>
+  </class>
+  <class type="mrs_sadg/AltAdjacentSwap" base_class_type="mrs_sadg::core::IAlternativeGenerator">
+    <description>인접 교환 대안 생성기. 🔴 오늘 AltHeadLift와 본문 동일 — switch_group 0개 산출(D10 부채).</description>
+  </class>
+  <class type="mrs_sadg/LayerFixedOrder" base_class_type="mrs_sadg::core::IExecutionLayer">
+    <description>고정 순서 실행 계층.</description>
+  </class>
+  <class type="mrs_sadg/LayerBranchBound" base_class_type="mrs_sadg::core::IExecutionLayer">
+    <description>가지치기 탐색 실행 계층.</description>
+  </class>
+  <class type="mrs_sadg/PolicyConstantRung" base_class_type="mrs_sadg::core::IEscalationPolicy">
+    <description>상수 단(rung) 승급 정책.</description>
+  </class>
+  <class type="mrs_sadg/PolicyDeficitLadder" base_class_type="mrs_sadg::core::IEscalationPolicy">
+    <description>결손 사다리 승급 정책 — [기여 1순위] 3단 사다리.</description>
+  </class>
+</library>

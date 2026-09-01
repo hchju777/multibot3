@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(mrs_mrta CXX)
 
-# 🔴 ROS 2 런타임이 이 체크아웃에 없다(brief §1). 그래서 이 CMakeLists는 **순수 CMake**로
-#    core+service+plugins+adapter(+시험)를 빌드한다. ament/rclcpp/rosidl 절은 통합 라운드에서
-#    ROS 머신으로 옮길 때 켠다 — 아래 "ROS WRAPPER (DISABLED)" 블록 참조.
+# 47차 통합(P2) — ament 절 해제. core/status.hpp가 이제 mrs_core를 include하므로
+# mrs_core는 ROS 유무와 무관하게 항상 필요하다(D15 별칭 스왑).
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -11,12 +10,19 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+find_package(ament_cmake REQUIRED)
+find_package(mrs_core REQUIRED)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs. ---
+# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs.
+#     mrs_core::mrs_core_pure is header-only vocabulary (Status/Result/
+#     ContractViolation) — it does not itself link ROS/JSON, so this stays
+#     within CN-2/CN-3. ---
 add_library(mrs_mrta_core STATIC
   src/core/types.cpp)
 target_include_directories(mrs_mrta_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mrs_mrta_core PUBLIC mrs_core::mrs_core_pure)
 
 # --- service (Application, CN-23): drain_once, OverrideLatch, AssignerFactory.
 #     No ROS/JSON either (12a §1: "service/ ROS 의존: 없음"). Links core only. ---
@@ -63,17 +69,21 @@ add_mrta_test(test_assignment_roundtrip  test/adapter/test_assignment_adapter_ro
 add_mrta_test(test_input_adapters        test/adapter/test_input_adapters.cpp)
 
 # =====================================================================================
-# ROS WRAPPER (DISABLED — enable on a ROS 2 machine in the integration round).
-# The node/ layer (src/node/mrta_node.cpp) is a skeleton only and is NOT built here.
-# When ament is available, uncomment and add ament_target_dependencies for rclcpp,
-# mrs_msgs, pluginlib. See 20a "다음 단계 전달 사항 → integration-developer".
+# ROS node (47차 통합 P2). Statically links core+service+plugins+adapter — NOT a real
+# pluginlib::ClassLoader (see src/node/mrta_node.cpp file doc: assigner_impls.cpp has
+# zero PLUGINLIB_EXPORT_CLASS calls, out of this round's write scope). plugins.xml is
+# still exported so the ament index entry exists for a future real ClassLoader swap.
 # =====================================================================================
-# find_package(ament_cmake REQUIRED)
-# find_package(rclcpp REQUIRED)
-# find_package(mrs_msgs REQUIRED)
-# find_package(pluginlib REQUIRED)
-# add_executable(mrta_node src/node/mrta_node.cpp)
-# ament_target_dependencies(mrta_node rclcpp mrs_msgs pluginlib)
-# target_link_libraries(mrta_node mrs_mrta_core mrs_mrta_service mrs_mrta_plugins mrs_mrta_adapter)
-# pluginlib_export_plugin_description_file(mrs_mrta plugins.xml)
-# ament_package()
+find_package(rclcpp REQUIRED)
+find_package(mrs_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+
+add_executable(mrta_node src/node/mrta_node.cpp)
+ament_target_dependencies(mrta_node rclcpp mrs_msgs pluginlib)
+target_link_libraries(mrta_node
+  mrs_mrta_core mrs_mrta_service mrs_mrta_plugins mrs_mrta_adapter mrs_core::mrs_core_msgs)
+pluginlib_export_plugin_description_file(mrs_mrta plugins.xml)
+
+install(TARGETS mrta_node DESTINATION lib/${PROJECT_NAME})
+
+ament_package()

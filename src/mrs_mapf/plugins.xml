@@ -1,0 +1,6 @@
+<library path="mrs_mapf_plugins">
+  <!-- CN-12: type="mrs_mapf/{ClassName}" — config 값도 같은 형식. 맨키 name= 금지. -->
+  <class type="mrs_mapf/PrioritySafeIntervalSearch" base_class_type="mrs_mapf::core::IPlanningStrategy">
+    <description>우선순위 + 안전 구간 탐색 — 완전성 보장 없음, 실현 가능할 때만 성공(20b_impl_mapf.md).</description>
+  </class>
+</library>

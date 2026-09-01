@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(mrs_sadg CXX)
 
-# 🔴 ROS 2 런타임이 이 체크아웃에 없다. 그래서 이 CMakeLists는 순수 CMake로
-#    코어 라이브러리 + 시험을 빌드한다. ament/rclcpp/rosidl 절은 통합 라운드에서
-#    ROS 머신으로 옮길 때 켠다 — 아래 "ROS WRAPPER (DISABLED)" 블록 참조.
-#    (선례: mrs_mapf/CMakeLists.txt · mrs_trajopt/CMakeLists.txt — 같은 패턴)
+# 47차 통합(P2) — ament 절 해제. core/status.hpp가 이제 mrs_core를 include하므로
+# mrs_core는 ROS 유무와 무관하게 항상 필요하다(D15 별칭 스왑).
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wpedantic)
+
+find_package(ament_cmake REQUIRED)
+find_package(mrs_core REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -28,6 +29,7 @@ add_library(mrs_sadg_core STATIC
   src/core/progress_deficit.cpp
   src/core/instr_ring.cpp)
 target_include_directories(mrs_sadg_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mrs_sadg_core PUBLIC mrs_core::mrs_core_pure)
 
 # --- plugins (CN-5): swap-target implementations. Link core only. ---
 add_library(mrs_sadg_plugins STATIC
@@ -82,22 +84,43 @@ add_sadg_test(test_plan_adapter_roundtrip    test/adapter/test_plan_adapter_roun
 add_sadg_test(test_constraints_adapter       test/adapter/test_constraints_adapter_roundtrip.cpp)
 
 # =====================================================================================
-# ROS WRAPPER (DISABLED — enable on a ROS 2 machine in the integration round).
-# The node/ layer (src/node/{sadg_t0_node,switch_selector_node}.cpp) is a skeleton
-# only and is NOT built here. Plugin registration (plugins.xml + pluginlib) also
-# lands in the integration round.
+# ROS nodes (47차 통합 P2). 🔴 두 노드 모두 축소 배선이다 — 아래 각 target 주석 및
+# src/node/*.cpp 파일 주석 참조. Reorder 채널(sadg_t0<->switch_selector)은
+# 350_msg_idl_decisions.md §5-2 D3-b가 [결정 부재]로 남겼고 47차 발주서가
+# "Reorder.action을 만들지 마라"로 명시했으므로 이번 라운드는 그 배선을 하지 않는다.
 # =====================================================================================
-# find_package(ament_cmake REQUIRED)
-# find_package(rclcpp REQUIRED)
-# find_package(rclcpp_action REQUIRED)
-# find_package(mrs_msgs REQUIRED)
-# find_package(pluginlib REQUIRED)
-# add_executable(sadg_t0_node src/node/sadg_t0_node.cpp)
-# add_executable(switch_selector_node src/node/switch_selector_node.cpp)
-# ament_target_dependencies(sadg_t0_node rclcpp rclcpp_action mrs_msgs pluginlib)
-# ament_target_dependencies(switch_selector_node rclcpp rclcpp_action mrs_msgs pluginlib)
-# target_link_libraries(sadg_t0_node
-#   mrs_sadg_core mrs_sadg_plugins mrs_sadg_adapter mrs_sadg_io mrs_sadg_service)
-# target_link_libraries(switch_selector_node
-#   mrs_sadg_core mrs_sadg_plugins mrs_sadg_adapter mrs_sadg_io mrs_sadg_service)
-# ament_package()
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(mrs_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+
+# sadg_t0_node: /discrete_plan 구독 -> ConstraintCompiler -> /execution_constraints
+# 발행 경로만 배선했다. ExecutionTickService의 매틱 오케스트레이션(릴리스 비트·승급·
+# EVAC·재계획 액션 클라이언트)은 이번 라운드에 배선하지 않았다 — 클록 주입·결손 계산·
+# WcInput 구성 등 추가 설계가 필요해 스코프 밖으로 신고한다(21_integration.md).
+add_executable(sadg_t0_node src/node/sadg_t0_node.cpp)
+ament_target_dependencies(sadg_t0_node rclcpp rclcpp_action mrs_msgs pluginlib)
+target_link_libraries(sadg_t0_node
+  mrs_sadg_core mrs_sadg_plugins mrs_sadg_adapter mrs_sadg_io mrs_sadg_service
+  mrs_core::mrs_core_msgs)
+
+# switch_selector_node: /discrete_plan 구독만 배선했다. Reorder 액션 서버는 위 사유로
+# 이번 라운드에 서비스하지 않는다(D3-b 결정 부재 승계).
+add_executable(switch_selector_node src/node/switch_selector_node.cpp)
+ament_target_dependencies(switch_selector_node rclcpp rclcpp_action mrs_msgs pluginlib)
+target_link_libraries(switch_selector_node
+  mrs_sadg_core mrs_sadg_plugins mrs_sadg_adapter mrs_sadg_io mrs_sadg_service
+  mrs_core::mrs_core_msgs)
+
+# 🔴 declarative only (D3/D4 debt closure) — 두 노드 다 실제 pluginlib::ClassLoader를
+# 쓰지 않는다. sadg_t0_node는 ConstraintCompiler 안에서 IAlternativeGenerator 구현체
+# (AltHeadLift)를 정적으로 인스턴스화하고, switch_selector_node는 아예 확장점을 로드하지
+# 않는다(Reorder 서버 자체가 없다 — 위 주석). `src/plugins/*.cpp`에 `PLUGINLIB_EXPORT_CLASS`
+# 등록 매크로가 트리 전체 0건(grep 확인)이고 `mrs_sadg_plugins`는 STATIC 라이브러리라
+# `.so` 산출물이 0개다 — 그래서 이 index 등록은 ament가 참조할 대상이 없다(mrs_mapf·
+# mrs_trajopt와 같은 형태의 신고).
+pluginlib_export_plugin_description_file(mrs_sadg plugins.xml)
+
+install(TARGETS sadg_t0_node switch_selector_node DESTINATION lib/${PROJECT_NAME})
+
+ament_package()

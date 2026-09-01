@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(mrs_trajopt CXX)
 
-# 🔴 ROS 2 런타임이 이 체크아웃에 없다(brief §1). 그래서 이 CMakeLists는 **순수 CMake**로
-#    코어 라이브러리 + 시험 + 측정 실행기를 빌드한다. ament/rclcpp/rosidl 절은 통합 라운드에서
-#    ROS 머신으로 옮길 때 켠다 — 아래 "ROS WRAPPER (DISABLED)" 블록 참조.
+# 47차 통합(P2) — ament 절 해제. core/status.hpp가 이제 mrs_core를 include하므로
+# mrs_core는 ROS 유무와 무관하게 항상 필요하다(D15 별칭 스왑).
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -11,14 +10,22 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+find_package(ament_cmake REQUIRED)
+find_package(mrs_core REQUIRED)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs. ---
+# --- core (CN-2/CN-3): pure algorithm. No ROS, no rosidl, no JSON, no mrs_msgs.
+#     🔴 ControlTickService (a service/-layer orchestrator by name) lives here,
+#     not in a service/ directory — 351_e4_correction.md logged this as a
+#     tracked, non-blocking exception (F-2 exemption expiring, not fixed by
+#     integration; see 21_integration.md J1). ---
 add_library(mrs_trajopt_core STATIC
   src/core/velocity_profiler.cpp
   src/core/startup_checks.cpp
   src/core/control_tick_service.cpp)
 target_include_directories(mrs_trajopt_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mrs_trajopt_core PUBLIC mrs_core::mrs_core_pure)
 
 # --- plugins (CN-5): swap-target implementations. Link core only. ---
 add_library(mrs_trajopt_plugins STATIC
@@ -70,16 +77,22 @@ add_trajopt_test(test_trajectories_roundtrip test/adapter/test_trajectories_adap
 add_trajopt_test(test_robot_specs_adapter    test/adapter/test_robot_specs_adapter.cpp)
 
 # =====================================================================================
-# ROS WRAPPER (DISABLED — enable on a ROS 2 machine in the integration round).
-# The node/ layer (src/node/trajopt_node.cpp) is a skeleton only and is NOT built here.
-# When ament is available, uncomment and add ament_target_dependencies for rclcpp,
-# mrs_msgs, pluginlib. See 20d "다음 단계 전달 사항 → integration-developer".
+# ROS node (47차 통합 P2). 🔴 SCOPED-DOWN — see src/node/trajopt_node.cpp file doc:
+# the full ControlTickService loop needs mrs_sim's odom feed (P4, out of this round).
 # =====================================================================================
-# find_package(ament_cmake REQUIRED)
-# find_package(rclcpp REQUIRED)
-# find_package(mrs_msgs REQUIRED)
-# find_package(pluginlib REQUIRED)
-# add_executable(trajopt_node src/node/trajopt_node.cpp)
-# ament_target_dependencies(trajopt_node rclcpp mrs_msgs pluginlib)
-# target_link_libraries(trajopt_node mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter)
-# ament_package()
+find_package(rclcpp REQUIRED)
+find_package(mrs_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+
+add_executable(trajopt_node src/node/trajopt_node.cpp)
+ament_target_dependencies(trajopt_node rclcpp mrs_msgs pluginlib)
+target_link_libraries(trajopt_node
+  mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_core::mrs_core_msgs)
+# 🔴 declarative only (D3/D4 debt closure) — trajopt_node does NOT use a real
+# pluginlib::ClassLoader this round (no *Factory exists; the control-tick loop
+# that would select these plugins is not wired, see file doc).
+pluginlib_export_plugin_description_file(mrs_trajopt plugins.xml)
+
+install(TARGETS trajopt_node DESTINATION lib/${PROJECT_NAME})
+
+ament_package()

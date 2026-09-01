@@ -10,10 +10,10 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <!-- 🔴 형제 알고리즘 패키지 의존 0건 (CN-21). 경계는 mrs_msgs만. -->
-  <!-- mrs_core는 이 체크아웃에 없어 코어가 Status/Result/ContractViolation을 로컬 정의한다
-       (20d 선례와 동일 사유). 통합 라운드에 mrs_core가 서면 아래 depend를 켜고 로컬 정의를 지운다. -->
+  <!-- 47차 통합(P2): mrs_core가 섰다 — depend를 켜고 core/status.hpp의 로컬 정의를
+       using 별칭으로 바꿨다(D15, 347_arch_integration_delta.md §3-2). -->
   <depend>mrs_msgs</depend>
-  <!-- <depend>mrs_core</depend> -->
+  <depend>mrs_core</depend>
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
 
@@ -21,6 +21,5 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <!-- 통합 라운드에 활성: <mrs_mrta plugin="${prefix}/plugins.xml"/> -->
   </export>
 </package>

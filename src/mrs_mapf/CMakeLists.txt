@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(mrs_mapf CXX)
 
-# 🔴 ROS 2 런타임이 이 체크아웃에 없다. 그래서 이 CMakeLists는 순수 CMake로
-#    코어 라이브러리 + 시험을 빌드한다. ament/rclcpp/rosidl 절은 통합 라운드에서
-#    ROS 머신으로 옮길 때 켠다 — 아래 "ROS WRAPPER (DISABLED)" 블록 참조.
-#    (선례: mrs_trajopt/CMakeLists.txt — 같은 패턴)
+# 47차 통합(P2) — ament 절 해제. core/status.hpp가 이제 mrs_core를 include하므로
+# mrs_core는 ROS 유무와 무관하게 항상 필요하다(D15 별칭 스왑).
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wpedantic)
+
+find_package(ament_cmake REQUIRED)
+find_package(mrs_core REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -21,6 +22,7 @@ add_library(mrs_mapf_core STATIC
   src/core/reservation.cpp
   src/core/visit_order.cpp)
 target_include_directories(mrs_mapf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mrs_mapf_core PUBLIC mrs_core::mrs_core_pure)
 
 # --- plugins (CN-5): swap-target implementations. Link core only. ---
 add_library(mrs_mapf_plugins STATIC
@@ -75,14 +77,23 @@ target_compile_definitions(test_check_envelope_version PRIVATE
   MRS_MAPF_SCHEMA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../mrs_msgs/schema/discrete_plan.schema.json")
 
 # =====================================================================================
-# ROS WRAPPER (DISABLED — enable on a ROS 2 machine in the integration round).
-# The node/ layer (src/node/mapf_node.cpp) is a skeleton only and is NOT built here.
+# ROS node (47차 통합 P2). Statically links core+plugins+adapter+service — this package
+# has no *Factory/ClassLoader (only one concrete IPlanningStrategy exists this round).
 # =====================================================================================
-# find_package(ament_cmake REQUIRED)
-# find_package(rclcpp REQUIRED)
-# find_package(mrs_msgs REQUIRED)
-# find_package(pluginlib REQUIRED)
-# add_executable(mapf_node src/node/mapf_node.cpp)
-# ament_target_dependencies(mapf_node rclcpp mrs_msgs pluginlib)
-# target_link_libraries(mapf_node mrs_mapf_core mrs_mapf_plugins mrs_mapf_adapter mrs_mapf_service)
-# ament_package()
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(mrs_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+
+add_executable(mapf_node src/node/mapf_node.cpp)
+ament_target_dependencies(mapf_node rclcpp rclcpp_action mrs_msgs pluginlib)
+target_link_libraries(mapf_node
+  mrs_mapf_core mrs_mapf_plugins mrs_mapf_adapter mrs_mapf_service mrs_core::mrs_core_msgs)
+# 🔴 declarative only (D3/D4 debt closure) — mapf_node does NOT use a real
+# pluginlib::ClassLoader (see node/mapf_node.cpp file doc: only one concrete
+# IPlanningStrategy exists this round, statically linked instead).
+pluginlib_export_plugin_description_file(mrs_mapf plugins.xml)
+
+install(TARGETS mapf_node DESTINATION lib/${PROJECT_NAME})
+
+ament_package()
