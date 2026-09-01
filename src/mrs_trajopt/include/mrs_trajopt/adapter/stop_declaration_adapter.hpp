@@ -11,7 +11,7 @@
 #include "mrs_trajopt/core/types.hpp"
 
 /// @file stop_declaration_adapter.hpp
-/// @brief Converts internal declarations -> mrs.stop_declaration 5.0.0 (to_boundary).
+/// @brief Converts internal declarations -> mrs.stop_declaration 5.0.1 (to_boundary).
 ///
 /// The only upward channel (고정 결정 4). This module produces stop_declaration
 /// and never consumes it, so only `to_boundary` is implemented (CN-9). The

@@ -74,14 +74,14 @@ struct BoundaryRobotSpecs
     std::vector<BoundaryRobotSpec> robots;
 };
 
-/// @brief One directed blocked edge of mrs.stop_declaration 5.0.0.
+/// @brief One directed blocked edge of mrs.stop_declaration 5.0.1.
 struct BoundaryBlockedEdge
 {
     std::string from;  ///< roadmap node id.
     std::string to;    ///< roadmap node id.
 };
 
-/// @brief One declaration of mrs.stop_declaration 5.0.0.
+/// @brief One declaration of mrs.stop_declaration 5.0.1.
 struct BoundaryStopDeclaration
 {
     std::uint64_t seq = 0;             ///< per-robot ordinal.
@@ -91,7 +91,7 @@ struct BoundaryStopDeclaration
     std::string reason;  ///< one of exogenous_block/infeasible_subgoal/unresolvable_locally.
 };
 
-/// @brief mrs.stop_declaration 5.0.0 document.
+/// @brief mrs.stop_declaration 5.0.1 document.
 struct BoundaryStopDeclarations
 {
     std::string instance_id;

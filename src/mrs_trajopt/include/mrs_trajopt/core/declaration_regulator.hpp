@@ -6,7 +6,7 @@
 #include <string>
 
 /// @file declaration_regulator.hpp
-/// @brief The upward channel: `mrs.stop_declaration` 5.0.0 only (고정 결정 4).
+/// @brief The upward channel: `mrs.stop_declaration` 5.0.1 only (고정 결정 4).
 ///
 /// This is the ONLY upward channel — `replan_request` is not emitted by this
 /// module (CT25 철회). The reason is chosen by the schema's 3-way total-order
@@ -18,7 +18,7 @@
 namespace mrs_trajopt::core
 {
 
-/// @brief The legal reason vocabulary (subset 3 of stop_declaration 5.0.0).
+/// @brief The legal reason vocabulary (subset 3 of stop_declaration 5.0.1).
 ///
 /// Exactly the enum of stop_declaration.schema.json :52 — no more, no less.
 enum class StopReason

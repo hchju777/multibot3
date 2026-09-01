@@ -23,7 +23,7 @@ std::string to_json(const adapter::BoundaryTrajectories& doc);
 
 /// @brief Serialize a boundary stop-declaration document to schema JSON.
 /// @param doc the boundary stop-declaration document.
-/// @return a JSON string matching mrs.stop_declaration 5.0.0.
+/// @return a JSON string matching mrs.stop_declaration 5.0.1.
 std::string to_json(const adapter::BoundaryStopDeclarations& doc);
 
 /// @brief Parse a boundary robot_specs document from JSON text.
