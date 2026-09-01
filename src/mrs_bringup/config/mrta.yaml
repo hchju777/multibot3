@@ -1,0 +1,26 @@
+# mrta.yaml — mrs_mrta 노드 파라미터(CN-6/CN-7: method.modules.mrta.*).
+#
+# `robots`·`instance_id`는 알고리즘 파라미터가 아니라 이 run의 로스터/식별자다
+# (mrta_node.cpp:55-83 — 비어 있으면 ContractViolation으로 기동 거부).
+# 값은 지어내지 않았다 — prototype/out/roadmap.json·assignment.json이 같은
+# instance_id("proto_w4x3_ep8_s0")로 묶인 기존 산출물이고, 그 assignment.json의
+# 로스터가 r0~r5다([실물] 두 파일 모두 이 라운드가 새로 만들지 않았다).
+
+mrta_node:
+  ros__parameters:
+    instance_id: "proto_w4x3_ep8_s0"
+    robots: ["r0", "r1", "r2", "r3", "r4", "r5"]
+    method:
+      modules:
+        mrta:
+          # 플러그인 선택 — CN-7 "알고리즘 교체는 이 트리의 한 줄". 오늘 등록된
+          # 둘(mrs_mrta/GreedyTailAppend, mrs_mrta/FaultyOverflow) 중 GreedyTailAppend가
+          # 유일한 비고장 주입 정책(mrta_node.cpp:85-96).
+          policy: "mrs_mrta/GreedyTailAppend"
+          # Q^ta = 4 — 336_mrta_canon_p3.md §336-9 "설계·실험 상수 · config/mrta.yaml"에
+          # 명시된 정본값. node 기본값(4)과 동일하지만 config가 정본 출처를 갖는다.
+          goal_queue_capacity: 4
+          # event_ring_slots — 🔴 [값 부재]. 12a_arch_mrta_p2.md§V2·91a_module_ta_final_p2.md§V1-2가
+          # "값 미정"으로 명시하고 "값을 지어내면 사전 할당 크기가 근거 없는 수가 된다"고
+          # 경고한다. 이 키를 여기 넣지 않는다 — node 기본값 64(비-정본 stand-in)가 그대로
+          # 적용된다. 값이 오면(오케스트레이터+사용자 몫) 이 자리에 채운다.

@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_sim</name>
+  <version>0.1.0</version>
+  <description>
+    최소 시뮬레이터 도구 패키지 — /clock 유일 발행(clock_node), cmd_vel 적분
+    (state_integrator), 로드맵·로봇사양 latched 발행(roadmap_publisher, D29).
+    물리 어댑터·주입기·계산 자원 중재자·대시보드는 이 라운드 밖(357 §7-3).
+    CN-1 필수 넷(core/adapter/node/service)의 대상이 아니다 — 도구 패키지이고
+    include/mrs_sim/ 공개 헤더를 두지 않는다(check_layer_layout.py는
+    include/{pkg}/ 부재 패키지를 "검사 0건"으로 신고할 뿐 위반으로 세지 않는다).
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 형제 알고리즘 패키지 의존 0건(CN-21 대상은 네 알고리즘 모듈뿐이지만
+       mrs_sim도 그 습관을 따른다 — 경계는 mrs_msgs·mrs_core만). -->
+  <depend>mrs_msgs</depend>
+  <depend>mrs_core</depend>
+  <depend>rclcpp</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nlohmann_json</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,80 @@
+# qos.yaml — 8차 10_architecture.md§7 QoS 표의 "이름 있는 프로파일" 정본화
+# (357§7-2 P3 표). 🔴 이 파일은 이번 라운드에서 프로그램으로 로드되지 않는다
+# — 다섯 노드가 여전히 생성자에서 QoS를 하드코딩한다(21_p2 §8 #7이 이미 신고한
+# 자리). 여기 적힌 값은 "오늘 코드가 실제로 쓰는 값"을 손으로 옮겨 적어
+# 이름을 붙인 것이지, 이 파일을 바꾼다고 코드가 바뀌지 않는다 — 값을
+# 지어내지 않았다는 것을 확인하려면 각 프로파일 옆의 [실물] 인용 파일:줄을
+# 직접 열어 대조한다.
+#
+# 다음 라운드가 이 파일을 실제로 로드하게 만들려면(node/가 QoS를 파라미터로
+# 받게 바꾸는 것) 그것은 모듈 코드 변경이라 이번 통합 라운드의 쓰기 범위
+# 밖이다(node/는 이번에 허용됐지만, 이미 동작하는 QoS 하드코딩을 걷어내는
+# 것은 "골격을 채우는 것"이 아니라 리팩터라 손대지 않았다).
+
+profiles:
+  latched:
+    # 8차 10_architecture.md§7 "/roadmap, /assignment, /discrete_plan,
+    # /execution_constraints, /robot_specs, /{robot}/operator_command" 등
+    # 지연 후 도착도 마지막 값을 받아야 하는 채널.
+    reliability: reliable
+    durability: transient_local
+    history: keep_last
+    depth: 1
+    used_by:
+      - topic: /roadmap
+        role: [pub: mrs_sim/roadmap_publisher, sub: mrs_mrta/mrta_node, sub: mrs_mapf/mapf_node]
+        source: "[실물] mrta_node.cpp:115-116,121-127 · mapf_node.cpp:59-68"
+      - topic: /assignment
+        role: [pub: mrs_mrta/mrta_node, sub: mrs_mapf/mapf_node]
+        source: "[실물] mrta_node.cpp:115-119 · mapf_node.cpp:79-85"
+      - topic: /robot_specs
+        role: [pub: mrs_sim/roadmap_publisher, sub: mrs_mapf/mapf_node, sub: mrs_trajopt/trajopt_node]
+        source: "[실물] mapf_node.cpp:59-64,72-78 · trajopt_node.cpp:83-92"
+      - topic: /discrete_plan
+        role: [pub: mrs_mapf/mapf_node, sub: mrs_sadg/sadg_t0_node, sub: mrs_sadg/switch_selector_node]
+        source: "[실물] mapf_node.cpp:59-63 · sadg_t0_node.cpp:47-56 · switch_selector_node.cpp:37-42"
+      - topic: /execution_constraints
+        role: [pub: mrs_sadg/sadg_t0_node]
+        source: "[실물] sadg_t0_node.cpp:47-52"
+      - topic: /{robot}/operator_command
+        role: [sub: mrs_mrta/mrta_node]
+        source: "[실물] mrta_node.cpp:148-162 — [결정], mrs_sim 발행측 미배선(콘솔은 P4 이후, U48-4)"
+
+  reliable_bounded:
+    # 재전송이 늦어도 유실이 진행 정체보다 낫지 않은 채널 — 깊이는 채널마다 다르다.
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    used_by:
+      - topic: /task_release
+        depth: 10
+        source: "[실물] mrta_node.cpp:129-135"
+      - topic: /goal_completion
+        depth: "robots.size() * (goal_queue_capacity_ta + 1)"
+        source: "[실물] mrta_node.cpp:137-146 — canon X15"
+      - topic: /{robot}/cmd_vel
+        depth: 1
+        source: "[실물] state_integrator.cpp — [결정], trajopt 발행측 미배선(P4 이후)"
+
+  best_effort_volatile:
+    # 오래된 값의 재전송이 head-of-line 지연을 만드는 채널(10_architecture.md§7).
+    reliability: best_effort
+    durability: volatile
+    history: keep_last
+    depth: 1
+    used_by:
+      - topic: /clock
+        role: [pub: mrs_sim/clock_node]
+        source: "[실물] clock_node.cpp — rclcpp::ClockQoS() == 이 프로파일과 동치"
+      - topic: /{robot}/odom
+        role: [pub: mrs_sim/state_integrator]
+        source: "[실물] state_integrator.cpp — [결정] /odom_batch(347§4-2 mermaid)의 로봇당 대체.
+          mrs_msgs에 배치 타입이 없어(계약 무접촉) 표준 nav_msgs/Odometry를 로봇당 토픽으로 씀.
+          이번 라운드 소비자 0(trajopt 제어 틱 루프 미배선)"
+
+  action_default:
+    # rclcpp_action 기본 프로파일 — 오버라이드하지 않음.
+    used_by:
+      - action: /replan (mrs_mapf/mapf_node, rclcpp_action::Server)
+        source: "[실물] mapf_node.cpp:87-102 — QoS 오버라이드 없음"
+      - action: reorder — 🔴 [결정 부재], 이번 라운드 미신설(350§5-2 D3-b, 352 발주서)

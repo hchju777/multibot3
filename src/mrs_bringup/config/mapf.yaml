@@ -1,0 +1,15 @@
+# mapf.yaml — mrs_mapf 노드 파라미터.
+#
+# mapf_node는 이번 라운드까지 `instance_id` 외의 ROS 파라미터를 선언하지
+# 않는다([실물] mapf_node.cpp:57 — 유일한 declare_parameter 호출). 유일한
+# 전략 구현체(PrioritySafeIntervalSearch)를 직접 인스턴스화하고 있어(같은
+# 파일 §헤더 주석) 오늘은 method.modules.mapf.* 아래 고를 것이 없다.
+#
+# 🔴 [값 부재] — X3(탐색 노드 확장 수 상한, config.yaml:search_node_budget)가
+# 10_architecture_p2.md§13에 "미정"으로 남아 있다. mapf_node가 그 키를 아직
+# 읽지 않으므로(코드에 declare_parameter 없음) 여기 채워도 소비되지 않는다 —
+# 채우면 "설정했다"와 "적용됐다"를 헷갈리게 하는 죽은 키가 된다. 넣지 않는다.
+
+mapf_node:
+  ros__parameters:
+    instance_id: "proto_w4x3_ep8_s0"

@@ -1,0 +1,404 @@
+{
+  "schema": "mrs.roadmap",
+  "schema_version": "3.0.0",
+  "instance_id": "proto_w4x3_ep8_s0",
+  "nodes": [
+    {
+      "id": "J0000",
+      "x": 0.0,
+      "y": 0.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0001",
+      "x": 0.0,
+      "y": 5.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0002",
+      "x": 0.0,
+      "y": 10.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0100",
+      "x": 5.0,
+      "y": 0.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0101",
+      "x": 5.0,
+      "y": 5.0,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "J0102",
+      "x": 5.0,
+      "y": 10.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0200",
+      "x": 10.0,
+      "y": 0.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0201",
+      "x": 10.0,
+      "y": 5.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0202",
+      "x": 10.0,
+      "y": 10.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0300",
+      "x": 15.0,
+      "y": 0.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0301",
+      "x": 15.0,
+      "y": 5.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "J0302",
+      "x": 15.0,
+      "y": 10.0,
+      "clearance_m": 1.2
+    },
+    {
+      "id": "P0002NW",
+      "x": -1.414214,
+      "y": 11.414214,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0100NW",
+      "x": 3.585786,
+      "y": 1.414214,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0101SE",
+      "x": 6.414214,
+      "y": 3.585786,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0200NW",
+      "x": 8.585786,
+      "y": 1.414214,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0201NE",
+      "x": 11.414214,
+      "y": 6.414214,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0202SE",
+      "x": 11.414214,
+      "y": 8.585786,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0300NW",
+      "x": 13.585786,
+      "y": 1.414214,
+      "clearance_m": 0.6
+    },
+    {
+      "id": "P0302SE",
+      "x": 16.414214,
+      "y": 8.585786,
+      "clearance_m": 0.6
+    }
+  ],
+  "edges": [
+    {
+      "from": "J0000",
+      "to": "J0001",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0001",
+      "to": "J0002",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0100",
+      "to": "J0101",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": "q_v01"
+    },
+    {
+      "from": "J0101",
+      "to": "J0102",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": "q_v01"
+    },
+    {
+      "from": "J0200",
+      "to": "J0201",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0201",
+      "to": "J0202",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0300",
+      "to": "J0301",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0301",
+      "to": "J0302",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0000",
+      "to": "J0100",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0001",
+      "to": "J0101",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": "q_h01"
+    },
+    {
+      "from": "J0002",
+      "to": "J0102",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0100",
+      "to": "J0200",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0101",
+      "to": "J0201",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": "q_h01"
+    },
+    {
+      "from": "J0102",
+      "to": "J0202",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0200",
+      "to": "J0300",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0201",
+      "to": "J0301",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": "q_h01"
+    },
+    {
+      "from": "J0202",
+      "to": "J0302",
+      "traversal": "bidirectional",
+      "length_m": 5.0,
+      "width_m": 2.4,
+      "capacity_robots": 2,
+      "corridor": ""
+    },
+    {
+      "from": "J0002",
+      "to": "P0002NW",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0100",
+      "to": "P0100NW",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0101",
+      "to": "P0101SE",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0200",
+      "to": "P0200NW",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0201",
+      "to": "P0201NE",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0202",
+      "to": "P0202SE",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0300",
+      "to": "P0300NW",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    },
+    {
+      "from": "J0302",
+      "to": "P0302SE",
+      "traversal": "bidirectional",
+      "length_m": 2.0,
+      "width_m": 1.2,
+      "capacity_robots": 1,
+      "corridor": ""
+    }
+  ],
+  "endpoints": [
+    "P0002NW",
+    "P0100NW",
+    "P0101SE",
+    "P0200NW",
+    "P0201NE",
+    "P0202SE",
+    "P0300NW",
+    "P0302SE"
+  ],
+  "corridors": [
+    {
+      "id": "q_h01",
+      "edges": [
+        [
+          "J0001",
+          "J0101"
+        ],
+        [
+          "J0101",
+          "J0201"
+        ],
+        [
+          "J0201",
+          "J0301"
+        ]
+      ],
+      "length_m": 15.0
+    },
+    {
+      "id": "q_v01",
+      "edges": [
+        [
+          "J0100",
+          "J0101"
+        ],
+        [
+          "J0101",
+          "J0102"
+        ]
+      ],
+      "length_m": 10.0
+    }
+  ],
+  "provenance": {
+    "min_separation_m": 1.0,
+    "wall_inflation_m": 0.0,
+    "capacity_rule_id": "rule_a",
+    "generator_version": "prototype-gen_roadmap-0.1.0"
+  }
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_bringup</name>
+  <version>0.1.0</version>
+  <description>
+    배선 전용 패키지 — launch·파라미터·네임스페이스·시뮬레이션 시간 전파.
+    소스 0줄(10_architecture.md:113, 357§7-2가 재확인). 알고리즘 파라미터는
+    이 패키지의 config/{모듈}.yaml 하나에만 산다(CN-6/CN-7). D29에 따라
+    로드맵 발행 노드(roadmap_publisher)는 이 패키지가 아니라 mrs_sim이 소유
+    한다 — 이 패키지는 그것을 launch에서 "띄우기"만 한다.
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 실행 시점 의존만 — 이 패키지 자신은 빌드할 소스가 없다. -->
+  <exec_depend>mrs_mrta</exec_depend>
+  <exec_depend>mrs_mapf</exec_depend>
+  <exec_depend>mrs_sadg</exec_depend>
+  <exec_depend>mrs_trajopt</exec_depend>
+  <exec_depend>mrs_sim</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <!-- F48-6 해소 — launch 파일이 mrta.yaml의 robots를 읽어 state_integrator와
+       공유한다(단일 출처). -->
+  <exec_depend>python3-yaml</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
