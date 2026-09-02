@@ -64,7 +64,9 @@ def test_generate_launch_description_has_expected_actions():
     arg_count = sum(1 for e in entities if isinstance(e, DeclareLaunchArgument))
 
     # D16 스모크 최소 = 다섯 실행 파일(sadg 둘 포함: sadg_t0_node·switch_selector_node)
-    # + mrs_sim 셋(clock_node·state_integrator·roadmap_publisher) = 8.
-    assert node_count == 8, f"expected 8 Node actions, got {node_count}"
-    # use_sim_time · roadmap_path · robot_specs_path · observation(자리 예약) = 4.
-    assert arg_count == 4, f"expected 4 DeclareLaunchArgument actions, got {arg_count}"
+    # + mrs_sim 넷(clock_node·state_integrator·roadmap_publisher·
+    # task_release_publisher, 367_pipeline_inputs.md 웨이브 1-A) = 9.
+    assert node_count == 9, f"expected 9 Node actions, got {node_count}"
+    # use_sim_time · roadmap_path · robot_specs_path · task_release_path ·
+    # observation(자리 예약) = 5.
+    assert arg_count == 5, f"expected 5 DeclareLaunchArgument actions, got {arg_count}"

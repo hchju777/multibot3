@@ -5,11 +5,22 @@
 # 값은 지어내지 않았다 — prototype/out/roadmap.json·assignment.json이 같은
 # instance_id("proto_w4x3_ep8_s0")로 묶인 기존 산출물이고, 그 assignment.json의
 # 로스터가 r0~r5다([실물] 두 파일 모두 이 라운드가 새로 만들지 않았다).
-
+#
+# `initial_vertices` — 367_pipeline_inputs.md ③ 발견: `robot_vertex[]`를 채우는
+# "로봇 상태" 이음매는 이 라운드에 계약이 없다(336_mrta_canon_p2.md §17 "계약
+# 없음"). 채우지 않으면 모든 로봇의 시작 정점이 기본값 `""`으로 남아 모든
+# 태스크가 미배정으로 풀링되고(367_pipeline_inputs.md §3 실측), 그 `""` 시작이
+# mapf_node의 안전정지 폴백 비순환 자체 검사까지 실패시킨다. 이 값은 `robots`와
+# **같은 순서**로 대응하며(r0→J0000, …), prototype/out/assignment.json의
+# `assignments[].start` 필드를 그대로 옮겼다 — 지어내지 않았다. 🔴 이것은 이음매
+# ⑥(로봇 상태 실시간 채널)이 **아니다** — 기동 1회 시드일 뿐이다. 로봇이 움직인
+# 뒤에도 이 값이 갱신되지 않는다는 뜻이며, 진짜 이음매는 여전히 미결이다
+# (system-architect·interface-designer 확인 요망, 367_pipeline_inputs.md §3).
 mrta_node:
   ros__parameters:
     instance_id: "proto_w4x3_ep8_s0"
     robots: ["r0", "r1", "r2", "r3", "r4", "r5"]
+    initial_vertices: ["J0000", "J0100", "J0101", "J0200", "J0201", "J0302"]
     method:
       modules:
         mrta:

@@ -5,11 +5,13 @@
   <version>0.1.0</version>
   <description>
     최소 시뮬레이터 도구 패키지 — /clock 유일 발행(clock_node), cmd_vel 적분
-    (state_integrator), 로드맵·로봇사양 latched 발행(roadmap_publisher, D29).
-    물리 어댑터·주입기·계산 자원 중재자·대시보드는 이 라운드 밖(357 §7-3).
-    CN-1 필수 넷(core/adapter/node/service)의 대상이 아니다 — 도구 패키지이고
-    include/mrs_sim/ 공개 헤더를 두지 않는다(check_layer_layout.py는
-    include/{pkg}/ 부재 패키지를 "검사 0건"으로 신고할 뿐 위반으로 세지 않는다).
+    (state_integrator), 로드맵·로봇사양 latched 발행(roadmap_publisher, D29),
+    태스크 릴리스 스트림 발행(task_release_publisher, 367_pipeline_inputs.md
+    웨이브 1-A ②). 관측 주입기·계산 자원 중재자·대시보드는 이 라운드 밖
+    (357 §7-3). CN-1 필수 넷(core/adapter/node/service)의 대상이 아니다 —
+    도구 패키지이고 include/mrs_sim/ 공개 헤더를 두지 않는다
+    (check_layer_layout.py는 include/{pkg}/ 부재 패키지를 "검사 0건"으로
+    신고할 뿐 위반으로 세지 않는다).
   </description>
   <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
   <license>Apache-2.0</license>

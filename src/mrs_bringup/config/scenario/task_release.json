@@ -1,0 +1,138 @@
+[
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 0,
+    "task": "t000",
+    "goals": [
+      {
+        "goal_id": "g-000000",
+        "location": "P0201NE"
+      },
+      {
+        "goal_id": "g-000001",
+        "location": "P0200NW"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 1,
+    "task": "t001",
+    "goals": [
+      {
+        "goal_id": "g-000002",
+        "location": "P0202SE"
+      },
+      {
+        "goal_id": "g-000003",
+        "location": "P0201NE"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 2,
+    "task": "t002",
+    "goals": [
+      {
+        "goal_id": "g-000004",
+        "location": "P0200NW"
+      },
+      {
+        "goal_id": "g-000005",
+        "location": "P0201NE"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 3,
+    "task": "t003",
+    "goals": [
+      {
+        "goal_id": "g-000006",
+        "location": "P0101SE"
+      },
+      {
+        "goal_id": "g-000007",
+        "location": "P0302SE"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 4,
+    "task": "t004",
+    "goals": [
+      {
+        "goal_id": "g-000008",
+        "location": "P0101SE"
+      },
+      {
+        "goal_id": "g-000009",
+        "location": "P0300NW"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 5,
+    "task": "t005",
+    "goals": [
+      {
+        "goal_id": "g-000010",
+        "location": "P0100NW"
+      },
+      {
+        "goal_id": "g-000011",
+        "location": "P0201NE"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 6,
+    "task": "t006",
+    "goals": [
+      {
+        "goal_id": "g-000012",
+        "location": "P0201NE"
+      },
+      {
+        "goal_id": "g-000013",
+        "location": "P0302SE"
+      }
+    ]
+  },
+  {
+    "schema": "mrs.task_release",
+    "schema_version": "2.0.0",
+    "instance_id": "proto_w4x3_ep8_s0",
+    "release_index": 7,
+    "task": "t007",
+    "goals": [
+      {
+        "goal_id": "g-000014",
+        "location": "P0101SE"
+      },
+      {
+        "goal_id": "g-000015",
+        "location": "P0302SE"
+      }
+    ]
+  }
+]

@@ -1,12 +1,16 @@
 """pipeline.launch.py — D16 스모크 최소 배선.
 
 다섯 실행 파일(mrta_node · mapf_node · sadg_t0_node · switch_selector_node ·
-trajopt_node) + mrs_sim 셋(clock_node · state_integrator · roadmap_publisher)을
-띄운다. `mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일
-뿐 알고리즘·서비스 로직을 담지 않는다(10_architecture.md:113, 357§7-2).
+trajopt_node) + mrs_sim 넷(clock_node · state_integrator · roadmap_publisher ·
+task_release_publisher, 367_pipeline_inputs.md 웨이브 1-A)을 띄운다.
+`mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일 뿐
+알고리즘·서비스 로직을 담지 않는다(10_architecture.md:113, 357§7-2).
 
 🔴 이 launch로 도는 실행은 어느 주장의 증거도 아니다(347§4-6) — result.json이
-없고, 지표를 재지 않고, 반복 run·시드 스윕이 없다.
+없고, 지표를 재지 않고, 반복 run·시드 스윕이 없다. 🔴 robot_specs_path·
+task_release_path의 기본값은 **가정 데이터**다(U48-5) — 실제 로봇에서 온 값이
+아니므로 이 값으로 돈 run은 SC-* 증거로 계상될 수 없다
+(config/scenario/README.md).
 
 use_sim_time: true를 공통 dict로 전 노드에 일괄 주입한다 — clock_node
 자신만 예외로 false를 받는다(자기가 낸 시간을 자기가 구독하는 순환을
@@ -14,6 +18,10 @@ use_sim_time: true를 공통 dict로 전 노드에 일괄 주입한다 — clock
 
 observation 인자는 **자리만 예약**한다(357 D28·Q5) — 이 라운드는 어떤 노드도
 이 값을 소비하지 않는다. 관측 채널·observation_node는 만들지 않았다.
+
+🔴 367_pipeline_inputs_p2.md — `state_integrator`에 `initial_vertices`를 `robots`와
+같은 출처(`mrta.yaml`)에서 읽어 넘긴다. `trajopt_node`(첫 /odom 대기)와
+`state_integrator`(첫 /cmd_vel 대기)의 순환 대기를 끊는 값이다.
 """
 
 import os
@@ -48,14 +56,37 @@ def _load_robots_roster(mrta_yaml_path):
         return []
 
 
+def _load_initial_vertices_roster(mrta_yaml_path):
+    """367_pipeline_inputs_p2.md — 순환 대기 처리의 값 출처.
+
+    `mrta.yaml`의 `mrta_node.ros__parameters.initial_vertices`(367_pipeline_
+    inputs.md §3이 이미 세운 것 — prototype/out/assignment.json의
+    `assignments[].start`를 그대로 옮긴 값)를 `state_integrator`도 같이 쓴다.
+    같은 값을 두 곳에 손으로 맞춰 적지 않는다(`_load_robots_roster`와 같은
+    이유). 파일이 없거나 키가 없으면 빈 리스트 — `state_integrator`는 그 경우
+    초기 `/odom` 시드를 내지 않고 WARN만 남긴다(state_integrator.cpp).
+    """
+    try:
+        with open(mrta_yaml_path) as f:
+            data = yaml.safe_load(f)
+        return data["mrta_node"]["ros__parameters"]["initial_vertices"]
+    except (FileNotFoundError, KeyError, TypeError):
+        return []
+
+
 def generate_launch_description():
     bringup_share = get_package_share_directory("mrs_bringup")
 
     default_roadmap_path = os.path.join(bringup_share, "config", "scenario", "roadmap.json")
+    default_robot_specs_path = os.path.join(bringup_share, "config", "scenario", "robot_specs.json")
+    default_task_release_path = os.path.join(
+        bringup_share, "config", "scenario", "task_release.json"
+    )
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     roadmap_path = LaunchConfiguration("roadmap_path")
     robot_specs_path = LaunchConfiguration("robot_specs_path")
+    task_release_path = LaunchConfiguration("task_release_path")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -73,12 +104,23 @@ def generate_launch_description():
     )
     declare_robot_specs_path = DeclareLaunchArgument(
         "robot_specs_path",
-        default_value="",
+        default_value=default_robot_specs_path,
         description=(
-            "🔴 [값 부재] — robot_specs 소스 데이터가 이 라운드에 없다(prototype에 "
-            "생성기·산출물 0건). 빈 문자열이면 roadmap_publisher가 /robot_specs를 "
-            "발행하지 않고 WARN만 남긴다 — mapf_node/trajopt_node는 그 latched 토픽 "
-            "없이는 로드맵만 받고 대기한다."
+            "🔴 [가정 데이터, U48-5] — 실제 로봇 등록 스펙이 이 라운드에 없어 "
+            "config/scenario/robot_specs.json(README.md '가정 데이터')을 기본값으로 "
+            "쓴다. 빈 문자열로 오버라이드하면 roadmap_publisher가 /robot_specs를 "
+            "발행하지 않고 WARN만 남긴다(옛 동작 보존)."
+        ),
+    )
+    declare_task_release_path = DeclareLaunchArgument(
+        "task_release_path",
+        default_value=default_task_release_path,
+        description=(
+            "🔴 [가정 데이터의 파생, U48-5 정신 승계] — task_release_publisher가 읽을 "
+            "mrs.task_release 봉투 배열 JSON. config/scenario/task_release.json은 "
+            "prototype/out/assignment.json(같은 instance_id)에서 역산한 것이며 새 값을 "
+            "지어내지 않았다(README.md 'task_release.json'). 빈 문자열로 오버라이드하면 "
+            "task_release_publisher가 /task_release를 발행하지 않고 WARN만 남긴다."
         ),
     )
     # 🔴 자리만 예약(357 D28) — 이 라운드 어떤 노드도 이 값을 읽지 않는다.
@@ -97,6 +139,8 @@ def generate_launch_description():
 
     # F48-6 해소 — 하드코딩 둘을 mrta.yaml 하나로 모았다(위 _load_robots_roster).
     robots = _load_robots_roster(mrta_yaml)
+    # 367_pipeline_inputs_p2.md — state_integrator의 초기 /odom 시드 값 출처.
+    initial_vertices = _load_initial_vertices_roster(mrta_yaml)
 
     nodes = [
         Node(
@@ -147,7 +191,10 @@ def generate_launch_description():
             executable="state_integrator",
             name="state_integrator",
             output="screen",
-            parameters=[{"robots": robots}, common_params],
+            parameters=[
+                {"robots": robots, "initial_vertices": initial_vertices},
+                common_params,
+            ],
         ),
         Node(
             package="mrs_sim",
@@ -159,6 +206,16 @@ def generate_launch_description():
                 common_params,
             ],
         ),
+        Node(
+            package="mrs_sim",
+            executable="task_release_publisher",
+            name="task_release_publisher",
+            output="screen",
+            parameters=[
+                {"task_release_path": task_release_path},
+                common_params,
+            ],
+        ),
     ]
 
     return LaunchDescription(
@@ -166,6 +223,7 @@ def generate_launch_description():
             declare_use_sim_time,
             declare_roadmap_path,
             declare_robot_specs_path,
+            declare_task_release_path,
             declare_observation,
             *nodes,
         ]

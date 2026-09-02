@@ -1,0 +1,61 @@
+{
+  "schema": "mrs.robot_specs",
+  "schema_version": "1.1.0",
+  "instance_id": "proto_w4x3_ep8_s0",
+  "robots": [
+    {
+      "robot": "r0",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    },
+    {
+      "robot": "r1",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    },
+    {
+      "robot": "r2",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    },
+    {
+      "robot": "r3",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    },
+    {
+      "robot": "r4",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    },
+    {
+      "robot": "r5",
+      "avg_traversal_speed_mps": 0.5,
+      "v_max": 1.0,
+      "brake_decel_min_mps2": 1.0,
+      "curvature_max_invm": 0.5,
+      "reverse_motion_allowed": true,
+      "circumradius_m": 0.35
+    }
+  ]
+}

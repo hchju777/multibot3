@@ -25,15 +25,25 @@ add_executable(clock_node src/node/clock_node.cpp)
 ament_target_dependencies(clock_node rclcpp rosgraph_msgs)
 target_link_libraries(clock_node mrs_core::mrs_core_pure)
 
+# 367_pipeline_inputs_p2.md — 순환 대기 처리: /roadmap 구독(정점 좌표) +
+# mrs_core::ContractViolation(초기 pose 시드 설정 검사) 신설.
 add_executable(state_integrator src/node/state_integrator.cpp)
-ament_target_dependencies(state_integrator rclcpp geometry_msgs nav_msgs)
+ament_target_dependencies(state_integrator rclcpp geometry_msgs nav_msgs mrs_msgs)
+target_link_libraries(state_integrator mrs_core::mrs_core_pure)
 
 add_executable(roadmap_publisher src/node/roadmap_publisher.cpp)
 ament_target_dependencies(roadmap_publisher rclcpp mrs_msgs)
 target_link_libraries(roadmap_publisher
   mrs_core::mrs_core_pure mrs_core::mrs_core_msgs nlohmann_json::nlohmann_json)
 
-install(TARGETS clock_node state_integrator roadmap_publisher
+# 367_pipeline_inputs.md 웨이브 1-A ② — /task_release 생산자(D29 선례를 따른
+# 통합 담당의 배치 판정, system-architect 확인 요망 — 367_pipeline_inputs.md §2).
+add_executable(task_release_publisher src/node/task_release_publisher.cpp)
+ament_target_dependencies(task_release_publisher rclcpp mrs_msgs)
+target_link_libraries(task_release_publisher
+  mrs_core::mrs_core_pure nlohmann_json::nlohmann_json)
+
+install(TARGETS clock_node state_integrator roadmap_publisher task_release_publisher
   DESTINATION lib/${PROJECT_NAME})
 
 # --- tests (F48-4/F48-5, 48차 코드 게이트) ---

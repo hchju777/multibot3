@@ -1,39 +1,73 @@
-# trajopt.yaml — mrs_trajopt 노드 파라미터(method.modules.trajopt.*).
+# =============================================================================
+#  🔴 탐색용 임시값 — 사전등록 상수가 아니다
+# =============================================================================
+#  이 파일의 어떤 수치도 `_workspace/27_spike_preregistration.md` §1의 동결 대상이
+#  아니다. 그 문서의 값과 우연히 같은 숫자가 있어도 **동결이 아니다.**
 #
-# 🔴 아래 열 개 키 전부가 오늘 [값 부재]다 — 어느 정본 문서에도 실제 숫자가
-# 없다(확인: 255_trajopt_canon_brief.md·256a~c_trajopt_canon_*.md·
-# 20d_impl_trajopt*.md 전수 grep, "a_max ="류 대입 0건). 존재하는 숫자는
-# mrs_trajopt 자신의 **단위 시험 픽스처**뿐(예: test/core/test_startup_checks.cpp:26-37,
-# test_control_tick_service.cpp:32-47) — 그 값은 "이 시험 케이스가 이 숫자로
-# 성립을 보인다"는 뜻이지 "이 값이 시스템의 정본 파라미터"라는 뜻이 아니다.
-# 시험 픽스처를 config로 옮기면 검증되지 않은 물리·설계 상수가 실행 경로에
-# 들어간다 — 지어내지 않는다.
+#  물리 규모는 최종적으로 시뮬레이터(아이작 심) 에셋 치수에 맞춘다.
+#  **에셋 치수가 정해지면 이 파일만 바꾼다.** 코드에는 어떤 길이·속도·주기도
+#  박혀 있지 않다(박혀 있다면 그것은 결함이며 보고 대상이다).
 #
-# 결과: trajopt_node가 `/robot_specs`를 받는 순간 core::StartupChecks::run이
-# SU01/SU02(주기 >= 1)·SU03-05(예산 >= 1)에서 거절하고 ContractViolation →
-# 종료 1을 낸다(SU01/02/03/04/05는 node의 하드코드 기본값 0을 그대로 본다 —
-# 이 파일이 오버라이드하지 않으므로). **이것은 이번 라운드가 숨기지 않고
-# 그대로 보고하는 스모크의 정지점이다** (361_integration_p3p4.md §1).
+#  🔴 **이 값들로 만든 어떤 산출물도 논문 증거가 아니다.**
+#  `SC-*` 주장의 `evidence`로 계상하려면 실측 스펙으로 다시 돌려야 한다.
+#  run 기록에 「trajopt 파라미터 출처 = 가정」을 반드시 남긴다.
+#
+#  사용자 결정 U48-9(2026-09-02) — `prototype/config/scale.yaml`의 선례를 따른다.
+#  선행: U48-5(`_workspace/362`, `robot_specs`도 같은 규율).
+# =============================================================================
+#
+# ## 각 값의 출처 — 유도한 것과 고른 것을 가른다
+#
+# | 키 | 값 | 출처 |
+# |---|---|---|
+# | `omega_max_radps` | 0.5 | 🟢 **유도**: v_max × curvature_max = 1.0 × 0.5 (`robot_specs.json`) |
+# | `yaw_accel_max_radps2` | 0.5 | 🟢 **유도**: a_max × curvature_max = 1.0 × 0.5 (같은 형태) |
+# | `min_separation_m` | 0.70 | 🟢 **유도**: SU11의 하한 = 2 × min circumradius = 2 × 0.35 |
+# | `a_max` | 1.0 | 🟡 **선택**: `brake_decel_min_mps2`(1.0)와 대칭. 「멈출 수 있는 만큼만 가속한다」 |
+# | `j_max` | 2.0 | 🔴 **근거 없음**: a_max에 0.5 s에 도달하는 값을 골랐다. 유도 아님 |
+# | `traj_replan_period_ticks` | 200 | 🟡 **실측 기반**: 50 ms × 200 = 10 s. `368_p3`§5가 **이 크기에서 `/cmd_vel`이 0이 아니게 되는 것을 실측**했다. 🔴 v_max 도달 시간(1.0 s)보다 짧으면 재계획이 경과 시계를 리셋해 **0에 머문다** |
+# | `subgoal_replan_period_trajcycles` | 1 | 🟡 **최소 합법값**. 크게 잡을 근거가 없어 가장 보수적인 값 |
+# | `round_cap_budget` | 1 | 🟡 **최소 합법값**. 🔴 오늘 이 셋은 `StartupChecks`가 읽어 |
+# | `backtrack_budget` | 1 | 검증만 하고 **다른 소비처가 0건**이다(grep 확인) — |
+# | `peer_board_rounds_max` | 1 | 값이 거동을 바꾸지 않는다. 소비가 생기면 다시 정해야 한다 |
+#
+# 🔴 **`j_max`가 이 표에서 유일하게 근거가 없다.** 저크 한계는 로봇 하드웨어의
+# 성질인데 `robot_specs`에 없고 정본 문서에도 없다. 시뮬 연동 시 **가장 먼저
+# 실측으로 갈아야 할 값**이다.
+#
+# 🔴 **아래 열 키의 정본 수치는 여전히 어느 문서에도 없다.** 검색 근거:
+# `255_trajopt_canon_brief.md`·`256a~c`·`20d_impl_trajopt*.md` 전수 grep에서
+# "a_max =" 류 대입 0건. 존재하는 숫자는 `mrs_trajopt` 자신의 단위 시험
+# 픽스처뿐이고, 그것은 「이 시험이 이 숫자로 성립을 보인다」는 뜻이지
+# 「이 값이 시스템의 정본」이라는 뜻이 아니다. 이 파일은 그 픽스처를 옮긴 것이
+# **아니다** — 위 표대로 `robot_specs.json`에서 유도했거나 최소 합법값이다.
 
 trajopt_node:
   ros__parameters:
     method:
       modules:
         trajopt:
-          # a_max·j_max·min_separation_m·omega_max_radps·yaw_accel_max_radps2 —
-          # [값 부재]. 물리 한계(가속도·저크·최소 이격·각속도·각가속도) — 정본
-          # 문서 어디에도 숫자가 없다.
-          # traj_replan_period_ticks(n^traj, SU01)·subgoal_replan_period_trajcycles
-          # (n^re, SU02)·round_cap_budget(SU03)·backtrack_budget(SU04)·
-          # peer_board_rounds_max(SU05) — [값 부재]. 전부 >=1이어야 StartupChecks가
-          # 통과하는데(startup_checks.hpp 파일 주석) 정본 수치가 없다.
-          #
-          # 값이 정해지면(module-researcher@trajopt + 사용자, 사전등록 절차) 이
-          # 자리에 다음 열 키를 채운다 — 지금은 키조차 두지 않는다(죽은 키 방지,
-          # mapf.yaml과 같은 원칙):
-          #   a_max, j_max, min_separation_m, omega_max_radps,
-          #   yaw_accel_max_radps2, traj_replan_period_ticks,
-          #   subgoal_replan_period_trajcycles, round_cap_budget,
-          #   backtrack_budget, peer_board_rounds_max
-          placeholder: true  # YAML 파서가 빈 mapping을 거부하지 않도록 하는 무의미 키.
-                              # trajopt_node는 이 이름의 파라미터를 읽지 않는다.
+          # --- 플릿 물리 한계 (`mrs.trajectories.limits` 접기값) ---
+          a_max: 1.0                   # m/s^2   🟡 brake_decel_min과 대칭
+          j_max: 2.0                   # m/s^3   🔴 근거 없음 — 최우선 교체 대상
+          min_separation_m: 0.70       # m       🟢 SU11 하한 = 2 x 0.35
+          omega_max_radps: 0.5         # rad/s   🟢 v_max x curvature_max
+          yaw_accel_max_radps2: 0.5    # rad/s^2 🟢 a_max x curvature_max
+
+          # --- 주기 (제어 틱 50 ms 기준) ---
+          traj_replan_period_ticks: 200          # = 10 s. 🔴 1.0 s(=20틱)보다
+                                                  # 짧으면 cmd_vel이 0에 머문다
+          subgoal_replan_period_trajcycles: 1     # = 10 s
+
+          # --- 서브골 창 기하 (`SubgoalFreeSpaceDisk`) ---
+          # 🟢 유도: 좁은 통로 폭 1.2 m(`prototype/config/scale.yaml`)의 절반 =
+          #    좁은 통로 안에 들어가는 가장 큰 허용 반경.
+          subgoal_window_radius_m: 0.6   # m — 창의 위치 허용 반경
+          # 🟢 기하 논증: 창 반경(0.6)보다 작게 두어 **연속한 창이 겹치게** 한다.
+          #    같거나 크면 창 사이에 빈틈이 생겨 경로 위에 후보 없는 구간이 남는다.
+          subgoal_stride_m: 0.5          # m — 통과 창 사이 간격
+
+          # --- 예산 (오늘 소비처 0건 — 검증만 된다) ---
+          round_cap_budget: 1
+          backtrack_budget: 1
+          peer_board_rounds_max: 1
