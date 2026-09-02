@@ -40,6 +40,11 @@ adapter::BoundaryDiscretePlan parse_discrete_plan(const std::string& text);
 /// @throws std::runtime_error on malformed input.
 adapter::BoundaryExecutionConstraints parse_execution_constraints(const std::string& text);
 
+/// @brief Serialize an mrs.segment_release 2.0.0 document to schema JSON.
+/// @param doc the boundary segment-release document.
+/// @return a JSON string matching mrs.segment_release 2.0.0.
+std::string to_json(const adapter::BoundarySegmentRelease& doc);
+
 }  // namespace mrs_sadg::io
 
 #endif  // MRS_SADG_IO_JSON_IO_HPP

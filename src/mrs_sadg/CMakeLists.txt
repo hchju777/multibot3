@@ -44,7 +44,10 @@ target_link_libraries(mrs_sadg_plugins PUBLIC mrs_sadg_core)
 # --- adapter (CN-8/CN-9): internal <-> boundary structs. No JSON. ---
 add_library(mrs_sadg_adapter STATIC
   src/adapter/plan_adapter.cpp
-  src/adapter/constraints_adapter.cpp)
+  src/adapter/constraints_adapter.cpp
+  src/adapter/entry_events_adapter.cpp
+  src/adapter/stop_declarations_adapter.cpp
+  src/adapter/release_adapter.cpp)
 target_link_libraries(mrs_sadg_adapter PUBLIC mrs_sadg_core)
 
 # --- io: JSON (de)serialization. Kept out of core/adapter (CN-1/CN-2/CN-3). ---
@@ -79,25 +82,37 @@ add_sadg_test(test_order_search              test/core/test_order_search.cpp)
 add_sadg_test(test_release_checker           test/core/test_release_checker.cpp)
 # boundary-artifact checker test (emits JSON; the python checkers validate it)
 add_sadg_test(test_boundary_emit             test/core/test_boundary_emit.cpp)
+# 48차 웨이브 2-A(372) — mrs.segment_release 2.0.0 boundary-artifact checker test.
+add_sadg_test(test_release_emit              test/core/test_release_emit.cpp)
 # adapter tests
 add_sadg_test(test_plan_adapter_roundtrip    test/adapter/test_plan_adapter_roundtrip.cpp)
 add_sadg_test(test_constraints_adapter       test/adapter/test_constraints_adapter_roundtrip.cpp)
+# 48차 웨이브 2-A(372) — tick-loop wiring adapters (entry_events/stop_declaration
+# consume, segment_release produce). Not named "*_roundtrip": CN-9 permits
+# implementing only the needed direction, and only ReleaseAdapter has one this
+# round (SADG produces segment_release, never consumes it back).
+add_sadg_test(test_entry_events_adapter      test/adapter/test_entry_events_adapter.cpp)
+add_sadg_test(test_stop_declarations_adapter test/adapter/test_stop_declarations_adapter.cpp)
+add_sadg_test(test_release_adapter           test/adapter/test_release_adapter.cpp)
 
 # =====================================================================================
-# ROS nodes (47차 통합 P2). 🔴 두 노드 모두 축소 배선이다 — 아래 각 target 주석 및
-# src/node/*.cpp 파일 주석 참조. Reorder 채널(sadg_t0<->switch_selector)은
-# 350_msg_idl_decisions.md §5-2 D3-b가 [결정 부재]로 남겼고 47차 발주서가
-# "Reorder.action을 만들지 마라"로 명시했으므로 이번 라운드는 그 배선을 하지 않는다.
+# ROS nodes. 🔴 both are still SCOPED-DOWN (see each target comment + the
+# src/node/*.cpp file docs) — Reorder 채널(sadg_t0<->switch_selector)은
+# 350_msg_idl_decisions.md §5-2 D3-b가 [결정 부재]로 남겼고 47차/48차 발주서가
+# "Reorder.action을 만들지 마라"로 명시했으므로 이번 라운드까지 그 배선은 하지 않는다.
 # =====================================================================================
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(mrs_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 
-# sadg_t0_node: /discrete_plan 구독 -> ConstraintCompiler -> /execution_constraints
-# 발행 경로만 배선했다. ExecutionTickService의 매틱 오케스트레이션(릴리스 비트·승급·
-# EVAC·재계획 액션 클라이언트)은 이번 라운드에 배선하지 않았다 — 클록 주입·결손 계산·
-# WcInput 구성 등 추가 설계가 필요해 스코프 밖으로 신고한다(21_integration.md).
+# sadg_t0_node: 47차가 배선한 /discrete_plan -> ConstraintCompiler ->
+# /execution_constraints 경로 + 48차 웨이브 2-A(372)가 배선한 매틱 루프
+# (ExecutionTickService::run_tick, own timer) + /entry_events, /stop_declaration
+# consume + /{robot}/segment_release produce. STILL scoped down: Reorder channel
+# (above), realizability, per-robot deficit (tau_nom [값 부재]), STRUCT_WC1
+# corridor snapshot, EVAC replan publication — see src/node/sadg_t0_node.cpp
+# file doc D1-D8 for each and why.
 add_executable(sadg_t0_node src/node/sadg_t0_node.cpp)
 ament_target_dependencies(sadg_t0_node rclcpp rclcpp_action mrs_msgs pluginlib)
 target_link_libraries(sadg_t0_node

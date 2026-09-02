@@ -108,6 +108,87 @@ struct BoundaryExecutionConstraints
     std::vector<BoundarySwitchGroup> switch_groups;
 };
 
+// ------------------------------------------------------------------ mrs.entry_events 2.0.0
+// (consume)
+
+/// @brief One entry/departure event (entry_events.schema.json §6, §17-2-2).
+/// `entered:true` <=> `location == segment.to` (arrival); `entered:false` <=>
+/// `location == segment.from` (departure) — the schema's own field-level
+/// constraint (`entry_events_adapter.hpp` derives the internal classification
+/// from exactly this linkage).
+struct BoundaryEntryEvent
+{
+    std::uint64_t seq = 0;  ///< per-robot 0-based monotonic (skip = loss, B-19).
+    std::string robot;      ///< owning robot.
+    std::string segment;    ///< "{robot}#{k}" this event concerns.
+    std::string location;   ///< the vertex entered/departed.
+    bool entered = false;   ///< true = arrival (segment.to), false = departure (segment.from).
+};
+
+/// @brief An mrs.entry_events 2.0.0 document (upstream, trajopt -> sadg_t0).
+struct BoundaryEntryEvents
+{
+    static constexpr const char* kSchema = "mrs.entry_events";
+    static constexpr const char* kSchemaVersion = "2.0.0";
+    std::string schema = kSchema;
+    std::string schema_version = kSchemaVersion;
+    std::string instance_id;
+    std::vector<BoundaryEntryEvent> events;
+};
+
+// -------------------------------------------------------------- mrs.stop_declaration 5.0.1
+// (consume)
+
+/// @brief One stop declaration (stop_declaration.schema.json §6, legal `reason`
+/// subset {exogenous_block, infeasible_subgoal, unresolvable_locally}).
+struct BoundaryStopDeclaration
+{
+    std::uint64_t seq = 0;     ///< per-robot 0-based monotonic (skip = loss).
+    std::string robot;         ///< owning robot.
+    std::string blocked_from;  ///< blocked_edge.from_id.
+    std::string blocked_to;    ///< blocked_edge.to_id.
+    bool declared = false;     ///< open (true) / release (false).
+    std::string reason;        ///< the vocabulary string (unvalidated here; the
+                               ///< node validates against the closed vocabulary
+                               ///< before constructing this struct).
+};
+
+/// @brief An mrs.stop_declaration 5.0.1 document (upstream, trajopt -> sadg_t0).
+struct BoundaryStopDeclarations
+{
+    static constexpr const char* kSchema = "mrs.stop_declaration";
+    static constexpr const char* kSchemaVersion = "5.0.1";
+    std::string schema = kSchema;
+    std::string schema_version = kSchemaVersion;
+    std::string instance_id;
+    std::vector<BoundaryStopDeclaration> declarations;
+};
+
+// ----------------------------------------------------------------- mrs.segment_release 2.0.0
+// (produce)
+
+/// @brief One segment's arrival-vertex entry permit bit (segment_release.schema.json).
+struct BoundarySegmentReleaseItem
+{
+    std::string id;         ///< "{robot}#{k}".
+    bool released = false;  ///< true = arrival-vertex entry now permitted.
+};
+
+/// @brief An mrs.segment_release 2.0.0 document. One artifact = one robot.
+struct BoundarySegmentRelease
+{
+    static constexpr const char* kSchema = "mrs.segment_release";
+    static constexpr const char* kSchemaVersion = "2.0.0";
+    std::string schema = kSchema;
+    std::string schema_version = kSchemaVersion;
+    std::string instance_id;
+    std::string robot;
+    std::uint64_t release_seq = 0;    ///< node-owned: increments every publish.
+    std::uint64_t commit_seq = 0;     ///< echoes mrs.execution_constraints.commit_seq (node-owned).
+    std::uint64_t entry_seq_ack = 0;  ///< node-owned: 1 + max(entry_events.seq) reflected so far.
+    std::vector<BoundarySegmentReleaseItem> segments;
+};
+
 }  // namespace mrs_sadg::adapter
 
 #endif  // MRS_SADG_ADAPTER_BOUNDARY_TYPES_HPP

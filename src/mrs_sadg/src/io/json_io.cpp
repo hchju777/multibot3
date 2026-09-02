@@ -125,6 +125,30 @@ std::string to_json(const adapter::BoundaryDiscretePlan& doc)
     return o.str();
 }
 
+std::string to_json(const adapter::BoundarySegmentRelease& doc)
+{
+    std::ostringstream o;
+    o << "{\n";
+    o << "  \"schema\": " << str(adapter::BoundarySegmentRelease::kSchema) << ",\n";
+    o << "  \"schema_version\": " << str(adapter::BoundarySegmentRelease::kSchemaVersion) << ",\n";
+    o << "  \"instance_id\": " << str(doc.instance_id) << ",\n";
+    o << "  \"robot\": " << str(doc.robot) << ",\n";
+    o << "  \"release_seq\": " << doc.release_seq << ",\n";
+    o << "  \"commit_seq\": " << doc.commit_seq << ",\n";
+    o << "  \"entry_seq_ack\": " << doc.entry_seq_ack << ",\n";
+    o << "  \"segments\": [";
+    for (std::size_t i = 0; i < doc.segments.size(); ++i)
+    {
+        const auto& s = doc.segments[i];
+        o << (i == 0 ? "\n" : "") << "    {\"id\": " << str(s.id)
+          << ", \"released\": " << (s.released ? "true" : "false") << "}"
+          << (i + 1 < doc.segments.size() ? ",\n" : "\n");
+    }
+    o << "  ]\n";
+    o << "}\n";
+    return o.str();
+}
+
 // --------------------------------------------------------------------------- parse
 
 namespace
