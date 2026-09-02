@@ -1,0 +1,38 @@
+# =============================================================================
+#  🔴 순수 시각/서버 값 — 사전등록 상수가 아니고 물리 파라미터도 아니다
+# =============================================================================
+#  374_mrs_viz_dashboard.md (48차 웨이브 3, U47-2·U48-4) — `mrs_viz/dashboard_node`
+#  가 읽는 포트·호스트·주기·표시 상한이다. 이 파일의 어떤 수치도 물리 로봇
+#  사양이나 `27_spike_preregistration.md`의 동결 상수와 무관하다.
+#
+#  🔴 이 파일은 `viz.yaml`(`mrs_sim/viz_markers_node` — rviz2 마커 색·크기)과
+#  다른 파일이다 — `dashboard_node`는 rviz 마커를 안 낸다(D18: 같은 경계 토픽을
+#  구독하지만 서로의 파생 로직을 재구현하지 않는다, dashboard_state.hpp 참조).
+#
+# ## 각 값의 출처 — trajopt.yaml 형식(유도한 것·고른 것·근거 없는 것을 가른다)
+#
+# | 키 | 값 | 출처 |
+# |---|---|---|
+# | `host` | "0.0.0.0" | 🟡 **선택**: U45-3(사용자 범위 "본인 + 랩 동료 + 데모 관객")이 같은 LAN의 다른 기기에서 브라우저로 접속하는 것을 요구한다 — `127.0.0.1`이면 대시보드를 띄운 기기에서만 열린다. 🔴 대가: 인증이 없다 — 신뢰된 랩 네트워크 전제(관찰 전용이라 조작 위험은 없다) |
+# | `http_port` | 8090 | 🔴 **근거 없음** — 흔한 개발 포트(3000/8000/8080/9090 — 9090은 rosbridge 기본값)와 겹치지 않게 임의로 고른 값 |
+# | `poll_period_ms` | 300 | 🟡 **선택**: `viz_markers_node`의 `marker_publish_period_ms`(200 ms, rviz 체감 갱신 목적)와 같은 정신 — 제어 주기(50 ms)를 따를 이유가 없는 사람이 보는 화면이다. 300은 200보다 살짝 느슨하게 잡아 폴링 HTTP 왕복 부담을 줄인다(근거는 방향뿐, 정확한 수치는 근거 없음) |
+# | `snapshot_period_ms` | 300 | 🟡 **선택**: `poll_period_ms`와 같은 값 — 서버가 브라우저보다 빨리 재계산해봐야 브라우저가 그 사이 값을 놓치므로 같게 뒀다(유도) |
+# | `max_trajectory_points_per_robot` | 200 | 🔴 **근거 없음** — 순수 표시 상한(끝점 보존 균등 서브샘플, `dashboard_state.cpp`) |
+# | `max_dependency_edges` | 200 | 🔴 **근거 없음** — 순수 표시 상한(의존 목록·재계획 목표 목록 공용) |
+# | `result_json_path` | "" | 🟢 **유도**: 빈 문자열 = "이 run의 result.json 없음"(`mrs_eval`이 아직 없다, 레포에 패키지 0개 — 실측 확인) — 있으면 그 경로를 오버라이드 |
+#
+# `frame_id`·`robots` 로스터는 이 파일에 없다 — `viz.yaml`과 같은 이유로
+# `mrta.yaml`을 `pipeline.launch.py`가 읽어 넘긴다(F48-6 "단일 출처" 정신).
+# `web_root`도 이 파일에 없다 — 설치 경로 의존값이라 launch가
+# `get_package_share_directory('mrs_viz') + '/web'`로 계산해 넘긴다.
+# =============================================================================
+
+dashboard_node:
+  ros__parameters:
+    host: "0.0.0.0"
+    http_port: 8090
+    poll_period_ms: 300
+    snapshot_period_ms: 300
+    max_trajectory_points_per_robot: 200
+    max_dependency_edges: 200
+    result_json_path: ""

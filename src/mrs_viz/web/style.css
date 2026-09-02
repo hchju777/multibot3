@@ -1,0 +1,101 @@
+/* SPDX-License-Identifier: Apache-2.0
+   mrs_viz dashboard styling — pure visual constants, not sourced from
+   mrs_bringup/config (that config governs the *server* — port, snapshot
+   period, roster; CSS pixel choices here are the browser's own rendering
+   concern, same split as rviz's own display settings vs. the topics it
+   subscribes to). No CDN fonts/icons — offline-safe. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: #12161c;
+  color: #e6e6e6;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #1c2430;
+  border-bottom: 1px solid #2c3a4c;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+#stamp {
+  margin-left: auto;
+  color: #8fa3b8;
+  font-size: 12px;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.badge-ok { background: #1e5f3a; color: #b7f7cf; }
+.badge-unknown { background: #4a4a20; color: #f7ecb7; }
+.badge-error { background: #5f1e1e; color: #f7b7b7; }
+
+main {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+}
+
+#map-panel {
+  flex: 0 0 auto;
+}
+
+#map-canvas {
+  background: #0a0d12;
+  border: 1px solid #2c3a4c;
+  border-radius: 4px;
+}
+
+#side-panel {
+  flex: 1 1 auto;
+  min-width: 320px;
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+#side-panel section {
+  background: #1c2430;
+  border: 1px solid #2c3a4c;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+#side-panel h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8fa3b8;
+  margin: 0 0 6px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+table td, table th {
+  padding: 2px 4px;
+  border-bottom: 1px solid #2c3a4c;
+  text-align: left;
+}
+
+.no-data {
+  color: #8fa3b8;
+  font-style: italic;
+  font-size: 12px;
+}

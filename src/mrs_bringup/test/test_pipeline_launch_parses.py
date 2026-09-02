@@ -66,9 +66,10 @@ def test_generate_launch_description_has_expected_actions():
     # D16 스모크 최소 = 다섯 실행 파일(sadg 둘 포함: sadg_t0_node·switch_selector_node)
     # + mrs_sim 다섯(clock_node·state_integrator·roadmap_publisher·
     # task_release_publisher·viz_markers_node, 367_pipeline_inputs.md 웨이브 1-A +
-    # 373_viz_markers.md 48차 웨이브 2-B) + rviz2(조건부, IfCondition이라도
-    # LaunchDescription의 entities에는 항상 존재) = 11.
-    assert node_count == 11, f"expected 11 Node actions, got {node_count}"
+    # 373_viz_markers.md 48차 웨이브 2-B) + mrs_viz 하나(dashboard_node,
+    # 374_mrs_viz_dashboard.md 48차 웨이브 3, 조건부) + rviz2(조건부,
+    # IfCondition이라도 LaunchDescription의 entities에는 항상 존재) = 12.
+    assert node_count == 12, f"expected 12 Node actions, got {node_count}"
     # use_sim_time · roadmap_path · robot_specs_path · task_release_path ·
-    # observation(자리 예약) · rviz(373, 기본 false) = 6.
-    assert arg_count == 6, f"expected 6 DeclareLaunchArgument actions, got {arg_count}"
+    # observation(자리 예약) · rviz(373, 기본 false) · dashboard(374, 기본 true) = 7.
+    assert arg_count == 7, f"expected 7 DeclareLaunchArgument actions, got {arg_count}"

@@ -3,9 +3,15 @@
 다섯 실행 파일(mrta_node · mapf_node · sadg_t0_node · switch_selector_node ·
 trajopt_node) + mrs_sim 다섯(clock_node · state_integrator · roadmap_publisher ·
 task_release_publisher · viz_markers_node, 367_pipeline_inputs.md 웨이브 1-A +
-373_viz_markers.md 48차 웨이브 2-B) + 선택적 rviz2를 띄운다.
+373_viz_markers.md 48차 웨이브 2-B) + mrs_viz 하나(dashboard_node,
+374_mrs_viz_dashboard.md 48차 웨이브 3) + 선택적 rviz2를 띄운다.
 `mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일 뿐
 알고리즘·서비스 로직을 담지 않는다(10_architecture.md:113, 357§7-2).
+
+🔴 374_mrs_viz_dashboard.md — `dashboard_node`는 관찰 전용 웹 대시보드다(GET만
+서빙, 조작 UI 0개). `dashboard` 런치 인자(기본 `true`)로 켜고 끈다 — `rviz`와
+달리 디스플레이가 필요 없어(HTTP 포트를 열 뿐) 헤드리스 환경에서도 기본으로
+띄운다. 포트가 이미 쓰이는 CI 환경 등에서는 `dashboard:=false`로 끌 수 있다.
 
 🔴 373_viz_markers.md — `viz_markers_node`는 이미 있는 경계 토픽(/roadmap,
 /{robot}/odom, /execution_constraints)을 구독해 rviz2 마커를 낼 뿐, 네
@@ -145,6 +151,13 @@ def generate_launch_description():
         default_value="false",
         description="true면 rviz2를 config/viz/pipeline.rviz로 같이 띄운다.",
     )
+    # 374_mrs_viz_dashboard.md — 관찰 전용 웹 대시보드. 기본 true(디스플레이
+    # 불필요, HTTP 포트만 연다) — 포트 충돌이 우려되는 환경에서만 끈다.
+    declare_dashboard = DeclareLaunchArgument(
+        "dashboard",
+        default_value="true",
+        description="true면 mrs_viz/dashboard_node(관찰 전용 웹 대시보드)를 같이 띄운다.",
+    )
 
     common_params = {"use_sim_time": use_sim_time}
 
@@ -153,7 +166,14 @@ def generate_launch_description():
     sadg_yaml = os.path.join(bringup_share, "config", "sadg.yaml")
     trajopt_yaml = os.path.join(bringup_share, "config", "trajopt.yaml")
     viz_yaml = os.path.join(bringup_share, "config", "viz.yaml")
+    viz_dashboard_yaml = os.path.join(bringup_share, "config", "viz_dashboard.yaml")
     rviz_config_path = os.path.join(bringup_share, "config", "viz", "pipeline.rviz")
+    # 374_mrs_viz_dashboard.md — 웹 자산은 mrs_viz가 설치한 share/mrs_viz/web/에
+    # 산다(mrs_bringup은 소스 0줄이라 자산도 안 갖는다). 설치 경로 의존값이라
+    # config/viz_dashboard.yaml에는 없다(그 파일 머리말 표가 이유를 적는다).
+    dashboard_web_root = os.path.join(
+        get_package_share_directory("mrs_viz"), "web"
+    )
 
     # F48-6 해소 — 하드코딩 둘을 mrta.yaml 하나로 모았다(위 _load_robots_roster).
     robots = _load_robots_roster(mrta_yaml)
@@ -248,6 +268,23 @@ def generate_launch_description():
                 common_params,
             ],
         ),
+        # 374_mrs_viz_dashboard.md (48차 웨이브 3) — 관찰 전용 웹 대시보드.
+        # dashboard:=true(기본)일 때만 실제로 뜬다 — 파싱 시점엔 항상 존재.
+        # `robots`는 state_integrator·viz_markers_node와 같은 출처(F48-6 정신).
+        # `web_root`는 설치 경로 의존값이라 config yaml이 아니라 이 launch가
+        # 계산해 넘긴다(위 dashboard_web_root, viz_dashboard.yaml 머리말 표).
+        Node(
+            package="mrs_viz",
+            executable="dashboard_node",
+            name="dashboard_node",
+            output="screen",
+            parameters=[
+                viz_dashboard_yaml,
+                {"robots": robots, "web_root": dashboard_web_root},
+                common_params,
+            ],
+            condition=IfCondition(LaunchConfiguration("dashboard")),
+        ),
         # rviz:=true일 때만 실제로 뜬다(IfCondition) — 파싱 시점엔 항상 존재.
         Node(
             package="rviz2",
@@ -268,6 +305,7 @@ def generate_launch_description():
             declare_task_release_path,
             declare_observation,
             declare_rviz,
+            declare_dashboard,
             *nodes,
         ]
     )

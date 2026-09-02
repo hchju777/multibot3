@@ -21,6 +21,7 @@
   <exec_depend>mrs_sadg</exec_depend>
   <exec_depend>mrs_trajopt</exec_depend>
   <exec_depend>mrs_sim</exec_depend>
+  <exec_depend>mrs_viz</exec_depend>
   <exec_depend>ros2launch</exec_depend>
   <!-- F48-6 해소 — launch 파일이 mrta.yaml의 robots를 읽어 state_integrator와
        공유한다(단일 출처). -->

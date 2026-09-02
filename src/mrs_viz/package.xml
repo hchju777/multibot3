@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_viz</name>
+  <version>0.1.0</version>
+  <description>
+    관찰 전용 웹 대시보드 도구 패키지 (374_mrs_viz_dashboard.md, 48차 웨이브 3 —
+    U47-2 패키지 11종 개정, U48-4 "UI는 mrs_viz"). 유일한 노드 dashboard_node가
+    이미 있는 경계 토픽(/roadmap, /execution_constraints, /trajectories,
+    /{robot}/segment_release)과 표준 ROS 스트림(/{robot}/odom,
+    /replan/_action/status)을 구독해 브라우저가 폴링하는 작은 내장 HTTP 서버
+    (의존 0, WebSocket·rosbridge_suite 미사용 — 판정 사유는
+    src/node/http_server.hpp 파일 머리말)로 재표현한다. 모듈 코드 0줄, 조작 UI
+    0개(지도 클릭·차단 해제 등 없음 — U46-3의 관측 구간이 아직 없다).
+    CN-1 필수 넷(core/adapter/node/service) 대상이 아니다 — 도구 패키지이고
+    include/mrs_viz/ 공개 헤더를 두지 않는다(mrs_sim 선례).
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 형제 알고리즘 패키지 의존 0건(CN-21 대상은 네 알고리즘 모듈뿐이지만
+       mrs_sim·mrs_viz도 그 습관을 따른다 — 경계는 mrs_msgs·mrs_core만). -->
+  <depend>mrs_msgs</depend>
+  <depend>mrs_core</depend>
+  <depend>rclcpp</depend>
+  <depend>action_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nlohmann_json</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

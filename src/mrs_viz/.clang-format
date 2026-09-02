@@ -1,0 +1,86 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: c++17
+
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: None
+IndentCaseLabels: true
+IndentPPDirectives: None
+LambdaBodyIndentation: Signature
+
+BreakBeforeBraces: Allman
+BreakConstructorInitializers: BeforeColon
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+AlwaysBreakTemplateDeclarations: Yes
+AlwaysBreakAfterReturnType: None
+PackConstructorInitializers: NextLine
+Cpp11BracedListStyle: true
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+BinPackArguments: false
+BinPackParameters: false
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+QualifierAlignment: Leave
+
+SortIncludes: CaseSensitive
+SortUsingDeclarations: LexicographicNumeric
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '(_test|_tests|_impl)?$'
+IncludeCategories:
+  # C system headers
+  - Regex: '^<[[:alnum:]_]+\.h>'
+    Priority: 2
+  - Regex: '^<(sys|arpa|netinet|net|linux|bits)/[[:alnum:]_]+\.h>'
+    Priority: 2
+  # C++ standard library
+  - Regex: '^<[[:alnum:]_]+>'
+    Priority: 3
+  # ROS 2 core, tf2, message packages
+  - Regex: '^<(rcl|rcl_[[:alnum:]_]+|rclcpp|rclcpp_action|rclcpp_components|rclcpp_lifecycle|rcutils|rmw|rmw_[[:alnum:]_]+|rosidl_[[:alnum:]_]+|ament_index_cpp|class_loader|pluginlib|message_filters|tf2|tf2_ros|tf2_eigen|tf2_geometry_msgs|builtin_interfaces|std_msgs|std_srvs|geometry_msgs|nav_msgs|sensor_msgs|visualization_msgs|diagnostic_msgs|action_msgs|lifecycle_msgs)/'
+    Priority: 4
+  # this project (mrs_*), including generated message headers
+  - Regex: '^<mrs_[[:alnum:]_]+/'
+    Priority: 6
+  # remaining third-party angle includes (Eigen, OSQP, yaml-cpp, ...)
+  - Regex: '^<'
+    Priority: 5
+  # project-local quoted includes
+  - Regex: '^"'
+    Priority: 7
+
+FixNamespaceComments: true
+SeparateDefinitionBlocks: Always
+EmptyLineBeforeAccessModifier: LogicalBlock
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+ReflowComments: true
+SpacesBeforeTrailingComments: 2
+SpaceAfterTemplateKeyword: false
+InsertNewlineAtEOF: true
+LineEnding: LF

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  mrs_viz observation dashboard (374_mrs_viz_dashboard.md, 48차 웨이브 3).
+  Observation-only: no controls that write anything back to ROS. Every asset
+  here is local (no CDN) so the page opens offline once dashboard_node serves
+  it — see http_server.hpp's file-header judgement for why plain HTTP polling
+  (not WebSocket, not rosbridge_suite) was chosen.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>mrs_viz — pipeline observation dashboard</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>mrs_viz</h1>
+    <span id="conn-status" class="badge badge-unknown">connecting…</span>
+    <span id="stamp"></span>
+  </header>
+
+  <main>
+    <section id="map-panel">
+      <canvas id="map-canvas" width="900" height="700"></canvas>
+    </section>
+
+    <aside id="side-panel">
+      <section>
+        <h2>robots (① 위치·경로·튜브)</h2>
+        <table id="robots-table"><tbody></tbody></table>
+      </section>
+
+      <section>
+        <h2>trajectories</h2>
+        <div id="traj-summary"></div>
+      </section>
+
+      <section>
+        <h2>SADG (③ 의존 그래프·스위칭)</h2>
+        <div id="sadg-summary"></div>
+        <table id="dependencies-table"><tbody></tbody></table>
+      </section>
+
+      <section>
+        <h2>replan events (② — 상태 전이만, payload 관측 불가)</h2>
+        <div id="replan-summary"></div>
+      </section>
+
+      <section>
+        <h2>subgoal stream (② — 진단 채널, 현재 발행자 없음)</h2>
+        <div id="subgoal-summary"></div>
+      </section>
+
+      <section>
+        <h2>diagnostics / result.json (④)</h2>
+        <div id="diag-summary"></div>
+        <div id="result-summary"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
