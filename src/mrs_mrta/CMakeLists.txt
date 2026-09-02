@@ -68,6 +68,13 @@ add_mrta_test(test_boundary_emit         test/core/test_boundary_emit.cpp)
 add_mrta_test(test_assignment_roundtrip  test/adapter/test_assignment_adapter_roundtrip.cpp)
 add_mrta_test(test_input_adapters        test/adapter/test_input_adapters.cpp)
 
+# node/ tests — 371 fix. `DeferredQueue<T>` (deferred_release_queue.hpp) has
+# zero ROS/mrs_mrta-library dependency by design (file doc: testable without
+# rclcpp), so this target only needs the include path, not
+# mrs_mrta_core/service/plugins/adapter or ROS.
+add_executable(test_deferred_release_queue test/node/test_deferred_release_queue.cpp)
+add_test(NAME test_deferred_release_queue COMMAND test_deferred_release_queue)
+
 # =====================================================================================
 # ROS node (47차 통합 P2). Statically links core+service+plugins+adapter — NOT a real
 # pluginlib::ClassLoader (see src/node/mrta_node.cpp file doc: assigner_impls.cpp has

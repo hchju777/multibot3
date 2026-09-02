@@ -44,6 +44,12 @@ add_executable(test_reason_codes test/test_reason_codes.cpp)
 target_link_libraries(test_reason_codes PRIVATE mrs_core_msgs)
 add_test(NAME test_reason_codes COMMAND test_reason_codes)
 
+# 48차 웨이브 1-A(367_pipeline_inputs.md) — D14 항목6(공유 로드맵 거리표), 소비자가
+# 생겼으므로 뒤집힘 조건 발동(12a_arch_mrta_p2.md §8-3).
+add_executable(test_roadmap_distances test/test_roadmap_distances.cpp)
+target_link_libraries(test_roadmap_distances PRIVATE mrs_core_pure)
+add_test(NAME test_roadmap_distances COMMAND test_roadmap_distances)
+
 install(DIRECTORY include/ DESTINATION include)
 install(TARGETS mrs_core_pure
   EXPORT export_mrs_core)

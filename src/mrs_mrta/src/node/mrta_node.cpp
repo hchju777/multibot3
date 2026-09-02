@@ -32,6 +32,8 @@
 #include "mrs_mrta/adapter/task_release_adapter.hpp"
 #include "mrs_mrta/core/i_assigner.hpp"
 #include "mrs_mrta/core/status.hpp"
+#include "mrs_mrta/node/core_distance_oracle.hpp"
+#include "mrs_mrta/node/deferred_release_queue.hpp"
 #include "mrs_mrta/plugins/assigner_impls.hpp"
 #include "mrs_mrta/service/assigner_factory.hpp"
 #include "mrs_mrta/service/assignment_service.hpp"
@@ -63,8 +65,27 @@ public:
         // `ParameterDescriptor_(MessageInitialization)`의 explicit 기본 생성자를
         // 거치는 변환 경고를 낸다. 원인은 ROS 헤더가 아니라 이 호출 형태였다 —
         // 명시적으로 타입을 준 빈 벡터를 쓰면 그 모호성이 없어진다.
-        robots_ =
+        const auto robots_param =
             this->declare_parameter<std::vector<std::string>>("robots", std::vector<std::string>{});
+        // 🔴 [결정, integration-developer, 367_pipeline_inputs.md] — `initial_
+        // vertices` (parallel to `robots`, same order) seeds `robot_vertex[]`
+        // at startup. This is NOT the "로봇 상태(계약 없음, 이음매 ⑥)" live
+        // channel `336_mrta_canon_p2.md` §17 documents (no boundary contract
+        // exists for that this round, and this round forbids adding one) — it
+        // is a one-time, config-supplied stand-in, the same category as the
+        // already-established `robots`/`instance_id` run-instance parameters
+        // (node/ skeleton comment above: "not algorithm parameters"). Without
+        // it every robot's `robot_vertex[]` stays at its default `""`
+        // (`types.cpp:41`), which is not a roadmap vertex — every task is
+        // then judged unreachable and pooled (367_pipeline_inputs.md §3
+        // measured this: `/assignment` published with all 6 robots' `goals:
+        // []`, all 8 tasks in `unassigned_tasks`, downstream mapf_node then
+        // fails even its safety-stop fallback's acyclicity self-check because
+        // 6 robots collide on the same non-vertex `""`).
+        const auto initial_vertices =
+            this->declare_parameter<std::vector<std::string>>("initial_vertices",
+                                                              std::vector<std::string>{});
+        robots_ = robots_param;
         std::sort(robots_.begin(), robots_.end());
         const std::string policy_key =
             this->declare_parameter<std::string>("method.modules.mrta.policy",
@@ -99,8 +120,16 @@ public:
         ctx.robot_count = robots_.size();
         ctx.goal_queue_capacity_ta = goal_queue_capacity_ta;
         // Shared distance table is mrs_core's (347_arch_integration_delta.md
-        // §3-1 item 6, explicitly deferred — not built this round).
-        ctx.distances = nullptr;
+        // §3-1 item 6). 🔴 That deferral's own reversal condition ("계획기
+        // 자문 선검사가 구현되면 즉시 올린다") fired — a consumer exists now
+        // (this node) — so `367_pipeline_inputs.md` 웨이브 1-A ③ builds it.
+        // `distance_oracle_` is a member so this pointer stays valid for the
+        // node's whole lifetime; its *table* is still empty at this point
+        // (configure() runs before any topic has been received) and gets
+        // populated later, in OnRoadmap() — see that function's comment for
+        // why `ctx.distances != nullptr` here does not require the table to
+        // already hold data.
+        ctx.distances = &distance_oracle_;
         if (!mrs_core::ok(assigner_->configure(ctx)))
         {
             throw mrs_core::ContractViolation("mrta_node: assigner_->configure() failed");
@@ -111,6 +140,23 @@ public:
                                                                 event_ring_slots,
                                                                 *assigner_,
                                                                 nullptr);
+
+        if (!initial_vertices.empty())
+        {
+            if (initial_vertices.size() != robots_param.size())
+            {
+                // Startup path (CN-15) — a malformed pairing is a config bug, not
+                // a runtime condition to degrade past.
+                throw mrs_core::ContractViolation("mrta_node: 'initial_vertices' size (" +
+                                                  std::to_string(initial_vertices.size()) +
+                                                  ") does not match 'robots' size (" +
+                                                  std::to_string(robots_param.size()) + ")");
+            }
+            for (std::size_t i = 0; i < robots_param.size(); ++i)
+            {
+                service_->set_robot_vertex(robots_param[i], initial_vertices[i]);
+            }
+        }
 
         rclcpp::QoS latched_qos(rclcpp::KeepLast(1));
         latched_qos.reliable().transient_local();
@@ -166,7 +212,10 @@ private:
     void OnRoadmap(mrs_msgs::msg::Roadmap::ConstSharedPtr msg)
     {
         // Arm only — no drain (skeleton comment §336-0 #6-adjacent: roadmap never
-        // wakes assignment). Only node_ids/endpoints are read (12a §4).
+        // wakes assignment). Only node_ids/endpoints are read (12a §4) by the
+        // adapter path; the distance table below reads edges/lengths too, but
+        // that is this node's own concern (ports::IDistanceOracle), not a
+        // widening of what the adapter passes into core/.
         adapter::BoundaryRoadmap boundary;
         boundary.instance_id = msg->instance_id;
         boundary.node_ids.reserve(msg->nodes.size());
@@ -183,9 +232,82 @@ private:
             return;
         }
         roadmap_ = std::move(view);
+
+        // Populate the distance table now that the graph is known. Until this
+        // runs, ctx.distances is a valid-but-empty oracle (IsBuilt() == false,
+        // every query returns std::nullopt) — see the ctx.distances comment in
+        // the constructor. 367_pipeline_inputs.md flagged that a task_release
+        // arriving before this point would find every candidate robot
+        // unreachable and pool the task permanently; `371` measured that race
+        // firing in practice and this function's second half (below) is the
+        // fix — see `OnTaskRelease`'s file-doc comment for the full account.
+        distance_oracle_.Build(*msg);
+
+        // 371 fix, part 2/2: replay whatever `OnTaskRelease` deferred while
+        // the table above was still empty, in the order they were received
+        // (== release_index order for this race window, since
+        // `task_release_publisher` never reorders its source array). Each
+        // replayed release runs through the exact same
+        // `ProcessTaskRelease`/`MaybePublish` path a same-timed release would
+        // have taken had the table already been built — no assigner logic
+        // changes, only the arrival-order race is removed.
+        if (!deferred_task_releases_.empty())
+        {
+            for (const auto& deferred_msg : deferred_task_releases_.drain())
+            {
+                ProcessTaskRelease(deferred_msg);
+                MaybePublish();
+            }
+        }
     }
 
     void OnTaskRelease(mrs_msgs::msg::TaskRelease::ConstSharedPtr msg)
+    {
+        // 371 — "배정 비결정성" fix. `/roadmap` (latched) and `/task_release`
+        // (volatile stream) are two independent topics with no cross-topic
+        // delivery-order guarantee. `task_release_publisher` starts its timer
+        // as soon as it sees a subscriber on `/task_release` — that has
+        // nothing to do with whether *this* node has already processed its
+        // own `/roadmap` message yet. Empirically (5-run smoke, `371` §2)
+        // release_index 0 arrives before `distance_oracle_.IsBuilt()` in a
+        // non-trivial fraction of runs; every later release (100 ms apart)
+        // always finds the table already built. Before this fix, an
+        // un-built table made `dist_to_endpoint` return `std::nullopt` for
+        // every candidate robot, which `pick_candidate` cannot distinguish
+        // from genuine unreachability — release_index 0's task was pooled
+        // and, since nothing else ever completes in that short window,
+        // stayed pooled forever, while release_index 1's task took the slot
+        // release_index 0 would otherwise have won. Same two boundary inputs
+        // (`/roadmap` contents, the `/task_release` stream), two different
+        // `/assignment` outputs — a `CN-18` violation (`46_convention_canon.md`
+        // "재현성은 시계·난수·경계 입력 셋에만 걸려 있다"): the discriminating
+        // variable was wall-clock arrival order, not boundary input content.
+        //
+        // Fix: a release that arrives while the distance table is not yet
+        // built is *deferred* (not ingested, not pooled) until `/roadmap` is
+        // received and the table is built — see `OnRoadmap`'s replay below.
+        // This is event-driven (the wake-up is the `/roadmap` message
+        // arriving, not a timer or sleep) and does not change the assigner:
+        // once processed, the exact same `pick_candidate` / 5-tier tie-break
+        // runs on the exact same event, now with a real (never-race) distance
+        // table. Deferred releases are replayed in the order they were
+        // received, which for this race window is release_index order
+        // (`task_release_publisher` never reorders — README "task_release.json").
+        if (!distance_oracle_.IsBuilt())
+        {
+            deferred_task_releases_.push(msg);
+            return;
+        }
+        ProcessTaskRelease(msg);
+        MaybePublish();
+    }
+
+    /// @brief Adapter + ingest for one `/task_release` message. Factored out
+    /// of `OnTaskRelease` so `OnRoadmap`'s deferred-release replay (see the
+    /// 371 fix note in `OnTaskRelease`) can reuse the identical conversion
+    /// path instead of duplicating it.
+    /// @param msg The boundary task-release message.
+    void ProcessTaskRelease(const mrs_msgs::msg::TaskRelease::ConstSharedPtr& msg)
     {
         adapter::BoundaryTaskRelease boundary;
         boundary.instance_id = msg->instance_id;
@@ -207,7 +329,6 @@ private:
         {
             RCLCPP_WARN(this->get_logger(), "mrta_node: event ring full, release dropped");
         }
-        MaybePublish();
     }
 
     void OnGoalCompletion(mrs_msgs::msg::GoalCompletion::ConstSharedPtr msg)
@@ -302,6 +423,10 @@ private:
     std::vector<std::string> robots_;
     std::string instance_id_;
     std::optional<core::RoadmapView> roadmap_;
+    node::CoreDistanceOracle distance_oracle_;  ///< ctx.distances target (see constructor).
+    /// @brief `/task_release` messages received before `distance_oracle_` was
+    /// built, held for `OnRoadmap` to replay (371 fix — see `OnTaskRelease`).
+    node::DeferredQueue<mrs_msgs::msg::TaskRelease::ConstSharedPtr> deferred_task_releases_;
     std::unique_ptr<core::IAssigner> assigner_;
     std::unique_ptr<service::AssignmentService> service_;
 
