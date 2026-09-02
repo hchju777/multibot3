@@ -4,3 +4,7 @@ log/
 # 재생성 가능한 바이너리라 커밋하지 않는다.
 build/
 install/
+
+# Python 캐시 — 47차에 실수로 추적됐다(launch·pytest가 만든다).
+__pycache__/
+*.pyc
