@@ -1,0 +1,27 @@
+<library path="mrs_trajopt_plugins">
+  <!-- CN-12: type="mrs_trajopt/{ClassName}" — config 값도 같은 형식. 맨키 name= 금지. -->
+  <class type="mrs_trajopt/SearchHybridAstar" base_class_type="mrs_trajopt::core::ITrajectorySearch">
+    <description>하이브리드 A* 궤적 탐색.</description>
+  </class>
+  <class type="mrs_trajopt/SearchFixedPathGating" base_class_type="mrs_trajopt::core::ITrajectorySearch">
+    <description>고정 경로 게이팅 탐색.</description>
+  </class>
+  <class type="mrs_trajopt/SubgoalFreeSpaceDisk" base_class_type="mrs_trajopt::core::ISubgoalCandidates">
+    <description>자유공간 원판 서브골 후보 생성.</description>
+  </class>
+  <class type="mrs_trajopt/SubgoalRoadmapProjected" base_class_type="mrs_trajopt::core::ISubgoalCandidates">
+    <description>로드맵 투영 서브골 후보 생성.</description>
+  </class>
+  <class type="mrs_trajopt/PeerChannelIdeal" base_class_type="mrs_trajopt::core::IPeerChannel">
+    <description>이상적(무손실) 동료 채널.</description>
+  </class>
+  <class type="mrs_trajopt/PeerChannelAdhoc" base_class_type="mrs_trajopt::core::IPeerChannel">
+    <description>애드혹(손실 가능) 동료 채널.</description>
+  </class>
+  <class type="mrs_trajopt/InflationIsotropicBall" base_class_type="mrs_trajopt::core::IInflation">
+    <description>등방 팽창.</description>
+  </class>
+  <class type="mrs_trajopt/InflationHeadingBiased" base_class_type="mrs_trajopt::core::IInflation">
+    <description>진행방향 편향 팽창.</description>
+  </class>
+</library>

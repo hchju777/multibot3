@@ -8,8 +8,10 @@
     (state_integrator), 로드맵·로봇사양 latched 발행(roadmap_publisher, D29),
     태스크 릴리스 스트림 발행(task_release_publisher, 367_pipeline_inputs.md
     웨이브 1-A ②), rviz2 마커 발행(viz_markers_node, 373_viz_markers.md,
-    U48-8 — 모듈 코드 0줄로 /roadmap·/odom·/execution_constraints를 재표현).
-    관측 주입기·계산 자원 중재자·대시보드는 이 라운드 밖
+    U48-8 — 모듈 코드 0줄로 /roadmap·/odom·/execution_constraints를 재표현),
+    로봇당 세계 관측 발행(observation_node, 375_observation_publisher.md
+    48차 웨이브 4-A — /{robot}/scan sensor_msgs/LaserScan, 357§Q1이 확정한
+    이음매). 계산 자원 중재자·대시보드는 이 라운드 밖
     (357 §7-3). CN-1 필수 넷(core/adapter/node/service)의 대상이 아니다 —
     도구 패키지이고 include/mrs_sim/ 공개 헤더를 두지 않는다
     (check_layer_layout.py는 include/{pkg}/ 부재 패키지를 "검사 0건"으로
@@ -31,6 +33,7 @@
   <depend>nlohmann_json</depend>
   <depend>std_msgs</depend>
   <depend>visualization_msgs</depend>
+  <depend>sensor_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
 

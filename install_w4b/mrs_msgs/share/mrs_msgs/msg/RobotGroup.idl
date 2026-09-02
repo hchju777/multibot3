@@ -1,0 +1,16 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/RobotGroup.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "string[][] has no IDL representation (350 §6 replan_result.components) —" "\n"
+      "one extra level of nesting via this wrapper instead (350 §7-6 \"3중 이상" "\n"
+      "중첩은 만들지 않는다\").")
+    struct RobotGroup {
+      sequence<string> robots;
+    };
+  };
+};

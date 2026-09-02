@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_trajopt_adapter.a CMakeFiles/mrs_trajopt_adapter.dir/src/adapter/trajectories_adapter.cpp.o CMakeFiles/mrs_trajopt_adapter.dir/src/adapter/robot_specs_adapter.cpp.o CMakeFiles/mrs_trajopt_adapter.dir/src/adapter/stop_declaration_adapter.cpp.o
+/usr/bin/ranlib libmrs_trajopt_adapter.a

@@ -45,6 +45,30 @@ Status StartupChecks::run(const std::vector<RobotLimits>& specs,
     {
         throw ContractViolation("SU05: peer_board_rounds_max must be >= 1");
     }
+    // 🆕 376: exogenous-block observation hysteresis + staleness bound +
+    // occlusion-range threshold, all [값 부재] — refused with the same
+    // no-baked-default rule as SU01-05 (no SU number assigned here; that
+    // registry belongs to 322, not this round — reported, not invented).
+    if (cfg.obs_n_open < 1)
+    {
+        throw ContractViolation("OBS: obs_n_open (n^open, OBS7-NZ O1) must be >= 1");
+    }
+    if (cfg.obs_n_close < 1)
+    {
+        throw ContractViolation("OBS: obs_n_close (n^close, OBS7-NZ O1) must be >= 1");
+    }
+    if (cfg.obs_n_hold < 1)
+    {
+        throw ContractViolation("OBS: obs_n_hold (n^hold, OBS7-NZ O2) must be >= 1");
+    }
+    if (cfg.obs_max_age_ticks < 1)
+    {
+        throw ContractViolation("OBS: obs_max_age_ticks (Δk^obs_max, OBS-5) must be >= 1");
+    }
+    if (!(cfg.obs_occlusion_range_m > 0.0))
+    {
+        throw ContractViolation("OBS: obs_occlusion_range_m must be > 0");
+    }
     // SU06: no independent eta_slf / self_trigger* config key (▲7). It is a
     // derived value (235-C1); a key would let it drift from eta_lead & n_re.
     for (const auto& key : cfg.config_key_names)

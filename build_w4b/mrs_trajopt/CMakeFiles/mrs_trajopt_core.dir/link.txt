@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_trajopt_core.a CMakeFiles/mrs_trajopt_core.dir/src/core/velocity_profiler.cpp.o CMakeFiles/mrs_trajopt_core.dir/src/core/startup_checks.cpp.o
+/usr/bin/ranlib libmrs_trajopt_core.a

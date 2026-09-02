@@ -28,6 +28,12 @@ TrajoptConfig good_cfg()
     c.round_cap_budget = 4;
     c.backtrack_budget = 2;
     c.peer_board_rounds_max = 2;
+    // 🆕 376 — OBS-5/OBS-7 hysteresis + staleness + occlusion-range config.
+    c.obs_n_open = 3;
+    c.obs_n_close = 2;
+    c.obs_n_hold = 5;
+    c.obs_max_age_ticks = 4;
+    c.obs_occlusion_range_m = 1.0;
     return c;
 }
 
@@ -96,6 +102,33 @@ int main()
         FleetLimits f = good_fleet();
         f.min_separation_m = 0.5;  // < 2 * 0.3.
         CHECK(throws(good_specs(), f, good_cfg()));
+    }
+
+    // 🆕 376 — OBS: each new [값 부재] field refuses at 0/0.0 (no baked default).
+    {
+        TrajoptConfig c = good_cfg();
+        c.obs_n_open = 0;
+        CHECK(throws(good_specs(), good_fleet(), c));
+    }
+    {
+        TrajoptConfig c = good_cfg();
+        c.obs_n_close = 0;
+        CHECK(throws(good_specs(), good_fleet(), c));
+    }
+    {
+        TrajoptConfig c = good_cfg();
+        c.obs_n_hold = 0;
+        CHECK(throws(good_specs(), good_fleet(), c));
+    }
+    {
+        TrajoptConfig c = good_cfg();
+        c.obs_max_age_ticks = 0;
+        CHECK(throws(good_specs(), good_fleet(), c));
+    }
+    {
+        TrajoptConfig c = good_cfg();
+        c.obs_occlusion_range_m = 0.0;
+        CHECK(throws(good_specs(), good_fleet(), c));
     }
 
     return trajopt_test::summary();

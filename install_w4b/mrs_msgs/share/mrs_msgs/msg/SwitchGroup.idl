@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/SwitchGroup.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/Alternative.idl"
+
+module mrs_msgs {
+  module msg {
+    struct SwitchGroup {
+      string id;
+
+      string location;
+
+      sequence<mrs_msgs::msg::Alternative> alternatives;
+    };
+  };
+};

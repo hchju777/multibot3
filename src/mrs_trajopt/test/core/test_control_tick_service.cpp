@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "../test_util.hpp"
 #include "mrs_core/i_steady_clock.hpp"
+#include "mrs_trajopt/core/world_observation.hpp"
 #include "mrs_trajopt/plugins/peer_channel_impls.hpp"
 #include "mrs_trajopt/plugins/search_fixed_path_gating.hpp"
 #include "mrs_trajopt/plugins/search_hybrid_astar.hpp"
@@ -66,7 +67,46 @@ TrajoptConfig make_cfg()
     c.round_cap_budget = 4;
     c.backtrack_budget = 2;
     c.peer_board_rounds_max = 2;
+    // 🆕 376 — OBS-5/OBS-7 hysteresis + staleness + occlusion-range config.
+    c.obs_n_open = 3;
+    c.obs_n_close = 2;
+    c.obs_n_hold = 2;
+    c.obs_max_age_ticks = 5;
+    c.obs_occlusion_range_m = 1.0;
     return c;
+}
+
+/// @brief 376 (376_p2 CORRECTED — see `world_observation.hpp` file doc) — a
+/// fresh, unattributed synthetic observation with ONE collapsed ray (the
+/// "gap == 0" case, OBS-1 ⑵). Mirrors what `ScanToObservation()`
+/// (`node/trajopt_node.cpp`) would produce from a REAL scan against
+/// `mrs_sim/observation_node.cpp`'s actual ray model: only the ray aligned
+/// with the blocked edge's axis collapses; the rest ("wall rays") stay
+/// finite regardless of block status. `HasCollapsedRay` (any, not all) is
+/// what `IsQ1RawPredicate` actually calls — this fixture was corrected after
+/// a runtime pipeline run (376_p2) found the ALL-occupied fixture never
+/// fired against the real sensor model.
+WorldObservation blocked_obs()
+{
+    WorldObservation obs;
+    obs.fresh = true;
+    obs.age_ticks = 0;
+    obs.sample_count = 8;
+    obs.occupied[3] = true;  // the one edge-aligned ray. The rest stay clear.
+    return obs;
+}
+
+/// @brief 376 — a fully-open observation (a real free gap, OBS-1 ⑵ false,
+/// no collapsed ray anywhere). The negative control: classify() must NOT
+/// fire exogenous_block from this input.
+WorldObservation open_obs()
+{
+    WorldObservation obs;
+    obs.fresh = true;
+    obs.age_ticks = 0;
+    obs.sample_count = 8;
+    // occupied[] stays all-false (std::array value-init) — no collapse.
+    return obs;
 }
 
 }  // namespace
@@ -239,6 +279,85 @@ int main()
         TickOutput noclock_out = svc_noclock.run_tick(in2);  // tick 6, still elapsed=0.
         CHECK(!svc_noclock.committed().empty());
         CHECK_NEAR(noclock_out.cmd.v, svc_noclock.committed().front().v, 1e-9);
+    }
+
+    // --- 376 (N1-N4 production wiring): a synthetic scan-derived
+    // observation with gap==0 persisting for obs_n_open ticks makes
+    // classify() fire exogenous_block THROUGH run_tick (not merely in a
+    // DeclarationRegulator-only unit test). Regression lock: if CT24-CT25
+    // reverts to the `catch(...)`-only path, `out.has_stop` stays false here
+    // and this block FAILS. ---
+    {
+        SearchFixedPathGating search;
+        SubgoalFreeSpaceDisk subgoals(0.5, 0.2);
+        PeerChannelIdeal channel;
+        auto pred = [](const StateSample&, double)
+        {
+            return true;
+        };
+        SafetyMonitor safety(pred);
+
+        ServiceWiring w;
+        w.search = &search;
+        w.subgoals = &subgoals;
+        w.channel = &channel;
+        w.safety = &safety;
+
+        Pose2 goal;
+        goal.x = 5.0;
+        goal.y = 0.0;
+        TrajoptConfig cfg = make_cfg();  // obs_n_open = 3.
+        ControlTickService svc("r0", w, cfg, make_lim(), make_fleet(), goal);
+
+        TickInput in;
+        in.pose.x = 0.0;
+        in.pose.y = 0.0;
+        in.obs = blocked_obs();  // gap == 0, fresh, unattributed.
+
+        // Ticks 1-2: below n_open=3 => not yet confirmed => no stop.
+        CHECK(!svc.run_tick(in).has_stop);
+        CHECK(!svc.run_tick(in).has_stop);
+        // Tick 3: n_open reached => classify() fires exogenous_block.
+        TickOutput out3 = svc.run_tick(in);
+        CHECK(out3.has_stop);
+        CHECK(out3.stop_reason == StopReason::kExogenousBlock);
+    }
+
+    // --- 376 negative control: the SAME wiring, but the observation has a
+    // real free gap (open_obs()) instead of gap==0. classify() must NOT fire
+    // — without this case the positive test above has no discriminating
+    // power (a ledger that always reports "open" would also pass it). ---
+    {
+        SearchFixedPathGating search;
+        SubgoalFreeSpaceDisk subgoals(0.5, 0.2);
+        PeerChannelIdeal channel;
+        auto pred = [](const StateSample&, double)
+        {
+            return true;
+        };
+        SafetyMonitor safety(pred);
+
+        ServiceWiring w;
+        w.search = &search;
+        w.subgoals = &subgoals;
+        w.channel = &channel;
+        w.safety = &safety;
+
+        Pose2 goal;
+        goal.x = 5.0;
+        goal.y = 0.0;
+        TrajoptConfig cfg = make_cfg();
+        ControlTickService svc("r0", w, cfg, make_lim(), make_fleet(), goal);
+
+        TickInput in;
+        in.pose.x = 0.0;
+        in.pose.y = 0.0;
+        in.obs = open_obs();  // a real free gap — not fully occluded.
+
+        for (int i = 0; i < 6; ++i)
+        {
+            CHECK(!svc.run_tick(in).has_stop);
+        }
     }
 
     return trajopt_test::summary();

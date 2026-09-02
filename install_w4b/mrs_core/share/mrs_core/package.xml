@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_core</name>
+  <version>0.1.0</version>
+  <description>
+    공용 어휘 타입·시임 두 타깃(CN-3): mrs_core_pure(Status/Result/ContractViolation +
+    ISteadyClock/IInstrSink, ROS·JSON·pluginlib 미링크) / mrs_core_msgs(문자열-uint8 상수
+    사상 표, mrs_msgs 링크). 47차 P1 최소(347_arch_integration_delta.md §3-1 D14) — 그래프
+    술어·링버퍼·경계 표현 JSON 직렬화는 이 판에 없다(README.md).
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- mrs_core_msgs만 링크한다 — mrs_core_pure는 이 의존을 전이로 얻지 않는다(CN-3). -->
+  <depend>mrs_msgs</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

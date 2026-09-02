@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/Alternative.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/Dependency.idl"
+
+module mrs_msgs {
+  module msg {
+    struct Alternative {
+      string id;
+
+      sequence<mrs_msgs::msg::Dependency> dependencies;
+    };
+  };
+};

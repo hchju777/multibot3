@@ -1,0 +1,115 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-224c2a9bef8eb1c4dae2.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.20"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "mrs_core",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_core_msgs::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_core_msgs-1afbc572536ea0e3a812.json",
+					"name" : "mrs_core_msgs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_core_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_core_uninstall-608e6cf6ed929a7d846b.json",
+					"name" : "mrs_core_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "startup_checker::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-startup_checker-05b31199ea68332ebb7b.json",
+					"name" : "startup_checker",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_reason_codes::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_reason_codes-2714994db87c87aca030.json",
+					"name" : "test_reason_codes",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_roadmap_distances::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_roadmap_distances-233629a540ea0e927911.json",
+					"name" : "test_roadmap_distances",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_status::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_status-007e5528b6fd422270d7.json",
+					"name" : "test_status",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-7587098fdfacd075e43c.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_core",
+		"source" : "/home/hchju777/multibot3-harness/multibot3/src/mrs_core"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

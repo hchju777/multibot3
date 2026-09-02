@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_trajopt_service.a CMakeFiles/mrs_trajopt_service.dir/src/service/control_tick_service.cpp.o
+/usr/bin/ranlib libmrs_trajopt_service.a

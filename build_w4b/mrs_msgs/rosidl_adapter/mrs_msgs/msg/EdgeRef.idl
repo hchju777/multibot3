@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/EdgeRef.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Directed pair of roadmap-node identifiers reused across three JSON shapes" "\n"
+      "(350 §6 \"재사용 결정 둘\"): roadmap.corridors[].edges (2-element tuple)," "\n"
+      "stop_declaration.blocked_edge (object {from,to}), replan_request.blocked[]" "\n"
+      "(object {from,to}). The io/ adapter absorbs both JSON shapes into this one" "\n"
+      "type (350 §8 D6 item 8) — that adapter code is outside this round's scope.")
+    struct EdgeRef {
+      string from_id;
+
+      string to_id;
+    };
+  };
+};

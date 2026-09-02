@@ -1,0 +1,23 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/TaskRelease.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/TaskGoal.idl"
+
+module mrs_msgs {
+  module msg {
+    struct TaskRelease {
+      string schema;
+
+      string schema_version;
+
+      string instance_id;
+
+      uint64 release_index;
+
+      string task;
+
+      sequence<mrs_msgs::msg::TaskGoal> goals;
+    };
+  };
+};

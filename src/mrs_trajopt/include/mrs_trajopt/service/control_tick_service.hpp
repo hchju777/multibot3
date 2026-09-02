@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "mrs_core/i_steady_clock.hpp"
+#include "mrs_trajopt/core/declaration_ledger.hpp"
 #include "mrs_trajopt/core/declaration_regulator.hpp"
 #include "mrs_trajopt/core/i_peer_channel.hpp"
 #include "mrs_trajopt/core/i_subgoal_candidates.hpp"
@@ -19,6 +20,7 @@
 #include "mrs_trajopt/core/trajectory_buffer.hpp"
 #include "mrs_trajopt/core/types.hpp"
 #include "mrs_trajopt/core/velocity_profiler.hpp"
+#include "mrs_trajopt/core/world_observation.hpp"
 
 /// @file control_tick_service.hpp
 /// @brief The three-clock orchestrator (322 §322-1..3). One robot's onboard
@@ -36,6 +38,22 @@
 /// `mrs_core::ISteadyClock`). This service NEVER constructs a clock itself
 /// (`w_.clock` is wiring, supplied by the node — CN-4/CN-18); see
 /// `ServiceWiring::clock` and `trajectory_buffer.hpp`'s `sample_at()`.
+///
+/// 🆕 376 (`_workspace/376_observation_consumer.md`, 48차 웨이브4-B) — CT24-
+/// CT25 (`322` §322-1) now run for real: `TickInput::obs` (N1, was 4 fields
+/// with zero world observation) feeds `IsQ1RawPredicate()` +
+/// `DeclarationLedger` (N2, `DeclarationEvidence::
+/// edge_impassable_for_any_robot` is now set by production code, not only by
+/// tests) into `DeclarationRegulator::classify()` (N3, called at the end of
+/// `run_tick()`, not only from a test) which now sets `TickOutput::has_stop`/
+/// `stop_reason` on the NORMAL path (N4 — the `catch(...)` block is
+/// unchanged and stays the `kUnresolvableLocally` fallback for genuine
+/// tick-path violations, `CN-16`). 🔴 SIMPLIFIED (reported, not hidden — see
+/// `mrs_trajopt` 20d "알려진 한계"): the pseudocode's full fallback ladder
+/// (`fb_.step()`/`decl_.offer()`) is not implemented; the trigger condition
+/// used here is "some evidence fired THIS tick" instead of that ladder's
+/// staged-candidate gate. The 3-way total order itself (Q1 > Q2 > Q3,
+/// `DeclarationRegulator::classify`) is unaffected by that simplification.
 
 namespace mrs_trajopt::service
 {
@@ -65,6 +83,14 @@ struct TickInput
     double v = 0.0;                         ///< current signed speed [m/s].
     bool staged_constraints_fresh = false;  ///< A5: fresh staged constraints?
     bool tube_pierced = false;              ///< CT09a: was the promise tube pierced this tick?
+    /// 🆕 376 (N1) — this tick's exogenous world observation (`OBS-1`/
+    /// `OBS-5`). Fixed-size POD, latched O(1) by the node (`node/` owns the
+    /// `sensor_msgs::msg::LaserScan` -> `WorldObservation` conversion,
+    /// `CN-2`). Default-constructed (`sample_count=0`, `fresh=false`) means
+    /// "no observation yet" and can NEVER confirm Q1 (`IsQ1RawPredicate`
+    /// returns false) — existing callers that never set this field keep
+    /// their prior behavior unchanged.
+    core::WorldObservation obs;
 };
 
 /// @brief One control-tick output (CT-out).
@@ -145,6 +171,11 @@ private:
     core::TrajectoryBuffer buffer_;
     core::RoundLedger ledger_;
     core::FairnessMetrics fairness_;
+    /// 🆕 376 — Q1 hysteresis (`OBS-7`). Declared AFTER `cfg_` (member init
+    /// order follows declaration order, not the ctor-initializer-list order)
+    /// so its `DeclarationLedgerConfig` can be built from the already-
+    /// constructed `cfg_`.
+    core::DeclarationLedger obs_ledger_;
 
     std::int64_t tick_seq_ = 0;
     bool subgoal_advance_req_ = false;  // CT09b puncture advance request.
@@ -152,6 +183,11 @@ private:
     std::vector<core::PassWindow> subgoals_;
     std::int64_t publish_count_ = 0;
     std::vector<core::PassWindow> committed_subgoals_;  // for order-deviation check.
+    /// 🆕 376 (OBS-6 #4) — Q2 evidence deposit. Set by `recompute_trajectory`
+    /// (TT12-TT13's reverse-forbidden-infeasible sites), consumed ONCE at
+    /// CT24-CT25 (`run_tick`) so a Q1 confirmed later the same tick is not
+    /// overwritten by an earlier Q2 deposit (schema :54 total order).
+    bool pending_q2_evidence_ = false;
 };
 
 }  // namespace mrs_trajopt::service

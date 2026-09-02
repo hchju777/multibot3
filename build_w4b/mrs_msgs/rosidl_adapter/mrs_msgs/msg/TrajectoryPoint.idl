@@ -1,0 +1,29 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/TrajectoryPoint.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    struct TrajectoryPoint {
+      double t;
+
+      double x;
+
+      double y;
+
+      double yaw;
+
+      @verbatim (language="comment", text=
+        "Optional numeric fields: has_* companion booleans (350 §4-3 rule). has_* is" "\n"
+        "NEVER carried in the JSON boundary dump — absence there IS absence here.")
+      double v;
+
+      boolean has_v;
+
+      double a;
+
+      boolean has_a;
+    };
+  };
+};

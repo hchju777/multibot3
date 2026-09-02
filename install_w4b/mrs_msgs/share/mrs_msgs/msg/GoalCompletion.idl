@@ -1,0 +1,24 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/GoalCompletion.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    struct GoalCompletion {
+      string schema;
+
+      string schema_version;
+
+      string instance_id;
+
+      uint64 seq;
+
+      string robot;
+
+      string goal_id;
+
+      uint64 revision;
+    };
+  };
+};

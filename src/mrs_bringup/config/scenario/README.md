@@ -44,3 +44,33 @@
 순서로 매겼다. `task_release_publisher`(`mrs_sim`)가 이 배열의 각 원소를 **개별 `mrs.
 task_release` 봉투로 그대로 재발행**한다 — 배열 자체는 계약 스키마가 아니라 이 launch가
 정한 소스 파일 형식(각 원소가 `task_release.schema.json` 2.0.0에 개별적으로 유효하다).
+
+## `blocked_edges.json` — 🔴 계약 스키마가 아니다(도구 층 내부 데이터)
+
+375_observation_publisher.md(48차 웨이브 4-A) — `observation_node`(`mrs_sim`)가 읽는
+"시각별 차단 이벤트" 시나리오. U46-3이 확정한 두 출처(런타임 토글 + 시나리오 파일) 중
+**시나리오 파일 절반만** 이 라운드가 연다 — 런타임 토글(대시보드 클릭)은 소비 측
+(`mrs_trajopt` 온보드 제어 틱 루프)이 선 다음 라운드다.
+
+`schema`가 `mrs.`가 아니라 `mrs_sim.`으로 시작한다 — 일부러다. `mrs_msgs/schema/`에
+등록된 경계 스키마의 이름 공간이 `mrs.*`이고, 이 파일은 `observation_node` 하나만
+읽고 어떤 경계 토픽으로도 그대로 재직렬화되지 않는 도구 층 내부 데이터라서 그 이름
+공간을 쓰면 안 된다(357§Q1 "도구 층" 판정, `blocked_edges_json.hpp` 파일 머리 주석).
+
+`events[]`의 각 원소는 `{time_s, from, to, action}` — `action`은 닫힌 어휘
+`{"block", "unblock"}`이다. `from`/`to`는 `/roadmap`의 간선 정점 id 쌍이며 **방향을
+따지지 않는다**(양방향 간선의 물리적 차단은 방향이 없다 — `NormalizeEdgeKey`가
+정규화한다). `time_s`는 절대 시각이 아니라 **`observation_node` 자신이 기동해 첫
+관측 틱을 낸 뒤로 몇 번째 관측 틱이 지났는가**(`scan_publish_period_ms` 배수, 관측
+틱 카운트 기반 — `observation_node.cpp::OnTick`)를 초 단위로 환산한 것이다. 파일
+안 원소 순서는 의미가 없다 — 파서가 `time_s` 오름차순으로 다시 정렬한다.
+
+**이 예시 파일이 무엇을 하는가**: `J0100`↔`J0101`(폭 1.2 m, `capacity_robots:1`인
+좁은 통로, `q_v01` 통로 소속)을 5초 시점에 막고 20초 시점에 푼다. `r1`이 `J0100`에서,
+`r2`가 `J0101`에서 시작하므로(`mrta.yaml` `initial_vertices`) 두 로봇 모두 기동 직후
+이 간선 위에 있다 — 별도 이동 없이도 `/r1/scan`·`/r2/scan`이 차단 전후로 달라지는 것을
+관찰할 수 있다.
+
+🔴 **가정 데이터다** — `robot_specs.json`·`task_release.json`과 같은 규율: 이 시각·
+간선 선택은 데모를 만들기 위한 것이지 사전등록된 시나리오가 아니다. 이 파일로 만든
+run은 `SC-*` 증거로 계상되지 않는다.

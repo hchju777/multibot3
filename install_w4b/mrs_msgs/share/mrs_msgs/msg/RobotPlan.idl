@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/RobotPlan.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/PlanStep.idl"
+
+module mrs_msgs {
+  module msg {
+    module RobotPlan_Constants {
+      const uint8 TERMINAL_UNKNOWN = 0;
+      const uint8 TERMINAL_GOAL_REACHED = 1;
+      const uint8 TERMINAL_PLAN_TRUNCATED = 2;
+      const uint8 TERMINAL_NO_PROGRESS = 3;
+    };
+    @verbatim (language="comment", text=
+      "PlanTerminal vocabulary (350 §3-2 V2~V6).")
+    struct RobotPlan {
+      string robot;
+
+      uint8 terminal;
+
+      sequence<mrs_msgs::msg::PlanStep> steps;
+    };
+  };
+};

@@ -53,25 +53,23 @@
 //       declared OUTSIDE method.modules.trajopt.* because it is not a
 //       swappable algorithm parameter (CN-6/CN-7 govern algorithm choices,
 //       not this system-wide constant).
-//   D8. /stop_declaration publication is explicitly OUT of the 368 checklist
-//       (four items only: timer, service call, cmd_vel+trajectories publish,
-//       odom subscribe). TickOutput.has_stop is surfaced as a WARN log only
-//       this round — not silently dropped, but not a new ROS publisher
-//       either. The brief explicitly says not to "fix" the catch(...)-only
-//       stop-declaration structure this round.
-//   D9. The two (void)-discarded DeclarationRegulator::reverse_forbidden_
-//       infeasible() call sites in control_tick_service.cpp:181,190 are NOT
-//       touched. Depositing that evidence into TickOutput per the pseudocode
-//       (§322-1 CT24-CT25, `fb_`/`decl_` fallback-ladder members) is not
-//       node-layer wiring — it requires implementing fallback-ladder
-//       infrastructure that does not exist in this service today. Reported,
-//       not fixed (368 explicitly allows "애매하면 손대지 말고 신고하라").
+//   D8. 🔴 SUPERSEDED by 376_p2 (`_workspace/376_observation_consumer_p2.md`,
+//       48차 웨이브4-B 재호출) — `/stop_declaration` publication was
+//       explicitly OUT of the 368 checklist and stayed that way through
+//       376(p1); `TickOutput.has_stop` was surfaced as a WARN log only. That
+//       is CLOSED now: see the 376_p2 delta comment block below.
+//   D9. SUPERSEDED by 376(p1, `_workspace/376_observation_consumer.md`, 48차
+//       웨이브4-B) — the two (void)-discarded DeclarationRegulator::
+//       reverse_forbidden_infeasible() call sites now deposit evidence
+//       (`pending_q2_evidence_`) and CT24-CT25 (`ControlTickService::
+//       run_tick`) now calls `DeclarationRegulator::classify()` for real on
+//       the NORMAL path — see `control_tick_service.hpp`/`.cpp` file docs.
 //
 // Still NOT wired (unchanged from 47차, out of THIS round's scope):
 // /discrete_plan, /segment_release subscriptions (no staged constraints
 // application, no puncture detection, no release-bit gating — TickInput's
 // staged_constraints_fresh/tube_pierced stay at their struct defaults,
-// false); /stop_declaration publication (D8 above).
+// false).
 //
 // 🔴 368_p2 delta (`_workspace/368_trajopt_tick_wiring_p2.md`) — D1 SUPERSEDED.
 // The coordinator's follow-up correctly found that D1's placeholder
@@ -145,6 +143,91 @@
 //   - Zero new config keys — the zero-order-hold reading needs no numeric
 //     constant (no gain, no lookahead distance); "값을 지어내지 마라" was
 //     satisfied by choosing the narrowest form, not by inventing a sentinel.
+//
+// 🔴 376 delta (`_workspace/376_observation_consumer.md`, 48차 웨이브4-B) —
+// the world-observation CONSUMER side (N1-N4, the publisher side is a
+// DIFFERENT round in mrs_sim/mrs_bringup — not touched here):
+//   - N1: new subscription `/{robot}/scan` (`sensor_msgs/msg/LaserScan`,
+//     BEST_EFFORT/VOLATILE/KeepLast(1) — `357` D23) per robot, registered
+//     alongside the existing `/{robot}/odom` subscription in OnRobotSpecs.
+//   - `ScanToObservation()` (below, node-layer, `CN-2`: `core/` never
+//     includes `sensor_msgs`) converts a scan into a fixed-size
+//     `core::WorldObservation` (`OBS-5`) — SIMPLIFIED geometry, see that
+//     struct's file doc: a forward-fan occlusion proxy, not exact roadmap
+//     edge cross-section (`width_m`) alignment.
+//   - Age bookkeeping: a node-level ordinal `global_tick_seq_` (incremented
+//     once per OnControlTick, shared across robots — the control tick is a
+//     fleet-wide ordinal) plus a per-robot capture-tick stamp gives
+//     `WorldObservation::age_ticks` in CONTROL TICKS, never seconds
+//     (`221-W2`, `OBS-5` ⑵). The O(1) swap itself (`OBS-5` ⑴) is the
+//     scan-callback's plain field overwrite; no parsing happens on the
+//     control-tick path (`CN-19`).
+//   - Five NEW config keys under `method.modules.trajopt.*` — all
+//     [값 부재], no baked default, validated at the SAME failure point as
+//     SU01-05 (`StartupChecks::run`, `core/startup_checks.cpp`):
+//     `obs_occlusion_range_m` [m], `obs_n_open`/`obs_n_close`/`obs_n_hold`
+//     [ticks], `obs_max_age_ticks` [ticks]. Reported to `interface-designer`/
+//     the orchestrator for `mrs_bringup/config/trajopt.yaml` — this package
+//     does NOT own that file (`CN-6`).
+//   - N2/N3/N4 (the evidence -> classify() -> has_stop wiring) live entirely
+//     in `service/control_tick_service.{hpp,cpp}` — this node only supplies
+//     `TickInput::obs` each tick (see OnControlTick below). `/stop_declaration`
+//     boundary publication was OUT of THIS delta's scope (D8) — CLOSED by
+//     376_p2 below.
+//   - OBS-1 ⑴ (non-attribution) is trivially `true` in `ScanToObservation` —
+//     [알려진 한계], see `core/world_observation.hpp` file doc: this build
+//     has no onboard channel that consumes neighbor corridors or `V^blk`
+//     keepout, so there is nothing to attribute against yet.
+//   - `package.xml`/`CMakeLists.txt` gain a `sensor_msgs` dependency — this
+//     IS the observation round (`357`§12 flagged `sensor_msgs` addition as
+//     belonging to "관측 라운드", not P3/P4; 376 is that round).
+//
+// 🔴 376_p2 delta (`_workspace/376_observation_consumer_p2.md`, 48차 웨이브4-B
+// 재호출) — CLOSES D8: `TickOutput.has_stop`/`stop_reason` now reach the
+// boundary `/stop_declaration` topic (`mrs.stop_declaration` 5.0.1):
+//   - New publisher `/stop_declaration` (`mrs_msgs::msg::StopDeclarations`,
+//     RELIABLE/VOLATILE/KEEP_LAST(32) — `357`§3-3 / `10_architecture.md`§7).
+//   - **Event-driven, not per-tick** (`357` D30 "사건 구동이라 매 틱 직렬화가
+//     아니다"): a message is published ONLY on a `has_stop` TRANSITION
+//     (false->true opens; true->false closes), tracked per robot in
+//     `RobotEntry::last_declared_open`. Publishing every tick while blocked
+//     would flood the topic and inflate `seq` for no new information.
+//   - `blocked_edge` VALUE is `RobotEntry::current_segment_from`/`_to`
+//     (cached in `ResolveGoalsFromExecConstraints`, THE SAME point `goal` is
+//     resolved from `/execution_constraints`) — NOT new information (schema
+//     :35). Frozen at open time; the close event reuses it VERBATIM (schema
+//     :35 "declared:false는 개시 때와 글자 그대로 같은 쌍"), stored in
+//     `RobotEntry::declared_from`/`_to`.
+//   - `seq`: `RobotEntry::stop_seq`, per-robot, 0-based, incremented on EVERY
+//     publish (open AND close) — a channel-local space, separate from
+//     `mrs.entry_events.seq` (schema :27).
+//   - `reason`: the ROS wire type is `uint8` against the SHARED
+//     `mrs_msgs::msg::StopReason` vocabulary (legal subset {1,3,5}) — NOT the
+//     JSON schema's string enum. `StopReasonToRosConstant()` (below) does
+//     that mapping; it is glue (struct-field assignment), not JSON
+//     serialization, so it does not touch `io/`. The close event reuses the
+//     SAME reason the open event carried (`RobotEntry::declared_reason`) —
+//     the most defensible non-fabricated choice given the frozen text is
+//     silent on the close event's `reason` value.
+//   - 🔴 OBS-8 (reopening with a DIFFERENT reason while still declared open)
+//     is NOT implemented (357§5 Q3: needs a stateful multi-reason ledger + a
+//     "close old reason / open new reason" two-declaration protocol this
+//     round does not build). Detected and reported (WARN, rate-limited to
+//     once per open window via `RobotEntry::obs8_conflict_warned`) — NOT
+//     silently dropped, NOT force-fit into a fabricated two-declaration
+//     sequence either.
+//   - CN-19: the ROS-message STRUCT FILL (`PublishStopDeclaration` below) is
+//     plain field copies/assignments — no string concatenation, no JSON
+//     text assembly (that is `io/json_io`'s job and is NOT called from this
+//     path). `rclcpp::Publisher::publish()`'s own DDS serialization is the
+//     same middleware step every other publisher in this file already uses
+//     (`/cmd_vel`, `/trajectories`) and is outside this package's control.
+//     The RCLCPP_WARN/RCLCPP_ERROR calls added here mirror the PRE-EXISTING
+//     style in this same callback (the D8 WARN they replace, OnOdom's
+//     ERROR) — judgment call, not a new pattern.
+//   - `check_layer_layout.py`'s `sensor_msgs` gap (357§3-4 finding) is
+//     UNCHANGED by this delta — no new `core/`/`service/` include of any ROS
+//     IDL was added (`stop_declaration_adapter.hpp` was already ROS-free).
 
 #include <chrono>
 #include <cmath>
@@ -162,21 +245,27 @@
 #include "mrs_msgs/msg/robot_specs.hpp"
 #include "mrs_msgs/msg/robot_trajectory.hpp"
 #include "mrs_msgs/msg/segment.hpp"
+#include "mrs_msgs/msg/stop_declaration.hpp"
+#include "mrs_msgs/msg/stop_declarations.hpp"
+#include "mrs_msgs/msg/stop_reason.hpp"
 #include "mrs_msgs/msg/trajectories.hpp"
 #include "mrs_msgs/msg/trajectory_point.hpp"
 #include "mrs_trajopt/adapter/robot_specs_adapter.hpp"
+#include "mrs_trajopt/adapter/stop_declaration_adapter.hpp"
 #include "mrs_trajopt/adapter/trajectories_adapter.hpp"
 #include "mrs_trajopt/core/declaration_regulator.hpp"
 #include "mrs_trajopt/core/safety_monitor.hpp"
 #include "mrs_trajopt/core/startup_checks.hpp"
 #include "mrs_trajopt/core/status.hpp"
 #include "mrs_trajopt/core/types.hpp"
+#include "mrs_trajopt/core/world_observation.hpp"
 #include "mrs_trajopt/plugins/peer_channel_impls.hpp"
 #include "mrs_trajopt/plugins/search_fixed_path_gating.hpp"
 #include "mrs_trajopt/plugins/subgoal_candidates.hpp"
 #include "mrs_trajopt/service/control_tick_service.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 
 namespace mrs_trajopt::node
 {
@@ -208,6 +297,71 @@ public:
 private:
     rclcpp::Clock::SharedPtr clock_;
 };
+
+/// @brief 376 (N1) — `sensor_msgs::msg::LaserScan` -> `core::WorldObservation`
+/// conversion. `core/` never includes `sensor_msgs` (`CN-2`); this is the
+/// ONE place that reads it, matching `357`§3-4's disposition (a private
+/// `node/` function, NOT `adapter/` — this is a tool-layer channel, not a
+/// boundary artifact, `CN-8` does not apply).
+///
+/// SIMPLIFIED (reported, not hidden — see `core/world_observation.hpp` file
+/// doc and `mrs_trajopt` 20d "알려진 한계"): marks sample `i` occupied iff its
+/// range is finite, positive, and `<= occlusion_range_m`. 🔴 376_p2: per-
+/// sample occupancy is aggregated with `HasCollapsedRay` ("exists a
+/// collapsed ray"), NOT "every sample" — see `world_observation.hpp` file
+/// doc for the runtime-found reason (only edge-aligned rays ever collapse;
+/// "wall" rays in the same fan stay finite regardless of block status).
+/// `unattributed` is left at the struct default `true` (no onboard channel
+/// consumes neighbor corridors / `V^blk` keepout in this build — `355`§8 X3).
+/// @param scan the raw scan.
+/// @param occlusion_range_m the occlusion-range threshold [m] (config,
+///        `[값 부재]`, validated `> 0` by `StartupChecks::run`).
+/// @return a fixed-size `WorldObservation` with `fresh=true`, `age_ticks=0`
+///         (the caller stamps age from its own capture-tick bookkeeping).
+mrs_trajopt::core::WorldObservation ScanToObservation(const sensor_msgs::msg::LaserScan& scan,
+                                                      double occlusion_range_m)
+{
+    mrs_trajopt::core::WorldObservation obs;
+    obs.fresh = true;
+    obs.age_ticks = 0;  // capture-time value; the reader (OnControlTick) adds
+                        // elapsed control ticks via the per-robot capture stamp.
+    const std::size_t n =
+        std::min(scan.ranges.size(), mrs_trajopt::core::WorldObservation::kMaxSamples);
+    obs.sample_count = n;
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        const float r = scan.ranges[i];
+        obs.occupied[i] =
+            std::isfinite(r) && r > 0.0f && r <= static_cast<float>(occlusion_range_m);
+    }
+    // obs.unattributed stays at its struct default (true) — see file doc.
+    return obs;
+}
+
+/// @brief 376_p2 — `core::StopReason` -> the ROS wire's `uint8` constant
+/// (`mrs_msgs::msg::StopReason`, the SHARED numeric vocabulary — legal
+/// subset `{1,3,5}` for this channel, `StopDeclaration.msg` file doc). This
+/// is a DIFFERENT encoding from `DeclarationRegulator::to_schema_string()`
+/// (the JSON schema's string enum, used by `io/json_io`) — the ROS `.msg`
+/// never carries the string form. Node-layer glue (`CN-9` does not apply:
+/// this is not an `adapter/` boundary-struct conversion, it is the
+/// boundary-struct -> ROS-wire-type fill that `PublishTrajectories` already
+/// does for `mrs.trajectories`).
+/// @param r the classified reason.
+/// @return the matching `mrs_msgs::msg::StopReason::REASON_*` constant.
+std::uint8_t StopReasonToRosConstant(mrs_trajopt::core::StopReason r)
+{
+    switch (r)
+    {
+        case mrs_trajopt::core::StopReason::kExogenousBlock:
+            return mrs_msgs::msg::StopReason::REASON_EXOGENOUS_BLOCK;
+        case mrs_trajopt::core::StopReason::kInfeasibleSubgoal:
+            return mrs_msgs::msg::StopReason::REASON_INFEASIBLE_SUBGOAL;
+        case mrs_trajopt::core::StopReason::kUnresolvableLocally:
+            return mrs_msgs::msg::StopReason::REASON_UNRESOLVABLE_LOCALLY;
+    }
+    return mrs_msgs::msg::StopReason::REASON_UNRESOLVABLE_LOCALLY;
+}
 
 class TrajoptNode : public rclcpp::Node
 {
@@ -252,6 +406,18 @@ public:
             this->declare_parameter<double>("method.modules.trajopt.subgoal_window_radius_m",
                                             std::numeric_limits<double>::quiet_NaN());
 
+        // 🆕 376 — exogenous-block observation config (OBS-1/OBS-5/OBS-7).
+        // Baked-0/0.0 sentinel (same pattern as round_cap_budget etc.) — ALL
+        // [값 부재], refused by StartupChecks::run at the SAME failure point
+        // as SU01-05 (no earlier gate invented for these).
+        cfg_.obs_n_open = this->declare_parameter<int>("method.modules.trajopt.obs_n_open", 0);
+        cfg_.obs_n_close = this->declare_parameter<int>("method.modules.trajopt.obs_n_close", 0);
+        cfg_.obs_n_hold = this->declare_parameter<int>("method.modules.trajopt.obs_n_hold", 0);
+        cfg_.obs_max_age_ticks =
+            this->declare_parameter<int>("method.modules.trajopt.obs_max_age_ticks", 0);
+        cfg_.obs_occlusion_range_m =
+            this->declare_parameter<double>("method.modules.trajopt.obs_occlusion_range_m", 0.0);
+
         // SU06 scans this list for a forbidden independent eta_slf/self_trigger*
         // key — every method.modules.trajopt.* key this node declared, so far.
         cfg_.config_key_names = {"method.modules.trajopt.a_max",
@@ -265,7 +431,12 @@ public:
                                  "method.modules.trajopt.backtrack_budget",
                                  "method.modules.trajopt.peer_board_rounds_max",
                                  "method.modules.trajopt.subgoal_stride_m",
-                                 "method.modules.trajopt.subgoal_window_radius_m"};
+                                 "method.modules.trajopt.subgoal_window_radius_m",
+                                 "method.modules.trajopt.obs_n_open",
+                                 "method.modules.trajopt.obs_n_close",
+                                 "method.modules.trajopt.obs_n_hold",
+                                 "method.modules.trajopt.obs_max_age_ticks",
+                                 "method.modules.trajopt.obs_occlusion_range_m"};
 
         // D7 — bare param (outside method.modules.trajopt.*), default 50 =
         // the hard invariant itself, mirrors mrs_sim/clock_node.cpp.
@@ -317,6 +488,17 @@ public:
         traj_pub_ =
             this->create_publisher<mrs_msgs::msg::Trajectories>("/trajectories", latched_qos);
 
+        // 🆕 376_p2 — /stop_declaration: RELIABLE/VOLATILE/KEEP_LAST(32)
+        // (`357`§3-3 / `10_architecture.md`§7 D30 — a lost declaration must
+        // NOT be tolerated the way a lost scan is; this is an event, not a
+        // state stream). Event-driven publish (see `PublishStopDeclaration`).
+        rclcpp::QoS stop_declaration_qos(rclcpp::KeepLast(32));
+        stop_declaration_qos
+            .reliable();  // durability defaults to VOLATILE (no .transient_local()).
+        stop_declaration_pub_ =
+            this->create_publisher<mrs_msgs::msg::StopDeclarations>("/stop_declaration",
+                                                                    stop_declaration_qos);
+
         // The 50 ms control timer — node-clock based (NOT create_wall_timer,
         // 10_architecture.md §9 "create_wall_timer 금지"), so use_sim_time
         // actually governs its cadence, per multibot3/CLAUDE.md invariant 5.
@@ -354,6 +536,40 @@ private:
         core::Pose2 goal;
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+        // 🆕 376 (N1) — latest world observation (O(1) swap, OBS-5 ⑴) + the
+        // node-level tick at which it was captured (-1 = never captured).
+        // `TickInput::obs.age_ticks` is derived from
+        // `global_tick_seq_ - obs_capture_tick` each control tick.
+        core::WorldObservation latest_obs;
+        std::int64_t obs_capture_tick = -1;
+        rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub;
+
+        // 🆕 376_p2 (`/stop_declaration` publish) — the CURRENT segment's
+        // `from_id`/`to_id`, cached alongside `goal` (same resolution point,
+        // `ResolveGoalsFromExecConstraints`). `blocked_edge`'s VALUE comes
+        // from here — "이 로봇이 선언 시점에 보유한 세그먼트의 from/to", NOT
+        // new information (`13_p2` schema :35). D1' known limitation
+        // (multi-segment progression unimplemented) applies here too: this
+        // stays fixed at the first-resolved segment.
+        std::string current_segment_from;
+        std::string current_segment_to;
+
+        // 🆕 376_p2 — edge-triggered `/stop_declaration` publish state
+        // (357 D30: "사건 구동이라 매 틱 직렬화가 아니다" — publish ONLY on a
+        // has_stop TRANSITION, not every tick it stays true). The declared
+        // pair is FROZEN at open time and reused verbatim at close
+        // (schema :35 "declared:false는 개시 때와 글자 그대로 같은 쌍").
+        bool last_declared_open = false;
+        std::string declared_from;
+        std::string declared_to;
+        core::StopReason declared_reason = core::StopReason::kUnresolvableLocally;
+        std::uint64_t stop_seq = 0;  // per-robot, 0-based, monotonic (separate space, schema :27).
+        // OBS-8 (reopen with a different reason while still open) is NOT
+        // implemented (357§5 Q3 — needs a stateful multi-reason ledger + a
+        // "close old / open new" two-declaration protocol). This flag rate-
+        // limits the WARN below to once per open window instead of every
+        // control tick the mismatch persists.
+        bool obs8_conflict_warned = false;
     };
 
     void OnRobotSpecs(mrs_msgs::msg::RobotSpecs::ConstSharedPtr msg)
@@ -397,6 +613,13 @@ private:
         rclcpp::QoS odom_qos(rclcpp::KeepLast(1));
         odom_qos.best_effort();  // matches mrs_sim/state_integrator's publisher side.
 
+        // 🆕 376 (N1) — `/{robot}/scan`: BEST_EFFORT/VOLATILE/KeepLast(1),
+        // `357` D23 (a stale/lost scan must never latch a false "still
+        // blocked"; the age-staleness guard in `IsQ1RawPredicate` is the
+        // OTHER half of that defense).
+        rclcpp::QoS scan_qos(rclcpp::KeepLast(1));
+        scan_qos.best_effort();
+
         for (const auto& lim : specs)
         {
             if (robots_.count(lim.robot) > 0)
@@ -423,6 +646,13 @@ private:
                 [this, robot = lim.robot](nav_msgs::msg::Odometry::ConstSharedPtr odom_msg)
                 {
                     this->OnOdom(robot, odom_msg);
+                });
+            entry.scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(
+                "/" + lim.robot + "/scan",
+                scan_qos,
+                [this, robot = lim.robot](sensor_msgs::msg::LaserScan::ConstSharedPtr scan_msg)
+                {
+                    this->OnScan(robot, scan_msg);
                 });
         }
 
@@ -459,6 +689,31 @@ private:
         catch (const std::exception& e)
         {
             RCLCPP_ERROR(this->get_logger(), "OnOdom(%s): %s", robot.c_str(), e.what());
+        }
+    }
+
+    /// @brief 376 (N1) — `/{robot}/scan` callback: O(1) overwrite of the
+    /// robot's latest observation + the node-level capture-tick stamp used
+    /// to derive `age_ticks` in `OnControlTick`. No parsing happens on the
+    /// control-tick path (`CN-19`) — the conversion happens HERE, in a
+    /// DIFFERENT `MutuallyExclusive` group from the control timer
+    /// (`357`§6, the same disposition as `/execution_constraints`).
+    void OnScan(const std::string& robot, sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
+    {
+        try  // module-developer convention: every callback top level is try-wrapped.
+        {
+            auto it = robots_.find(robot);
+            if (it == robots_.end())
+            {
+                return;  // scan for an unregistered robot — should not happen.
+            }
+            RobotEntry& entry = it->second;
+            entry.latest_obs = ScanToObservation(*msg, cfg_.obs_occlusion_range_m);
+            entry.obs_capture_tick = global_tick_seq_;
+        }
+        catch (const std::exception& e)
+        {
+            RCLCPP_ERROR(this->get_logger(), "OnScan(%s): %s", robot.c_str(), e.what());
         }
     }
 
@@ -586,6 +841,10 @@ private:
 
             entry.goal = node_it->second;
             entry.has_goal = true;
+            // 376_p2 — cache the segment pair `blocked_edge` will reuse
+            // verbatim if/when this robot declares a stop (schema :35).
+            entry.current_segment_from = first->from_id;
+            entry.current_segment_to = first->to_id;
             RCLCPP_INFO(this->get_logger(),
                         "%s: goal resolved from segment '%s' -> node '%s' (%.3f, %.3f).",
                         robot.c_str(),
@@ -633,6 +892,11 @@ private:
     {
         try  // CN-16: no exception escapes the tick path.
         {
+            // 376 (N1) — a fleet-wide control-tick ordinal (OBS-5 ⑵ "나이는
+            // 순서수", 221-W2). Incremented once per OnControlTick, shared
+            // across robots (the control tick itself is fleet-wide).
+            global_tick_seq_ += 1;
+
             std::vector<std::vector<core::StateSample>> chains;
             std::vector<std::string> robots_out;
             chains.reserve(robots_.size());
@@ -653,6 +917,20 @@ private:
                 in.staged_constraints_fresh =
                     false;                // no /execution_constraints wiring this round.
                 in.tube_pierced = false;  // no puncture detector this round (needs keepout).
+                // 376 (N1) — this tick's world observation. `age_ticks` is
+                // derived HERE from the capture-tick stamp (O(1), no parsing
+                // on this path, CN-19); a robot with no scan yet gets
+                // `fresh=false` (struct default) so IsQ1RawPredicate() can
+                // never confirm Q1 for it (과소 보고=안전).
+                in.obs = entry.latest_obs;
+                if (entry.obs_capture_tick >= 0)
+                {
+                    in.obs.age_ticks = global_tick_seq_ - entry.obs_capture_tick;
+                }
+                else
+                {
+                    in.obs.fresh = false;  // never captured yet.
+                }
 
                 service::TickOutput out = entry.svc->run_tick(in);
 
@@ -661,18 +939,10 @@ private:
                 cmd.angular.z = out.cmd.omega;
                 entry.cmd_vel_pub->publish(cmd);
 
-                if (out.has_stop)
-                {
-                    // D8 — /stop_declaration publication is out of this
-                    // round's checklist; surfaced as a WARN, not dropped
-                    // silently, not newly wired either.
-                    RCLCPP_WARN(
-                        this->get_logger(),
-                        "%s: has_stop (reason=%s) — /stop_declaration NOT "
-                        "published this round (D8, out of the 368 checklist).",
-                        robot.c_str(),
-                        core::DeclarationRegulator::to_schema_string(out.stop_reason).c_str());
-                }
+                // 376_p2 (D8 closed) — edge-triggered /stop_declaration
+                // publish. See HandleStopDeclarationTransition's doc for why
+                // this is NOT "every tick has_stop is true" (357 D30).
+                HandleStopDeclarationTransition(robot, entry, out);
 
                 chains.push_back(entry.svc->committed());
                 robots_out.push_back(robot);
@@ -687,6 +957,114 @@ private:
         {
             RCLCPP_ERROR(this->get_logger(), "OnControlTick: %s", e.what());
         }
+    }
+
+    /// @brief 376_p2 — detects a `has_stop` TRANSITION for one robot this
+    /// tick and publishes the matching `/stop_declaration` event, if any.
+    /// No-op (no publish) when there is no transition — this is the "사건
+    /// 구동" half of D30 (see file doc).
+    /// @param robot this robot's identifier.
+    /// @param entry this robot's mutable bookkeeping (declaration state).
+    /// @param out this tick's `ControlTickService::run_tick()` output.
+    void HandleStopDeclarationTransition(const std::string& robot,
+                                         RobotEntry& entry,
+                                         const service::TickOutput& out)
+    {
+        if (out.has_stop && !entry.last_declared_open)
+        {
+            // OPEN — freeze the (from,to) pair from the CURRENTLY held
+            // segment (schema :35, "새 정보가 아니다"). No fabrication if
+            // that segment isn't resolved yet (should not happen once
+            // entry.svc exists, since TryStartService requires has_goal —
+            // defensive, not the expected path).
+            if (entry.current_segment_from.empty() || entry.current_segment_to.empty())
+            {
+                RCLCPP_ERROR(this->get_logger(),
+                             "%s: has_stop but no resolved segment (from/to) to attribute "
+                             "blocked_edge to — /stop_declaration NOT published this tick "
+                             "(no fabricated edge).",
+                             robot.c_str());
+                return;
+            }
+            entry.declared_from = entry.current_segment_from;
+            entry.declared_to = entry.current_segment_to;
+            entry.declared_reason = out.stop_reason;
+            entry.last_declared_open = true;
+            entry.obs8_conflict_warned = false;
+            PublishStopDeclaration(robot, entry, /*declared=*/true);
+        }
+        else if (!out.has_stop && entry.last_declared_open)
+        {
+            // CLOSE — the SAME pair (and reason) as at open time (schema :35).
+            PublishStopDeclaration(robot, entry, /*declared=*/false);
+            entry.last_declared_open = false;
+        }
+        else if (out.has_stop && entry.last_declared_open &&
+                 out.stop_reason != entry.declared_reason)
+        {
+            // OBS-8 (reopen with a DIFFERENT reason while still open) — NOT
+            // implemented (see file doc). Reported once per open window, not
+            // silently dropped, not force-fit.
+            if (!entry.obs8_conflict_warned)
+            {
+                RCLCPP_WARN(
+                    this->get_logger(),
+                    "%s: stop reason changed from %s to %s while still declared "
+                    "open — OBS-8 (reopen with a different reason) is NOT "
+                    "implemented (376_p2 known limitation); the boundary "
+                    "declaration keeps the OLD reason.",
+                    robot.c_str(),
+                    core::DeclarationRegulator::to_schema_string(entry.declared_reason).c_str(),
+                    core::DeclarationRegulator::to_schema_string(out.stop_reason).c_str());
+                entry.obs8_conflict_warned = true;
+            }
+        }
+        // else: no transition, no conflict -> no publish (사건 구동, D30).
+    }
+
+    /// @brief 376_p2 — builds ONE `mrs.stop_declaration` 5.0.1 message
+    /// (a single declaration) and publishes it. Struct-fill only — no JSON
+    /// text assembly (`CN-19`; see the 376_p2 file-doc block for the
+    /// judgment call).
+    /// @param robot this robot's identifier.
+    /// @param entry this robot's bookkeeping — `seq` is incremented here.
+    /// @param declared true = open, false = close (schema :48).
+    void PublishStopDeclaration(const std::string& robot, RobotEntry& entry, bool declared)
+    {
+        adapter::InternalDeclaration decl;
+        decl.seq = entry.stop_seq;
+        entry.stop_seq += 1;  // per-robot, 0-based, monotonic (this channel's own space).
+        decl.robot = robot;
+        decl.blocked_from = entry.declared_from;
+        decl.blocked_to = entry.declared_to;
+        decl.declared = declared;
+        decl.reason = entry.declared_reason;
+
+        adapter::BoundaryStopDeclarations boundary;
+        if (!mrs_core::ok(
+                adapter::StopDeclarationAdapter::to_boundary({decl}, instance_id_, boundary)))
+        {
+            RCLCPP_ERROR(this->get_logger(), "PublishStopDeclaration: adapter to_boundary failed.");
+            return;
+        }
+
+        mrs_msgs::msg::StopDeclarations msg;
+        msg.schema = "mrs.stop_declaration";
+        msg.schema_version = "5.0.1";
+        msg.instance_id = boundary.instance_id;
+        msg.declarations.reserve(boundary.declarations.size());
+        for (const auto& bd : boundary.declarations)
+        {
+            mrs_msgs::msg::StopDeclaration sd;
+            sd.seq = bd.seq;
+            sd.robot = bd.robot;
+            sd.blocked_edge.from_id = bd.blocked_edge.from;
+            sd.blocked_edge.to_id = bd.blocked_edge.to;
+            sd.declared = bd.declared;
+            sd.reason = StopReasonToRosConstant(entry.declared_reason);
+            msg.declarations.push_back(sd);
+        }
+        stop_declaration_pub_->publish(msg);
     }
 
     void PublishTrajectories(const std::vector<std::vector<core::StateSample>>& chains,
@@ -751,6 +1129,8 @@ private:
         }};  // D5 — no keepout wiring this round -> "always stoppable" placeholder.
     std::unique_ptr<mrs_core::ISteadyClock> steady_clock_;  // 368_p3 — CN-18 seam.
 
+    std::int64_t global_tick_seq_ = 0;  // 376 (N1) — fleet-wide control-tick ordinal.
+
     std::map<std::string, RobotEntry> robots_;
     std::map<std::string, core::Pose2> roadmap_nodes_;  // D1' — node id -> (x,y).
     mrs_msgs::msg::ExecutionConstraints::ConstSharedPtr last_exec_constraints_;  // D1' cache.
@@ -758,6 +1138,7 @@ private:
     rclcpp::Subscription<mrs_msgs::msg::Roadmap>::SharedPtr roadmap_sub_;
     rclcpp::Subscription<mrs_msgs::msg::ExecutionConstraints>::SharedPtr exec_constraints_sub_;
     rclcpp::Publisher<mrs_msgs::msg::Trajectories>::SharedPtr traj_pub_;
+    rclcpp::Publisher<mrs_msgs::msg::StopDeclarations>::SharedPtr stop_declaration_pub_;  // 376_p2.
     rclcpp::TimerBase::SharedPtr control_timer_;
 };
 

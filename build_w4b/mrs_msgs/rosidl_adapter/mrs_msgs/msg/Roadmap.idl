@@ -1,0 +1,30 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/Roadmap.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/Corridor.idl"
+#include "mrs_msgs/msg/RoadmapEdge.idl"
+#include "mrs_msgs/msg/RoadmapNode.idl"
+#include "mrs_msgs/msg/RoadmapProvenance.idl"
+
+module mrs_msgs {
+  module msg {
+    struct Roadmap {
+      string schema;
+
+      string schema_version;
+
+      string instance_id;
+
+      sequence<mrs_msgs::msg::RoadmapNode> nodes;
+
+      sequence<mrs_msgs::msg::RoadmapEdge> edges;
+
+      sequence<string> endpoints;
+
+      sequence<mrs_msgs::msg::Corridor> corridors;
+
+      mrs_msgs::msg::RoadmapProvenance provenance;
+    };
+  };
+};

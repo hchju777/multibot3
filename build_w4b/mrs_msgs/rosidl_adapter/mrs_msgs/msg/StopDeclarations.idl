@@ -1,0 +1,19 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/StopDeclarations.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/StopDeclaration.idl"
+
+module mrs_msgs {
+  module msg {
+    struct StopDeclarations {
+      string schema;
+
+      string schema_version;
+
+      string instance_id;
+
+      sequence<mrs_msgs::msg::StopDeclaration> declarations;
+    };
+  };
+};

@@ -8,3 +8,6 @@ install/
 # Python 캐시 — 47차에 실수로 추적됐다(launch·pytest가 만든다).
 __pycache__/
 *.pyc
+
+# 검사기 스파이크가 남기는 방출물 — 재생성 가능하고 「그때의 기록」도 아니다.
+emitted_*.json

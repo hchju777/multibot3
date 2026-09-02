@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_trajopt_plugins.a CMakeFiles/mrs_trajopt_plugins.dir/src/plugins/search_hybrid_astar.cpp.o CMakeFiles/mrs_trajopt_plugins.dir/src/plugins/search_fixed_path_gating.cpp.o CMakeFiles/mrs_trajopt_plugins.dir/src/plugins/subgoal_candidates.cpp.o CMakeFiles/mrs_trajopt_plugins.dir/src/plugins/peer_channel_impls.cpp.o
+/usr/bin/ranlib libmrs_trajopt_plugins.a

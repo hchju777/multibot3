@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/Limits.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Fleet-folded physical limits only (mrs.robot_specs carries the per-robot" "\n"
+      "four: v_max, brake_decel_min_mps2, curvature_max_invm," "\n"
+      "reverse_motion_allowed — do NOT duplicate them here, 350/roadmap-style" "\n"
+      "single-source-of-truth rule).")
+    struct Limits {
+      double a_max;
+
+      double j_max;
+
+      double min_separation_m;
+
+      double omega_max_radps;
+
+      double yaw_accel_max_radps2;
+    };
+  };
+};

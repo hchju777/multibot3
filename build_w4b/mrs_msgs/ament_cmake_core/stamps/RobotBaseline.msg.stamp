@@ -1,0 +1,2 @@
+string robot
+uint32 committed_segment_count

@@ -1,0 +1,41 @@
+# mrs_msgs/action/Replan — 350 §5-1. goal = mrs.replan_request 7.0.0,
+# result = mrs.replan_result 1.0.0, feedback = none (350 §5-1 사유 넷).
+# Cancellation uses the built-in ROS 2 action cancel path; the cancelled
+# outcome comes back as result.outcome == OUTCOME_PREEMPTED (=3). No new
+# fields for cancellation.
+#
+# 🔴 Envelope fields (schema/schema_version) are carried on the WIRE in both
+# goal and result, NOT folded into .msg constants (350 §5-1, §8 D6 item 4) —
+# folding would make an envelope mismatch unobservable and the checkers'
+# "mismatch = exit 2" verdict could never fire.
+
+# --- goal: mrs.replan_request 7.0.0 ---
+string schema
+string schema_version
+string instance_id
+# ReplanReason == shared StopReason vocabulary (mrs_msgs/msg/StopReason.msg).
+uint8 reason
+string[] affected_robots
+mrs_msgs/EdgeRef[] blocked
+string blocked_hash
+mrs_msgs/VisitOrder[] ordering_constraints
+mrs_msgs/RobotBaseline[] baseline
+uint64 plan_revision
+---
+# --- result: mrs.replan_result 1.0.0 ---
+uint8 OUTCOME_UNKNOWN=0
+uint8 OUTCOME_PLANNED=1
+uint8 OUTCOME_FALLBACK=2
+uint8 OUTCOME_PREEMPTED=3
+uint8 OUTCOME_REJECTED=4
+
+string schema
+string schema_version
+string instance_id
+uint8 outcome
+uint64 plan_revision
+string blocked_hash
+string[] unreachable_robots
+mrs_msgs/RobotGroup[] components
+---
+# --- feedback: none (350 §5-1) ---

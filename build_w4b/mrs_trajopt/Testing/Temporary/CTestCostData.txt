@@ -1,0 +1,13 @@
+test_three_clock_gate 4 0.000229382
+test_velocity_profiler 4 0.000327861
+test_round_ledger 4 0.000324258
+test_safety_monitor 4 0.000327415
+test_startup_checks 4 0.000332286
+test_declaration_regulator 4 0.000307365
+test_world_observation 4 0.000211776
+test_declaration_ledger 4 0.000194441
+test_control_tick_service 4 0.000322537
+test_boundary_emit 4 0.000368904
+test_trajectories_roundtrip 4 0.00034517
+test_robot_specs_adapter 4 0.000326804
+---

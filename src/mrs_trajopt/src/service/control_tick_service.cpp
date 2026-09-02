@@ -50,7 +50,10 @@ ControlTickService::ControlTickService(std::string self,
       lim_(std::move(lim)),
       fleet_(std::move(fleet)),
       goal_(goal),
-      gate_(cfg_.traj_replan_period_ticks, cfg_.subgoal_replan_period_trajcycles)
+      gate_(cfg_.traj_replan_period_ticks, cfg_.subgoal_replan_period_trajcycles),
+      obs_ledger_(core::DeclarationLedgerConfig{cfg_.obs_n_open,
+                                                cfg_.obs_n_close,
+                                                cfg_.obs_n_hold})  // 376.
 {
 }
 
@@ -104,6 +107,23 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
         if (gate_.is_trajectory_tick(tick_seq_))
         {
             recompute_trajectory(in, now_s);  // §322-2.
+        }
+
+        // CT24-CT25 (322 §322-1) — 376: runs EVERY control tick (NOT gated by
+        // n^traj/n^re — the observation channel is independent of the
+        // trajectory/subgoal nesting, 355§5 "판정 비용"). SIMPLIFIED trigger
+        // (see file doc): "some evidence fired this tick" stands in for the
+        // unimplemented fallback ladder's staged-candidate gate; the 3-way
+        // total order (Q1 > Q2 > Q3) itself is exact.
+        const bool q1_raw = core::IsQ1RawPredicate(in.obs, cfg_.obs_max_age_ticks);
+        core::DeclarationEvidence ev;
+        ev.edge_impassable_for_any_robot = obs_ledger_.update(q1_raw);  // N2.
+        ev.remains_after_removing_others = pending_q2_evidence_;
+        pending_q2_evidence_ = false;  // one-shot deposit, consumed (OBS-6 #4).
+        if (ev.edge_impassable_for_any_robot || ev.remains_after_removing_others)
+        {
+            out.has_stop = true;                                         // N4.
+            out.stop_reason = core::DeclarationRegulator::classify(ev);  // N3.
         }
     }
     catch (const std::exception&)
@@ -171,6 +191,11 @@ void ControlTickService::recompute_trajectory(const TickInput& in, double now_s)
             if (!lim_.reverse_motion_allowed)
             {
                 // 🔴 고정 결정 2 / 관문 324: reverse forbidden => infeasible_subgoal.
+                // 376 (OBS-6 #4): deposit evidence, do not assign the final
+                // reason here — classify() runs once at CT24-CT25 below so a
+                // Q1 confirmed LATER this tick is not overwritten by this
+                // earlier Q2 evidence (total order, schema :54 "Q1 before Q2").
+                pending_q2_evidence_ = true;
                 (void)core::DeclarationRegulator::reverse_forbidden_infeasible();
             }
         }
@@ -180,6 +205,8 @@ void ControlTickService::recompute_trajectory(const TickInput& in, double now_s)
         buffer_.hold_previous();  // TT10 (INV-2 a1, BT-FAIL-SOUND: no partial).
         if (res.reverse_required && !lim_.reverse_motion_allowed)  // TT12.
         {
+            // 376 (OBS-6 #4): same evidence-deposit treatment as TT13 above.
+            pending_q2_evidence_ = true;
             (void)core::DeclarationRegulator::reverse_forbidden_infeasible();  // TT13.
         }
     }

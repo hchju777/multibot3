@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mrs_msgs</name>
+  <version>1.1.0</version>
+  <description>
+    경계 메시지 정의 — mrs.* 계약 스키마(schema/*.json 15종)의 ROS IDL 렌더링.
+    유일하게 모든 패키지가 의존하는 패키지. 렌더링 결정 정본은
+    _workspace/350_msg_idl_decisions.md(하네스 레포)이다. schema/ 아래는 이 패키지의
+    빌드 산출물이 아니라 계약 원본이며 이 라운드에서 한 글자도 바뀌지 않았다.
+  </description>
+  <maintainer email="hchju23257@gmail.com">Changju Hwang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <!-- action/Replan.action의 goal/result는 순수 필드뿐이지만 액션 자체가
+       action_msgs(GoalStatus 등)에 의존한다. -->
+  <depend>action_msgs</depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

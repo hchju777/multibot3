@@ -1,0 +1,26 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/StopDeclaration.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/EdgeRef.idl"
+
+module mrs_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "reason uses the SHARED StopReason vocabulary (mrs_msgs/msg/StopReason.msg," "\n"
+      "350 §3-2 V1). This channel's legal subset is {1,3,5} — NON-contiguous." "\n"
+      "🔴 Do not validate with a range check (350 §3-2, §4). Validate by set" "\n"
+      "membership against the {1,3,5} subset.")
+    struct StopDeclaration {
+      uint64 seq;
+
+      string robot;
+
+      mrs_msgs::msg::EdgeRef blocked_edge;
+
+      boolean declared;
+
+      uint8 reason;
+    };
+  };
+};

@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20260902-1500-Experimental"
+	Name="hchju777"
+	Generator="ctest-3.28.3"
+	CompilerName="/usr/bin/c++"
+	CompilerVersion="13.3.0"
+	OSName="Linux"
+	Hostname="hchju777"
+	OSRelease="7.0.0-30-generic"
+	OSVersion="#30~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  7 13:27:52 UTC 2"
+	OSPlatform="x86_64"
+	Is64Bits="1"
+	VendorString="GenuineIntel"
+	VendorID="Intel Corporation"
+	FamilyID="6"
+	ModelID="183"
+	ProcessorCacheSize="33792"
+	NumberOfLogicalCPU="28"
+	NumberOfPhysicalCPU="20"
+	TotalVirtualMemory="8191"
+	TotalPhysicalMemory="64066"
+	LogicalProcessorsPerPhysical="1"
+	ProcessorClockFrequency="918.706"
+	>
+	<Testing>
+		<StartDateTime>Sep 03 00:00 KST</StartDateTime>
+		<StartTestTime>1788361226</StartTestTime>
+		<TestList>
+			<Test>./test_three_clock_gate</Test>
+			<Test>./test_velocity_profiler</Test>
+			<Test>./test_round_ledger</Test>
+			<Test>./test_safety_monitor</Test>
+			<Test>./test_startup_checks</Test>
+			<Test>./test_declaration_regulator</Test>
+			<Test>./test_world_observation</Test>
+			<Test>./test_declaration_ledger</Test>
+			<Test>./test_control_tick_service</Test>
+			<Test>./test_boundary_emit</Test>
+			<Test>./test_trajectories_roundtrip</Test>
+			<Test>./test_robot_specs_adapter</Test>
+		</TestList>
+		<Test Status="passed">
+			<Name>test_three_clock_gate</Name>
+			<Path>.</Path>
+			<FullName>./test_three_clock_gate</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_three_clock_gate</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.000917528</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_three_clock_gate</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_velocity_profiler</Name>
+			<Path>.</Path>
+			<FullName>./test_velocity_profiler</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_velocity_profiler</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00131145</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_velocity_profiler</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_round_ledger</Name>
+			<Path>.</Path>
+			<FullName>./test_round_ledger</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_round_ledger</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00129703</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_round_ledger</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_safety_monitor</Name>
+			<Path>.</Path>
+			<FullName>./test_safety_monitor</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_safety_monitor</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00130966</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_safety_monitor</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_startup_checks</Name>
+			<Path>.</Path>
+			<FullName>./test_startup_checks</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_startup_checks</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00132914</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_startup_checks</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_declaration_regulator</Name>
+			<Path>.</Path>
+			<FullName>./test_declaration_regulator</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_regulator</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00122946</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_regulator</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_world_observation</Name>
+			<Path>.</Path>
+			<FullName>./test_world_observation</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_world_observation</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.000847106</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_world_observation</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_declaration_ledger</Name>
+			<Path>.</Path>
+			<FullName>./test_declaration_ledger</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_ledger</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.000777764</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_ledger</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_control_tick_service</Name>
+			<Path>.</Path>
+			<FullName>./test_control_tick_service</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_control_tick_service</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00129015</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_control_tick_service</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_boundary_emit</Name>
+			<Path>.</Path>
+			<FullName>./test_boundary_emit</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_boundary_emit</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00147561</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_boundary_emit</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_trajectories_roundtrip</Name>
+			<Path>.</Path>
+			<FullName>./test_trajectories_roundtrip</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_trajectories_roundtrip</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00138068</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_trajectories_roundtrip</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<Test Status="passed">
+			<Name>test_robot_specs_adapter</Name>
+			<Path>.</Path>
+			<FullName>./test_robot_specs_adapter</FullName>
+			<FullCommandLine>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_robot_specs_adapter</FullCommandLine>
+			<Results>
+				<NamedMeasurement type="numeric/double" name="Execution Time">
+					<Value>0.00130722</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="numeric/double" name="Processors">
+					<Value>1</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Completion Status">
+					<Value>Completed</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Command Line">
+					<Value>/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_robot_specs_adapter</Value>
+				</NamedMeasurement>
+				<NamedMeasurement type="text/string" name="Environment">
+					<Value>#CTEST_RESOURCE_GROUP_COUNT=</Value>
+				</NamedMeasurement>
+				<Measurement>
+					<Value>  ok
+</Value>
+				</Measurement>
+			</Results>
+		</Test>
+		<EndDateTime>Sep 03 00:00 KST</EndDateTime>
+		<EndTestTime>1788361226</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>

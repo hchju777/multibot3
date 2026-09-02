@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/Corridor.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/EdgeRef.idl"
+
+module mrs_msgs {
+  module msg {
+    struct Corridor {
+      string id;
+
+      sequence<mrs_msgs::msg::EdgeRef> edges;
+
+      double length_m;
+    };
+  };
+};

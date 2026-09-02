@@ -1,0 +1,6 @@
+setup.py
+mrs_msgs/__init__.py
+mrs_msgs.egg-info/PKG-INFO
+mrs_msgs.egg-info/SOURCES.txt
+mrs_msgs.egg-info/dependency_links.txt
+mrs_msgs.egg-info/top_level.txt

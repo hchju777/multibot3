@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_trajopt_io.a CMakeFiles/mrs_trajopt_io.dir/src/io/json_io.cpp.o
+/usr/bin/ranlib libmrs_trajopt_io.a

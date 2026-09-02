@@ -1,0 +1,241 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-d5c1477afc71d7710ebf.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "mrs_trajopt",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_adapter::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_adapter-6e96fd96c3c813601a1f.json",
+					"name" : "mrs_trajopt_adapter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_core::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_core-5ac9aaa5cb448768f81b.json",
+					"name" : "mrs_trajopt_core",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_io::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_io-9b9b9d24f6213d58a124.json",
+					"name" : "mrs_trajopt_io",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_plugins::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_plugins-55323b30f5f7cbf4eca6.json",
+					"name" : "mrs_trajopt_plugins",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_service::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_service-50a163919e8ab3207970.json",
+					"name" : "mrs_trajopt_service",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_spike::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_spike-6385f290ccc000ce705f.json",
+					"name" : "mrs_trajopt_spike",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "mrs_trajopt_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mrs_trajopt_uninstall-60a2130ecf4bdeda2464.json",
+					"name" : "mrs_trajopt_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_boundary_emit::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_boundary_emit-d473a5256e96bded14b4.json",
+					"name" : "test_boundary_emit",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_control_tick_service::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_control_tick_service-1fb4e3fded4f26df36d0.json",
+					"name" : "test_control_tick_service",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_declaration_ledger::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_declaration_ledger-9c4b2e00b28d3e752c58.json",
+					"name" : "test_declaration_ledger",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_declaration_regulator::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_declaration_regulator-c0900997223bdc789e7a.json",
+					"name" : "test_declaration_regulator",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_robot_specs_adapter::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_robot_specs_adapter-531110c9b2044a7e5f68.json",
+					"name" : "test_robot_specs_adapter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_round_ledger::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_round_ledger-b65a182f407fada446c3.json",
+					"name" : "test_round_ledger",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_safety_monitor::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_safety_monitor-99e9f2b9a0e692f813e7.json",
+					"name" : "test_safety_monitor",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_startup_checks::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_startup_checks-7653f2662859558ed798.json",
+					"name" : "test_startup_checks",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_three_clock_gate::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_three_clock_gate-04a00fc0de1cfe992391.json",
+					"name" : "test_three_clock_gate",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_trajectories_roundtrip::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_trajectories_roundtrip-37799faa6c87e163ff75.json",
+					"name" : "test_trajectories_roundtrip",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_velocity_profiler::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_velocity_profiler-6a74331dd29ffe4ff7c8.json",
+					"name" : "test_velocity_profiler",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_world_observation::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_world_observation-f3988610171dcacea5ee.json",
+					"name" : "test_world_observation",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "trajopt_node::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-trajopt_node-2993544f34bbb14eff58.json",
+					"name" : "trajopt_node",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-38b85a51db45636fdd9d.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt",
+		"source" : "/home/hchju777/multibot3-harness/multibot3/src/mrs_trajopt"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

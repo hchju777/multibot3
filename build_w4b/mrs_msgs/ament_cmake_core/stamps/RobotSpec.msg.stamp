@@ -1,0 +1,7 @@
+string robot
+float64 avg_traversal_speed_mps
+float64 v_max
+float64 brake_decel_min_mps2
+float64 curvature_max_invm
+bool reverse_motion_allowed
+float64 circumradius_m

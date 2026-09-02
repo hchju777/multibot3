@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/RobotAssignment.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/Goal.idl"
+
+module mrs_msgs {
+  module msg {
+    struct RobotAssignment {
+      string robot;
+
+      string start;
+
+      sequence<mrs_msgs::msg::Goal> goals;
+    };
+  };
+};

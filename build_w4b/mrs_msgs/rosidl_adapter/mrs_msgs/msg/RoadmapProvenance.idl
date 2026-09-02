@@ -1,0 +1,21 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/RoadmapProvenance.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    struct RoadmapProvenance {
+      double min_separation_m;
+
+      double wall_inflation_m;
+
+      @verbatim (language="comment", text=
+        "350 §3-2 V8 (트랩): enum in JSON but x-ros-type is \"string\" — do NOT render" "\n"
+        "as uint8. No consuming module branches on this string (audit-only).")
+      string capacity_rule_id;
+
+      string generator_version;
+    };
+  };
+};

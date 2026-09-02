@@ -1,0 +1,14 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/RobotBaseline.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    struct RobotBaseline {
+      string robot;
+
+      uint32 committed_segment_count;
+    };
+  };
+};

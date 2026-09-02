@@ -1,0 +1,29 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/StopReason.msg
+// generated code does not contain a copyright notice
+
+
+module mrs_msgs {
+  module msg {
+    module StopReason_Constants {
+      const uint8 REASON_UNKNOWN = 0;
+      const uint8 REASON_EXOGENOUS_BLOCK = 1;
+      const uint8 REASON_CTRL_STOP_DECLARED = 2;
+      const uint8 REASON_INFEASIBLE_SUBGOAL = 3;
+      const uint8 REASON_ORIENTATION_FLIP = 4;
+      const uint8 REASON_UNRESOLVABLE_LOCALLY = 5;
+      const uint8 REASON_HORIZON_EXHAUSTING = 6;
+    };
+    @verbatim (language="comment", text=
+      "Shared closed vocabulary for mrs.stop_declaration.declarations[].reason" "\n"
+      "(legal subset {1,3,5}) and mrs.replan_request.reason (legal subset" "\n"
+      "{1,2,3,4,5,6}) — 350 §3-2 V1, D1-c. ONE numbering, not two." "\n"
+      "🔴 whether rosidl accepts a constants-only, zero-field .msg is" "\n"
+      "UNCONFIRMED before the first colcon build (350 §3-4). If rejected, the" "\n"
+      "documented fallback is to declare these seven constants inside" "\n"
+      "StopDeclaration.msg instead (350 §3-4) — not applied here pre-emptively.")
+    struct StopReason {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

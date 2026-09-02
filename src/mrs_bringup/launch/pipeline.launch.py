@@ -1,11 +1,12 @@
 """pipeline.launch.py — D16 스모크 최소 배선.
 
 다섯 실행 파일(mrta_node · mapf_node · sadg_t0_node · switch_selector_node ·
-trajopt_node) + mrs_sim 다섯(clock_node · state_integrator · roadmap_publisher ·
+trajopt_node) + mrs_sim 여섯(clock_node · state_integrator · roadmap_publisher ·
 task_release_publisher · viz_markers_node, 367_pipeline_inputs.md 웨이브 1-A +
-373_viz_markers.md 48차 웨이브 2-B) + mrs_viz 하나(dashboard_node,
-374_mrs_viz_dashboard.md 48차 웨이브 3) + 선택적 rviz2를 띄운다.
-`mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일 뿐
+373_viz_markers.md 48차 웨이브 2-B · observation_node, 375_observation_
+publisher.md 48차 웨이브 4-A, observation:=ranged일 때만·기본 off) + mrs_viz
+하나(dashboard_node, 374_mrs_viz_dashboard.md 48차 웨이브 3) + 선택적 rviz2를
+띄운다. `mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일 뿐
 알고리즘·서비스 로직을 담지 않는다(10_architecture.md:113, 357§7-2).
 
 🔴 374_mrs_viz_dashboard.md — `dashboard_node`는 관찰 전용 웹 대시보드다(GET만
@@ -30,8 +31,15 @@ use_sim_time: true를 공통 dict로 전 노드에 일괄 주입한다 — clock
 자신만 예외로 false를 받는다(자기가 낸 시간을 자기가 구독하는 순환을
 피한다, clock_node.cpp 파일 주석 참조).
 
-observation 인자는 **자리만 예약**한다(357 D28·Q5) — 이 라운드는 어떤 노드도
-이 값을 소비하지 않는다. 관측 채널·observation_node는 만들지 않았다.
+🔴 375_observation_publisher.md(48차 웨이브 4-A) — `observation` 인자가 이제
+**실제 소비자를 갖는다**: `observation:=ranged`면 `mrs_sim/observation_node`가
+로봇마다 `/{robot}/scan`(sensor_msgs/LaserScan)을 낸다(357§Q1이 확정한 이음매,
+BEST_EFFORT/VOLATILE/1). **기본값은 여전히 `off`**다 — D16 스모크(357 D28)의
+기존 범위·노드 수·소요 시간을 이 라운드가 조용히 재정의하지 않기 위한 보수적
+선택이고, 이 노드를 켜고 끄는 결정은 `system-architect`의 몫으로 열어 둔다.
+`observation:=off`면 `observation_node`는 아예 뜨지 않는다(IfCondition — rviz·
+dashboard와 같은 조건부 패턴). 차단 이벤트 출처는 시나리오 파일뿐이다(U46-3의
+두 출처 중 런타임 토글은 다음 라운드, 소비 측이 선 뒤).
 
 🔴 367_pipeline_inputs_p2.md — `state_integrator`에 `initial_vertices`를 `robots`와
 같은 출처(`mrta.yaml`)에서 읽어 넘긴다. `trajopt_node`(첫 /odom 대기)와
@@ -45,7 +53,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -97,11 +105,17 @@ def generate_launch_description():
     default_task_release_path = os.path.join(
         bringup_share, "config", "scenario", "task_release.json"
     )
+    # 375_observation_publisher.md — observation:=ranged일 때만 observation_node가
+    # 읽는다(가정 데이터, config/scenario/README.md "blocked_edges.json" 절).
+    default_blocked_edges_path = os.path.join(
+        bringup_share, "config", "scenario", "blocked_edges.json"
+    )
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     roadmap_path = LaunchConfiguration("roadmap_path")
     robot_specs_path = LaunchConfiguration("robot_specs_path")
     task_release_path = LaunchConfiguration("task_release_path")
+    blocked_edges_path = LaunchConfiguration("blocked_edges_path")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -138,11 +152,21 @@ def generate_launch_description():
             "task_release_publisher가 /task_release를 발행하지 않고 WARN만 남긴다."
         ),
     )
-    # 🔴 자리만 예약(357 D28) — 이 라운드 어떤 노드도 이 값을 읽지 않는다.
+    # 375_observation_publisher.md — 실제 소비자를 갖는다(observation_node).
+    # 기본 off(D16 스모크 범위 보수적 유지) — ranged로 켜면 로봇당 /{robot}/scan을 낸다.
     declare_observation = DeclareLaunchArgument(
         "observation",
         default_value="off",
-        description="[결정 부재 · 자리 예약] observation:=off|ranged. 관측 채널은 이 라운드 밖.",
+        description="observation:=off|ranged. ranged면 mrs_sim/observation_node가 뜬다.",
+    )
+    declare_blocked_edges_path = DeclareLaunchArgument(
+        "blocked_edges_path",
+        default_value=default_blocked_edges_path,
+        description=(
+            "🔴 [가정 데이터] observation_node가 읽을 시각별 차단 이벤트 시나리오 "
+            "(config/scenario/blocked_edges.json, mrs.* 계약 스키마가 아니다 — README.md "
+            "'blocked_edges.json' 절). 빈 문자열로 오버라이드하면 어떤 간선도 막히지 않는다."
+        ),
     )
     # 373_viz_markers.md — rviz2 프로세스를 같이 띄울지. 기본 false(헤드리스
     # 환경에서 이 launch의 파싱/스모크가 디스플레이 유무에 흔들리지 않게).
@@ -167,6 +191,7 @@ def generate_launch_description():
     trajopt_yaml = os.path.join(bringup_share, "config", "trajopt.yaml")
     viz_yaml = os.path.join(bringup_share, "config", "viz.yaml")
     viz_dashboard_yaml = os.path.join(bringup_share, "config", "viz_dashboard.yaml")
+    observation_yaml = os.path.join(bringup_share, "config", "observation.yaml")
     rviz_config_path = os.path.join(bringup_share, "config", "viz", "pipeline.rviz")
     # 374_mrs_viz_dashboard.md — 웹 자산은 mrs_viz가 설치한 share/mrs_viz/web/에
     # 산다(mrs_bringup은 소스 0줄이라 자산도 안 갖는다). 설치 경로 의존값이라
@@ -268,6 +293,23 @@ def generate_launch_description():
                 common_params,
             ],
         ),
+        # 375_observation_publisher.md (48차 웨이브 4-A) — 로봇당 /{robot}/scan.
+        # observation:=ranged일 때만 실제로 뜬다(IfCondition) — 파싱 시점엔 항상 존재.
+        # `robots`는 state_integrator·viz_markers_node와 같은 출처(F48-6 정신).
+        Node(
+            package="mrs_sim",
+            executable="observation_node",
+            name="observation_node",
+            output="screen",
+            parameters=[
+                observation_yaml,
+                {"robots": robots, "blocked_edges_path": blocked_edges_path},
+                common_params,
+            ],
+            condition=IfCondition(
+                PythonExpression(["'", LaunchConfiguration("observation"), "' == 'ranged'"])
+            ),
+        ),
         # 374_mrs_viz_dashboard.md (48차 웨이브 3) — 관찰 전용 웹 대시보드.
         # dashboard:=true(기본)일 때만 실제로 뜬다 — 파싱 시점엔 항상 존재.
         # `robots`는 state_integrator·viz_markers_node와 같은 출처(F48-6 정신).
@@ -304,6 +346,7 @@ def generate_launch_description():
             declare_robot_specs_path,
             declare_task_release_path,
             declare_observation,
+            declare_blocked_edges_path,
             declare_rviz,
             declare_dashboard,
             *nodes,

@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mrs_msgs/msg/Trajectories.msg
+// generated code does not contain a copyright notice
+
+#include "mrs_msgs/msg/Limits.idl"
+#include "mrs_msgs/msg/RobotTrajectory.idl"
+
+module mrs_msgs {
+  module msg {
+    struct Trajectories {
+      string schema;
+
+      string schema_version;
+
+      string instance_id;
+
+      mrs_msgs::msg::Limits limits;
+
+      sequence<mrs_msgs::msg::RobotTrajectory> trajectories;
+    };
+  };
+};

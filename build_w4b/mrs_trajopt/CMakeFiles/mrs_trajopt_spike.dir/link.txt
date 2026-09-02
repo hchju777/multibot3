@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/mrs_trajopt_spike.dir/spike/measure_spike.cpp.o -o mrs_trajopt_spike  libmrs_trajopt_core.a libmrs_trajopt_plugins.a libmrs_trajopt_adapter.a libmrs_trajopt_io.a libmrs_trajopt_service.a libmrs_trajopt_adapter.a libmrs_trajopt_core.a 

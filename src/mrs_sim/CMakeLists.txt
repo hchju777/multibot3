@@ -22,6 +22,7 @@ find_package(nav_msgs REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(clock_node src/node/clock_node.cpp)
 ament_target_dependencies(clock_node rclcpp rosgraph_msgs)
@@ -53,8 +54,16 @@ ament_target_dependencies(viz_markers_node
   rclcpp mrs_msgs nav_msgs std_msgs visualization_msgs)
 target_link_libraries(viz_markers_node mrs_core::mrs_core_pure)
 
+# 375_observation_publisher.md (48차 웨이브 4-A) — /{robot}/scan(sensor_msgs/
+# LaserScan) 발행자. /roadmap(간선 기하) + /{robot}/odom(로봇 pose) + 시나리오
+# 파일(시각별 차단 이벤트)만 읽는다. 모듈 코드(mrs_trajopt) 0줄 접촉.
+add_executable(observation_node src/node/observation_node.cpp)
+ament_target_dependencies(observation_node rclcpp mrs_msgs nav_msgs sensor_msgs)
+target_link_libraries(observation_node
+  mrs_core::mrs_core_pure nlohmann_json::nlohmann_json)
+
 install(TARGETS clock_node state_integrator roadmap_publisher task_release_publisher
-  viz_markers_node
+  viz_markers_node observation_node
   DESTINATION lib/${PROJECT_NAME})
 
 # --- tests (F48-4/F48-5, 48차 코드 게이트) ---
@@ -68,6 +77,11 @@ if(BUILD_TESTING)
     mrs_core::mrs_core_pure mrs_core::mrs_core_msgs nlohmann_json::nlohmann_json)
   ament_target_dependencies(test_roadmap_parse_roundtrip mrs_msgs)
   add_test(NAME test_roadmap_parse_roundtrip COMMAND test_roadmap_parse_roundtrip)
+
+  add_executable(test_blocked_edges_parse test/test_blocked_edges_parse.cpp)
+  target_link_libraries(test_blocked_edges_parse
+    mrs_core::mrs_core_pure nlohmann_json::nlohmann_json)
+  add_test(NAME test_blocked_edges_parse COMMAND test_blocked_edges_parse)
 endif()
 
 ament_package()

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmrs_core_msgs.a CMakeFiles/mrs_core_msgs.dir/src/reason_codes.cpp.o
+/usr/bin/ranlib libmrs_core_msgs.a

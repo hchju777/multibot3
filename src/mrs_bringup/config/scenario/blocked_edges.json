@@ -1,0 +1,9 @@
+{
+  "schema": "mrs_sim.blocked_edges_scenario",
+  "schema_version": "1.0.0",
+  "instance_id": "proto_w4x3_ep8_s0",
+  "events": [
+    { "time_s": 5.0, "from": "J0100", "to": "J0101", "action": "block" },
+    { "time_s": 20.0, "from": "J0100", "to": "J0101", "action": "unblock" }
+  ]
+}

@@ -1,0 +1,195 @@
+Start testing: Sep 03 00:00 KST
+----------------------------------------------------------
+1/12 Testing: test_three_clock_gate
+1/12 Test: test_three_clock_gate
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_three_clock_gate"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_three_clock_gate" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_three_clock_gate" end time: Sep 03 00:00 KST
+"test_three_clock_gate" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/12 Testing: test_velocity_profiler
+2/12 Test: test_velocity_profiler
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_velocity_profiler"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_velocity_profiler" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_velocity_profiler" end time: Sep 03 00:00 KST
+"test_velocity_profiler" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/12 Testing: test_round_ledger
+3/12 Test: test_round_ledger
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_round_ledger"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_round_ledger" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_round_ledger" end time: Sep 03 00:00 KST
+"test_round_ledger" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/12 Testing: test_safety_monitor
+4/12 Test: test_safety_monitor
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_safety_monitor"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_safety_monitor" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_safety_monitor" end time: Sep 03 00:00 KST
+"test_safety_monitor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/12 Testing: test_startup_checks
+5/12 Test: test_startup_checks
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_startup_checks"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_startup_checks" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_startup_checks" end time: Sep 03 00:00 KST
+"test_startup_checks" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/12 Testing: test_declaration_regulator
+6/12 Test: test_declaration_regulator
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_regulator"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_declaration_regulator" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_declaration_regulator" end time: Sep 03 00:00 KST
+"test_declaration_regulator" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/12 Testing: test_world_observation
+7/12 Test: test_world_observation
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_world_observation"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_world_observation" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_world_observation" end time: Sep 03 00:00 KST
+"test_world_observation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/12 Testing: test_declaration_ledger
+8/12 Test: test_declaration_ledger
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_declaration_ledger"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_declaration_ledger" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_declaration_ledger" end time: Sep 03 00:00 KST
+"test_declaration_ledger" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/12 Testing: test_control_tick_service
+9/12 Test: test_control_tick_service
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_control_tick_service"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_control_tick_service" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_control_tick_service" end time: Sep 03 00:00 KST
+"test_control_tick_service" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/12 Testing: test_boundary_emit
+10/12 Test: test_boundary_emit
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_boundary_emit"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_boundary_emit" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_boundary_emit" end time: Sep 03 00:00 KST
+"test_boundary_emit" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/12 Testing: test_trajectories_roundtrip
+11/12 Test: test_trajectories_roundtrip
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_trajectories_roundtrip"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_trajectories_roundtrip" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_trajectories_roundtrip" end time: Sep 03 00:00 KST
+"test_trajectories_roundtrip" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/12 Testing: test_robot_specs_adapter
+12/12 Test: test_robot_specs_adapter
+Command: "/home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt/test_robot_specs_adapter"
+Directory: /home/hchju777/multibot3-harness/multibot3/build_w4b/mrs_trajopt
+"test_robot_specs_adapter" start time: Sep 03 00:00 KST
+Output:
+----------------------------------------------------------
+  ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"test_robot_specs_adapter" end time: Sep 03 00:00 KST
+"test_robot_specs_adapter" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 03 00:00 KST

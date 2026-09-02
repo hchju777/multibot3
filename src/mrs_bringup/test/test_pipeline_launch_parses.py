@@ -64,12 +64,14 @@ def test_generate_launch_description_has_expected_actions():
     arg_count = sum(1 for e in entities if isinstance(e, DeclareLaunchArgument))
 
     # D16 스모크 최소 = 다섯 실행 파일(sadg 둘 포함: sadg_t0_node·switch_selector_node)
-    # + mrs_sim 다섯(clock_node·state_integrator·roadmap_publisher·
+    # + mrs_sim 여섯(clock_node·state_integrator·roadmap_publisher·
     # task_release_publisher·viz_markers_node, 367_pipeline_inputs.md 웨이브 1-A +
-    # 373_viz_markers.md 48차 웨이브 2-B) + mrs_viz 하나(dashboard_node,
-    # 374_mrs_viz_dashboard.md 48차 웨이브 3, 조건부) + rviz2(조건부,
-    # IfCondition이라도 LaunchDescription의 entities에는 항상 존재) = 12.
-    assert node_count == 12, f"expected 12 Node actions, got {node_count}"
+    # 373_viz_markers.md 48차 웨이브 2-B · observation_node, 375_observation_
+    # publisher.md 48차 웨이브 4-A, 조건부 observation:=ranged) + mrs_viz 하나
+    # (dashboard_node, 374_mrs_viz_dashboard.md 48차 웨이브 3, 조건부) +
+    # rviz2(조건부, IfCondition이라도 LaunchDescription의 entities에는 항상 존재) = 13.
+    assert node_count == 13, f"expected 13 Node actions, got {node_count}"
     # use_sim_time · roadmap_path · robot_specs_path · task_release_path ·
-    # observation(자리 예약) · rviz(373, 기본 false) · dashboard(374, 기본 true) = 7.
-    assert arg_count == 7, f"expected 7 DeclareLaunchArgument actions, got {arg_count}"
+    # observation(375, 실제 소비자 있음) · blocked_edges_path(375) ·
+    # rviz(373, 기본 false) · dashboard(374, 기본 true) = 8.
+    assert arg_count == 8, f"expected 8 DeclareLaunchArgument actions, got {arg_count}"
