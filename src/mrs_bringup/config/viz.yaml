@@ -1,0 +1,59 @@
+# =============================================================================
+#  🔴 순수 시각값 — 사전등록 상수가 아니고 물리 파라미터도 아니다
+# =============================================================================
+#  373_viz_markers.md (48차 웨이브 2-B, U48-8) — `mrs_sim/viz_markers_node`가
+#  읽는 색·크기·주기다. 이 파일의 어떤 수치도 물리 로봇 사양(robot_specs.json)
+#  이나 `27_spike_preregistration.md`의 동결 상수와 무관하다 — rviz 화면에서
+#  "구분이 되는가"만 만족하면 되는 렌더링 선택이다.
+#
+#  🔴 `viz_markers_node`는 `/robot_specs`를 구독하지 않는다(373 발주서 "입력"란이
+#  `/roadmap`·`/{robot}/odom`·`/execution_constraints` 셋만 명시) — 그래서
+#  로봇 몸체 지름은 실제 로봇 외접 반경을 못 따라가는 **균일 상수**다. 로봇마다
+#  실제 크기가 다르면 이 파일의 `robot_body_diameter_m` 하나로는 못 그린다
+#  (알려진 한계, 다음 라운드 — `mrs_viz`나 이 노드의 `/robot_specs` 구독 확장 몫).
+#
+# ## 각 값의 출처 — trajopt.yaml 형식(유도한 것·고른 것·근거 없는 것을 가른다)
+#
+# | 키 | 값 | 출처 |
+# |---|---|---|
+# | `frame_id` | "map" | 🟢 **유도**: `state_integrator.cpp`가 `/odom`의 `header.frame_id`를 이미 `"map"`으로 낸다(TF 트리 없이 두 값이 같은 좌표계여야 마커·오도메트리가 어긋나지 않는다) |
+# | `marker_publish_period_ms` | 200 | 🟡 **선택**: rviz 체감 갱신(5 Hz)이 목적이지 제어 주기(50 ms)를 따라야 할 이유가 없다. 느슨하게 잡아 CPU·로그 부담을 줄인다 |
+# | `roadmap_node_radius_m` | 0.15 | 🔴 **근거 없음** — 순수 시각 크기 |
+# | `roadmap_endpoint_radius_m` | 0.25 | 🔴 **근거 없음** — 일반 정점보다 크게 하여 구분만 한다 |
+# | `roadmap_edge_width_m` | 0.03 | 🔴 **근거 없음** — 순수 시각 |
+# | `robot_body_diameter_m` | 0.5 | 🔴 **근거 없음** — `robot_specs.json`(가정값) 외접 반경 0.35 m의 지름(0.70 m)과 다르다. 이 노드가 `/robot_specs`를 구독하지 않으므로 우연히도 비슷한 근거 있는 값이 아니다 |
+# | `robot_heading_length_m` | 0.6 | 🔴 **근거 없음** — 몸체 지름보다 길게 하여 화살표가 몸체 밖으로 나오게만 했다 |
+# | `robot_heading_shaft_diameter_m` | 0.12 | 🔴 **근거 없음** |
+# | `robot_heading_head_diameter_m` | 0.22 | 🔴 **근거 없음** |
+# | `target_segment_width_m` | 0.08 | 🔴 **근거 없음** — 로드맵 간선(0.03)보다 굵게 하여 강조만 한다 |
+# | `color_*` (6개, `[r,g,b,a]` 0~1) | 표 아래 | 🔴 **전부 근거 없음** — 구분되는 색을 골랐을 뿐이다 |
+#
+# `robots` 로스터는 이 파일에 없다 — `mrta.yaml`의 `robots`를 `pipeline.launch.py`가
+# 읽어 `state_integrator`와 같은 값을 이 노드에도 넘긴다(F48-6 "단일 출처" 정신,
+# `_load_robots_roster`). 여기 손으로 다시 적지 않는다.
+# =============================================================================
+
+viz_markers_node:
+  ros__parameters:
+    frame_id: "map"
+    marker_publish_period_ms: 200
+
+    # --- 로드맵 렌더링 ---
+    roadmap_node_radius_m: 0.15
+    roadmap_endpoint_radius_m: 0.25
+    roadmap_edge_width_m: 0.03
+    color_roadmap_node: [0.20, 0.55, 0.95, 0.90]      # 파랑 — 일반 정점
+    color_roadmap_endpoint: [0.95, 0.55, 0.10, 0.95]  # 주황 — 엔드포인트
+    color_roadmap_edge: [0.55, 0.55, 0.55, 0.55]      # 회색 — 간선
+
+    # --- 로봇 렌더링 ---
+    robot_body_diameter_m: 0.5
+    robot_heading_length_m: 0.6
+    robot_heading_shaft_diameter_m: 0.12
+    robot_heading_head_diameter_m: 0.22
+    color_robot_body: [0.10, 0.75, 0.15, 0.90]        # 초록 — 몸체
+    color_robot_heading: [0.05, 0.35, 0.05, 0.95]     # 진초록 — 방향 화살표
+
+    # --- 목표 세그먼트 강조 ---
+    target_segment_width_m: 0.08
+    color_target_segment: [0.90, 0.10, 0.10, 0.85]    # 빨강 — 첫 세그먼트

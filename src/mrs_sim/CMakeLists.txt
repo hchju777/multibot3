@@ -20,6 +20,8 @@ find_package(rosgraph_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 add_executable(clock_node src/node/clock_node.cpp)
 ament_target_dependencies(clock_node rclcpp rosgraph_msgs)
@@ -43,7 +45,16 @@ ament_target_dependencies(task_release_publisher rclcpp mrs_msgs)
 target_link_libraries(task_release_publisher
   mrs_core::mrs_core_pure nlohmann_json::nlohmann_json)
 
+# 373_viz_markers.md (48차 웨이브 2-B, U48-8) — /roadmap · /{robot}/odom ·
+# /execution_constraints를 구독해 /viz/markers(visualization_msgs)를 낸다.
+# 모듈 코드 0줄 — 이미 있는 경계 토픽의 재표현일 뿐이다.
+add_executable(viz_markers_node src/node/viz_markers_node.cpp)
+ament_target_dependencies(viz_markers_node
+  rclcpp mrs_msgs nav_msgs std_msgs visualization_msgs)
+target_link_libraries(viz_markers_node mrs_core::mrs_core_pure)
+
 install(TARGETS clock_node state_integrator roadmap_publisher task_release_publisher
+  viz_markers_node
   DESTINATION lib/${PROJECT_NAME})
 
 # --- tests (F48-4/F48-5, 48차 코드 게이트) ---

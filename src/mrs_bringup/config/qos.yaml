@@ -34,8 +34,11 @@ profiles:
         role: [pub: mrs_mapf/mapf_node, sub: mrs_sadg/sadg_t0_node, sub: mrs_sadg/switch_selector_node]
         source: "[실물] mapf_node.cpp:59-63 · sadg_t0_node.cpp:47-56 · switch_selector_node.cpp:37-42"
       - topic: /execution_constraints
-        role: [pub: mrs_sadg/sadg_t0_node]
-        source: "[실물] sadg_t0_node.cpp:47-52"
+        role: [pub: mrs_sadg/sadg_t0_node, sub: mrs_sim/viz_markers_node]
+        source: "[실물] sadg_t0_node.cpp:47-52 · viz_markers_node.cpp — 373_viz_markers.md"
+      - topic: /roadmap (viz_markers_node 구독측 추가)
+        role: [sub: mrs_sim/viz_markers_node]
+        source: "[실물] viz_markers_node.cpp — 373_viz_markers.md, RELIABLE/TRANSIENT_LOCAL/KeepLast(1)로 mrta_node/mapf_node와 동일"
       - topic: /{robot}/operator_command
         role: [sub: mrs_mrta/mrta_node]
         source: "[실물] mrta_node.cpp:148-162 — [결정], mrs_sim 발행측 미배선(콘솔은 P4 이후, U48-4)"
@@ -67,10 +70,23 @@ profiles:
         role: [pub: mrs_sim/clock_node]
         source: "[실물] clock_node.cpp — rclcpp::ClockQoS() == 이 프로파일과 동치"
       - topic: /{robot}/odom
-        role: [pub: mrs_sim/state_integrator]
+        role: [pub: mrs_sim/state_integrator, sub: mrs_sim/viz_markers_node]
         source: "[실물] state_integrator.cpp — [결정] /odom_batch(347§4-2 mermaid)의 로봇당 대체.
           mrs_msgs에 배치 타입이 없어(계약 무접촉) 표준 nav_msgs/Odometry를 로봇당 토픽으로 씀.
-          이번 라운드 소비자 0(trajopt 제어 틱 루프 미배선)"
+          373_viz_markers.md — viz_markers_node.cpp가 BEST_EFFORT/VOLATILE로 구독(발행측과 일치)"
+
+  viz_derived:
+    # 373_viz_markers.md (48차 웨이브 2-B, U48-8) — 위 latched 경계 아티팩트와
+    # 다른 성격: 이 노드가 매 틱 다시 계산해 내는 파생물이라 "늦게 붙어도
+    # 마지막 값"이 필요 없다(rviz가 늦게 뜨면 다음 틱을 그대로 받는다).
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 1
+    used_by:
+      - topic: /viz/markers
+        role: [pub: mrs_sim/viz_markers_node, sub: rviz2(조건부, rviz:=true)]
+        source: "[실물] viz_markers_node.cpp — marker_qos"
 
   action_default:
     # rclcpp_action 기본 프로파일 — 오버라이드하지 않음.

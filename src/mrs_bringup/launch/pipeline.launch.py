@@ -1,10 +1,18 @@
 """pipeline.launch.py — D16 스모크 최소 배선.
 
 다섯 실행 파일(mrta_node · mapf_node · sadg_t0_node · switch_selector_node ·
-trajopt_node) + mrs_sim 넷(clock_node · state_integrator · roadmap_publisher ·
-task_release_publisher, 367_pipeline_inputs.md 웨이브 1-A)을 띄운다.
+trajopt_node) + mrs_sim 다섯(clock_node · state_integrator · roadmap_publisher ·
+task_release_publisher · viz_markers_node, 367_pipeline_inputs.md 웨이브 1-A +
+373_viz_markers.md 48차 웨이브 2-B) + 선택적 rviz2를 띄운다.
 `mrs_bringup`은 소스 0줄 규율을 지킨다 — 이 파일은 launch 구성일 뿐
 알고리즘·서비스 로직을 담지 않는다(10_architecture.md:113, 357§7-2).
+
+🔴 373_viz_markers.md — `viz_markers_node`는 이미 있는 경계 토픽(/roadmap,
+/{robot}/odom, /execution_constraints)을 구독해 rviz2 마커를 낼 뿐, 네
+알고리즘 모듈 코드를 한 줄도 건드리지 않는다(U48-8). `rviz` 런치 인자
+(기본 `false`)로 rviz2 프로세스 자체를 같이 띄울지 고른다 — 기본을 꺼둔
+이유는 디스플레이가 없는 헤드리스 CI/스모크 환경에서 이 launch가 깨지지
+않게 하기 위함이다(`observation` 인자와 같은 "자리는 있되 기본 off" 관례).
 
 🔴 이 launch로 도는 실행은 어느 주장의 증거도 아니다(347§4-6) — result.json이
 없고, 지표를 재지 않고, 반복 run·시드 스윕이 없다. 🔴 robot_specs_path·
@@ -30,6 +38,7 @@ import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -129,6 +138,13 @@ def generate_launch_description():
         default_value="off",
         description="[결정 부재 · 자리 예약] observation:=off|ranged. 관측 채널은 이 라운드 밖.",
     )
+    # 373_viz_markers.md — rviz2 프로세스를 같이 띄울지. 기본 false(헤드리스
+    # 환경에서 이 launch의 파싱/스모크가 디스플레이 유무에 흔들리지 않게).
+    declare_rviz = DeclareLaunchArgument(
+        "rviz",
+        default_value="false",
+        description="true면 rviz2를 config/viz/pipeline.rviz로 같이 띄운다.",
+    )
 
     common_params = {"use_sim_time": use_sim_time}
 
@@ -136,6 +152,8 @@ def generate_launch_description():
     mapf_yaml = os.path.join(bringup_share, "config", "mapf.yaml")
     sadg_yaml = os.path.join(bringup_share, "config", "sadg.yaml")
     trajopt_yaml = os.path.join(bringup_share, "config", "trajopt.yaml")
+    viz_yaml = os.path.join(bringup_share, "config", "viz.yaml")
+    rviz_config_path = os.path.join(bringup_share, "config", "viz", "pipeline.rviz")
 
     # F48-6 해소 — 하드코딩 둘을 mrta.yaml 하나로 모았다(위 _load_robots_roster).
     robots = _load_robots_roster(mrta_yaml)
@@ -216,6 +234,30 @@ def generate_launch_description():
                 common_params,
             ],
         ),
+        # 373_viz_markers.md (U48-8) — /roadmap · /{robot}/odom ·
+        # /execution_constraints를 구독해 /viz/markers를 낸다. `robots`는
+        # state_integrator와 같은 출처(F48-6 정신) — 손으로 다시 안 적는다.
+        Node(
+            package="mrs_sim",
+            executable="viz_markers_node",
+            name="viz_markers_node",
+            output="screen",
+            parameters=[
+                viz_yaml,
+                {"robots": robots},
+                common_params,
+            ],
+        ),
+        # rviz:=true일 때만 실제로 뜬다(IfCondition) — 파싱 시점엔 항상 존재.
+        Node(
+            package="rviz2",
+            executable="rviz2",
+            name="rviz2",
+            output="screen",
+            arguments=["-d", rviz_config_path],
+            parameters=[common_params],
+            condition=IfCondition(LaunchConfiguration("rviz")),
+        ),
     ]
 
     return LaunchDescription(
@@ -225,6 +267,7 @@ def generate_launch_description():
             declare_robot_specs_path,
             declare_task_release_path,
             declare_observation,
+            declare_rviz,
             *nodes,
         ]
     )
