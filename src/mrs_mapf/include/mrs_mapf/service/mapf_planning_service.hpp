@@ -3,6 +3,7 @@
 #define MRS_MAPF_SERVICE_MAPF_PLANNING_SERVICE_HPP
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -52,6 +53,25 @@ struct RunResult
     bool used_safety_stop_fallback =
         false;  ///< R29 — did even global planning fail, forcing the no-search fallback?
     std::vector<std::string> reachability_warnings;  ///< R06 — report-only; never changes behavior.
+
+    /// @brief 48차 진단(`369_p2`) — WHY the floor-scope `solve()` returned an
+    /// error (`std::nullopt` if the floor scope was never attempted or
+    /// succeeded). Diagnostics only — never crosses the boundary, and setting
+    /// it does not change which branch `run_once()` takes.
+    std::optional<core::PlanFailure> scope_failure;
+    /// @brief Same as `scope_failure`, for the escalated (R23) full-roster
+    /// `solve()` call — this is what forces `used_safety_stop_fallback` and,
+    /// downstream, every robot's `terminal = no_progress` with a 1-step plan.
+    std::optional<core::PlanFailure> global_failure;
+    /// @brief 48차 진단(`369_p2`) — the floor-scope solve's OWN discrete-plan
+    /// self-check outcome, captured BEFORE escalation overwrites `self_check`
+    /// with a later attempt's report (`self_check` only ever holds the LAST
+    /// attempt's report per its doc comment above — this field exists so the
+    /// floor attempt's rejection reason is not lost).
+    std::optional<core::SelfCheckReport> scope_self_check;
+    /// @brief Same as `scope_self_check`, for the escalated (R23) global solve's
+    /// own self-check attempt.
+    std::optional<core::SelfCheckReport> global_self_check;
 };
 
 /// @brief The wrapping planning procedure (Application layer, CN-23).

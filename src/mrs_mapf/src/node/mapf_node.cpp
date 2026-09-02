@@ -2,10 +2,11 @@
 //
 // node/ layer (CN-1/CN-23 Presentation) — the only layer that depends on
 // rclcpp/rclcpp_action/mrs_msgs. Wraps service::MapfPlanningService with:
-//  - 3 latched subscriptions (/roadmap, /robot_specs, /assignment) that arm an
-//    initial full-roster plan once all three are seen (skeleton allowed this
-//    round to invent the "when do we plan the first time" trigger — the
-//    contract does not specify one; documented as [결정] below).
+//  - 3 latched subscriptions (/roadmap, /robot_specs, /assignment) that arm a
+//    full-roster (re)plan once all three are seen, and again every time a
+//    freshly received /assignment's `revision` differs from the one last
+//    attempted (48차 fix — see MaybePlan()/node/replan_trigger.hpp; the
+//    contract does not specify either trigger — documented as [결정] below).
 //  - an rclcpp_action::Server<mrs_msgs::action::Replan> for SADG-triggered
 //    replans (347§4-2 mermaid: sadg_t0 -> mapf via action Replan).
 //  - 1 latched publisher (/discrete_plan).
@@ -29,6 +30,7 @@
 #include "mrs_mapf/adapter/roadmap_adapter.hpp"
 #include "mrs_mapf/adapter/robot_specs_adapter.hpp"
 #include "mrs_mapf/core/status.hpp"
+#include "mrs_mapf/node/replan_trigger.hpp"
 #include "mrs_mapf/plugins/priority_safe_interval_search.hpp"
 #include "mrs_mapf/service/mapf_planning_service.hpp"
 #include "mrs_msgs/action/replan.hpp"
@@ -45,6 +47,29 @@
 
 namespace mrs_mapf::node
 {
+
+// 48차 진단(`369_p2`) — human-readable text for a SelfCheckOutcome, log-only
+// (never a boundary vocabulary; mrs_core_msgs owns the wire-facing enums).
+namespace
+{
+const char* SelfCheckOutcomeToString(core::SelfCheckOutcome outcome)
+{
+    switch (outcome)
+    {
+        case core::SelfCheckOutcome::kOk:
+            return "kOk";
+        case core::SelfCheckOutcome::kStartVertexCollision:
+            return "kStartVertexCollision(ⓐ)";
+        case core::SelfCheckOutcome::kCycleDetected:
+            return "kCycleDetected(ⓑ)";
+        case core::SelfCheckOutcome::kMalformedType2Edge:
+            return "kMalformedType2Edge(ⓑ)";
+        case core::SelfCheckOutcome::kUntested:
+            return "kUntested";
+    }
+    return "?";
+}
+}  // namespace
 
 using ReplanAction = mrs_msgs::action::Replan;
 using GoalHandleReplan = rclcpp_action::ServerGoalHandle<ReplanAction>;
@@ -135,7 +160,7 @@ private:
             return;
         }
         have_roadmap_ = true;
-        MaybeInitialPlan();
+        MaybePlan();
     }
 
     void OnRobotSpecs(mrs_msgs::msg::RobotSpecs::ConstSharedPtr msg)
@@ -161,7 +186,7 @@ private:
             return;
         }
         have_robot_specs_ = true;
-        MaybeInitialPlan();
+        MaybePlan();
     }
 
     void OnAssignment(mrs_msgs::msg::Assignment::ConstSharedPtr msg)
@@ -191,20 +216,32 @@ private:
             return;
         }
         have_assignment_ = true;
-        MaybeInitialPlan();
+        latest_assignment_revision_ = boundary.revision;
+        MaybePlan();
     }
 
     // 🔴 [결정] The contract does not specify when MAPF plans for the first
-    // time (only the Replan action's *triggering* is specified, by SADG). We
-    // plan once, full-roster, as soon as roadmap+robot_specs+assignment have
-    // all latched in — this is node-layer orchestration, not an algorithm
-    // choice (the actual search stays inside the strategy plugin).
-    void MaybeInitialPlan()
+    // time, nor when it should replan off an updated `/assignment` outside the
+    // SADG-triggered `Replan` action (`assignment.schema.json`'s `revision`
+    // field description: "재계획 트리거는 소비 모듈의 것이다" — the trigger belongs
+    // to the consumer). This node's own policy, node-layer orchestration and
+    // not an algorithm choice (the search stays inside the strategy plugin):
+    // plan full-roster as soon as roadmap+robot_specs+assignment have all
+    // latched in at least once, and again every time a NEWLY received
+    // `/assignment` carries a `revision` different from the one this node last
+    // attempted to plan for (`node/replan_trigger.hpp` — never twice for the
+    // same revision, no invented cooldown/period).
+    void MaybePlan()
     {
-        if (!have_roadmap_ || !have_robot_specs_ || !have_assignment_ || published_once_)
+        const bool inputs_complete = have_roadmap_ && have_robot_specs_ && have_assignment_;
+        if (!ShouldReplanForAssignment(inputs_complete,
+                                       last_attempted_assignment_revision_,
+                                       latest_assignment_revision_))
         {
             return;
         }
+        last_attempted_assignment_revision_ = latest_assignment_revision_;
+
         core::PlanningRequest req;
         req.instance_id = instance_id_;
         req.roadmap = roadmap_;
@@ -224,12 +261,63 @@ private:
     bool RunAndMaybePublish(const core::PlanningRequest& req)
     {
         const auto result = service_.run_once(req, next_plan_revision_, instance_id_);
+        // 48차 진단(`369_p2`) — surface WHY a scope/global solve() failed, even
+        // on the path that still publishes (the R29 safety-stop fallback):
+        // this is what turns into every robot's terminal=no_progress, 1-step
+        // plan, and this log line is the only place the actual PlanFailure
+        // detail (discarded by service::run_once's return value) is visible.
+        if (result.scope_failure.has_value())
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "mapf_node: floor-scope solve() failed — robot='%s' detail='%s'",
+                        result.scope_failure->robot.c_str(),
+                        result.scope_failure->detail.c_str());
+        }
+        if (result.global_failure.has_value())
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "mapf_node: escalated global solve() failed — robot='%s' detail='%s'",
+                        result.global_failure->robot.c_str(),
+                        result.global_failure->detail.c_str());
+        }
+        if (result.scope_self_check.has_value())
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "mapf_node: floor-scope solve() succeeded but its draft failed "
+                        "self-check — outcome=%s",
+                        SelfCheckOutcomeToString(result.scope_self_check->outcome));
+            for (const auto& msg : result.scope_self_check->malformed_edges)
+            {
+                RCLCPP_WARN(this->get_logger(),
+                            "mapf_node:   scope malformed edge: %s",
+                            msg.c_str());
+            }
+        }
+        if (result.global_self_check.has_value())
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "mapf_node: escalated global solve() succeeded but its draft failed "
+                        "self-check — outcome=%s",
+                        SelfCheckOutcomeToString(result.global_self_check->outcome));
+            for (const auto& msg : result.global_self_check->malformed_edges)
+            {
+                RCLCPP_WARN(this->get_logger(),
+                            "mapf_node:   global malformed edge: %s",
+                            msg.c_str());
+            }
+        }
         if (result.outcome != service::RunOutcome::kPublished)
         {
             RCLCPP_WARN(this->get_logger(),
                         "mapf_node: run_once did not publish (outcome=%d)",
                         static_cast<int>(result.outcome));
             return false;
+        }
+        if (result.used_safety_stop_fallback)
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "mapf_node: published the R29 safety-stop fallback (every robot "
+                        "parked, terminal=no_progress) — see the solve-failure warnings above");
         }
         PublishDraft(result.draft);
         return true;
@@ -242,7 +330,6 @@ private:
         adapter::DiscretePlanAdapter::to_boundary(draft, boundary);
         last_published_ = draft;
         ++next_plan_revision_;
-        published_once_ = true;
 
         mrs_msgs::msg::DiscretePlan out;
         out.schema = boundary.schema;
@@ -379,7 +466,8 @@ private:
     bool have_roadmap_ = false;
     bool have_robot_specs_ = false;
     bool have_assignment_ = false;
-    bool published_once_ = false;
+    std::uint64_t latest_assignment_revision_ = 0;
+    std::optional<std::uint64_t> last_attempted_assignment_revision_;
 
     core::Roadmap roadmap_;
     std::vector<core::RobotSpec> robot_specs_;

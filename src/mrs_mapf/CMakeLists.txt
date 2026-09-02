@@ -75,6 +75,9 @@ add_mapf_test(test_replan_request_adapter  test/adapter/test_replan_request_adap
 add_mapf_test(test_check_envelope_version  test/core/test_check_envelope_version.cpp)
 target_compile_definitions(test_check_envelope_version PRIVATE
   MRS_MAPF_SCHEMA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../mrs_msgs/schema/discrete_plan.schema.json")
+# node-layer orchestration test (pure — no rclcpp): 48차 fix for the
+# "revision advances but plan_revision sticks at 0" bug (mapf_node.cpp:204).
+add_mapf_test(test_replan_trigger          test/node/test_replan_trigger.cpp)
 
 # =====================================================================================
 # ROS node (47차 통합 P2). Statically links core+plugins+adapter+service — this package

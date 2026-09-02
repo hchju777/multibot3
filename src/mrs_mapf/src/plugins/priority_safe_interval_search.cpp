@@ -215,8 +215,26 @@ std::map<std::string, double> distance_to_goal(const Roadmap& roadmap, const std
 /// (arriving t0+duration) is free of every conflict this plugin checks: same
 /// direction/opposite-direction (swap) edge occupancy, destination-vertex park
 /// occupancy, and origin-vertex park occupancy during the wait window.
-/// @return the earliest safe departure time, or +inf if the fixed point did not
-///   converge within the defensive cap (treated as "no path" by the caller).
+///
+/// 🔴 48차 fix(`369_p2`): a block whose interval end is `kParkedHorizon` (RB-1's
+/// "occupied forever" sentinel — a robot with no further goals, in- or
+/// out-of-scope, parked at that vertex/edge from some time onward) can never
+/// actually clear. Before this fix, the fixed-point loop below still advanced
+/// `t0` toward that sentinel and returned a numerically-finite-but-never-real
+/// "safe departure" (~`kParkedHorizon`) — `search_leg` then accepted it as a
+/// real path, and the resulting draft only failed much later, at
+/// `service::MapfPlanningService`'s self-check, as an inscrutable
+/// `kMalformedType2Edge` (a permanently-idle robot's index-0 visit_order entry
+/// has no departure segment to hand off from — see `369_p2`'s launch evidence:
+/// `visit_order(J0200) 의 r3#0 -> r4#3` with r3 idle/parked). Treating a
+/// `kParkedHorizon`-ending block as unresolvable makes THIS call correctly
+/// report the edge/vertex as unreachable, so `search_leg` tries a different
+/// route (or truthfully reports infeasibility via `PlanFailure` if none
+/// exists) instead of manufacturing a plan no self-check will ever accept.
+/// @return the earliest safe departure time, or +inf if no finite departure
+///   can ever clear every conflict (either the fixed point did not converge
+///   within the defensive cap, or a blocking interval is the permanent-park
+///   sentinel) — both cases are "no path via this edge" to the caller.
 double earliest_safe_departure(const ReservationTable& table,
                                const std::string& u,
                                const std::string& v,
@@ -229,25 +247,46 @@ double earliest_safe_departure(const ReservationTable& table,
         bool advanced = false;
 
         const double edge_block = table.next_edge_clear_time(u, v, {t0, t0 + duration});
-        if (!std::isnan(edge_block) && edge_block > t0)
+        if (!std::isnan(edge_block))
         {
-            t0 = edge_block;
-            advanced = true;
+            if (edge_block >= kParkedHorizon)
+            {
+                return std::numeric_limits<double>::infinity();
+            }
+            if (edge_block > t0)
+            {
+                t0 = edge_block;
+                advanced = true;
+            }
         }
 
         const double dst_block =
             table.next_vertex_clear_time(v, {t0 + duration, t0 + duration + kEps});
-        if (!std::isnan(dst_block) && dst_block > t0 + duration)
+        if (!std::isnan(dst_block))
         {
-            t0 = dst_block - duration;
-            advanced = true;
+            if (dst_block >= kParkedHorizon)
+            {
+                return std::numeric_limits<double>::infinity();
+            }
+            if (dst_block > t0 + duration)
+            {
+                t0 = dst_block - duration;
+                advanced = true;
+            }
         }
 
         const double src_block = table.next_vertex_clear_time(u, {earliest, t0 + kEps});
-        if (!std::isnan(src_block) && src_block > t0)
+        if (!std::isnan(src_block))
         {
-            t0 = src_block;
-            advanced = true;
+            if (src_block >= kParkedHorizon)
+            {
+                return std::numeric_limits<double>::infinity();
+            }
+            if (src_block > t0)
+            {
+                t0 = src_block;
+                advanced = true;
+            }
         }
 
         if (!advanced)
@@ -407,8 +446,39 @@ Result<std::map<std::string, TimedRobotPlan>, PlanFailure> PrioritySafeIntervalS
     // Deterministic priority order — ascending robot identifier (a
     // simplification of the literature's dynamic priority schemes; documented
     // known limitation).
+    //
+    // 🔴 48차 fix(`369_p2`): idle (no-goal) robots are solved FIRST, ahead of
+    // every robot with a nonempty goal list, ties still broken by ascending
+    // robot id (still a deterministic total order — no new randomness). An
+    // idle robot's permanent-park reservation (`kParkedHorizon`, below) is
+    // only added to `table` once its OWN turn in this loop is reached; under
+    // pure alphabetical order a moving robot solved earlier could path
+    // straight through a LATER, idle robot's real (never-departing) start
+    // position, because that occupancy did not exist in `table` yet at
+    // search time — `369_p2`'s launch evidence caught this exactly
+    // (`visit_order(J0302) 의 r5#0 -> r2#5`, r5 idle, alphabetically after
+    // r2). This does not change the frozen contract's separate 5-level
+    // visit_order tie-break (`255`§255-2-3) — that governs ties WITHIN one
+    // leg search and at a shared vertex, not this plugin-internal solve
+    // sequencing.
     std::vector<std::string> ordered_scope(scope.begin(), scope.end());
-    std::sort(ordered_scope.begin(), ordered_scope.end());
+    std::sort(ordered_scope.begin(),
+              ordered_scope.end(),
+              [&assignment_of](const std::string& lhs, const std::string& rhs)
+              {
+                  const auto is_idle = [&assignment_of](const std::string& robot)
+                  {
+                      auto it = assignment_of.find(robot);
+                      return it != assignment_of.end() && it->second->goal_locations.empty();
+                  };
+                  const bool lhs_idle = is_idle(lhs);
+                  const bool rhs_idle = is_idle(rhs);
+                  if (lhs_idle != rhs_idle)
+                  {
+                      return lhs_idle;  // idle sorts before non-idle.
+                  }
+                  return lhs < rhs;
+              });
 
     std::map<std::string, TimedRobotPlan> result;
 

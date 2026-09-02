@@ -274,6 +274,14 @@ RunResult MapfPlanningService::run_once(const PlanningRequest& request,
             return result;
         }
         // Discrete-representation infeasibility — treat like a search failure, escalate.
+        // 48차 진단(`369_p2`) — snapshot BEFORE the global attempt overwrites
+        // result.self_check with its own (possibly different) report.
+        result.scope_self_check = result.self_check;
+    }
+    else
+    {
+        // 48차 진단(`369_p2`) — record WHY, never fed back into the decision.
+        result.scope_failure = scope_solve.error();
     }
 
     // R20/R23 — escalate to global (every roster robot in scope).
@@ -301,6 +309,14 @@ RunResult MapfPlanningService::run_once(const PlanningRequest& request,
             result.draft = draft;
             return result;
         }
+        // 48차 진단(`369_p2`) — snapshot BEFORE the fallback attempt overwrites
+        // result.self_check with its own report.
+        result.global_self_check = result.self_check;
+    }
+    else
+    {
+        // 48차 진단(`369_p2`) — record WHY, never fed back into the decision.
+        result.global_failure = global_solve.error();
     }
 
     // R29 — safety-stop fallback (no search).

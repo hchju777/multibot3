@@ -185,5 +185,94 @@ int main()
         CHECK(!out.ok());
     }
 
+    // --- 48차 회귀(`369_p2` 실측): an idle (no-goal) robot parked FOREVER on the
+    // only chokepoint of another robot's route must make that route honestly
+    // INFEASIBLE (a real `PlanFailure`), never a numerically-finite "success"
+    // through a vertex nobody will ever vacate. Robot ids are chosen so pure
+    // alphabetical solve order would plan the mover BEFORE the idle robot
+    // ("a" < "z") — this is exactly the ordering `369_p2`'s launch evidence
+    // caught (`visit_order(J0302) 의 r5#0 -> r2#5`, idle robot alphabetically
+    // AFTER the mover it silently let through). Before the 48차 fix (idle-first
+    // solve order + `kParkedHorizon`-aware `earliest_safe_departure`), this
+    // scenario returned `ok()` with a path straight through "z"'s permanent
+    // park — a plan no self-check could ever accept.
+    {
+        PrioritySafeIntervalSearch strategy;
+        PlanningRequest req;
+        req.roadmap = mrs_mapf::test::make_line_roadmap();  // A-B-C-D, only route.
+        req.robot_specs = {{"a", 1.0}, {"z", 1.0}};         // ids must match the assignments below.
+        AssignmentEntry mover;
+        mover.robot = "a";
+        mover.start = "A";
+        mover.goal_locations = {"D"};  // the ONLY route passes through "B".
+        AssignmentEntry idle;
+        idle.robot = "z";
+        idle.start = "B";
+        idle.goal_locations = {};  // idle — parked at B forever.
+        req.assignments = {mover, idle};
+        req.affected_robots = {"a", "z"};
+
+        auto out = strategy.solve(req, req.affected_robots);
+        CHECK(!out.ok());
+        if (!out.ok())
+        {
+            CHECK(out.error().robot == "a");
+        }
+    }
+
+    // --- 48차 회귀 companion: the SAME idle-forever robot must NOT block a
+    // mover whose route does not actually need that vertex — the fix must not
+    // over-block. Diamond roadmap A->{B,C}->D (two independent routes); "z"
+    // parks forever on B, "a" must be free to reach D via C instead. ---
+    {
+        Roadmap diamond;
+        diamond.node_ids = {"A", "B", "C", "D"};
+        for (const auto& n : diamond.node_ids)
+        {
+            diamond.out_arcs[n] = {};
+        }
+        diamond.endpoints = {"A", "D"};
+        auto link = [&](const std::string& u, const std::string& v, double len)
+        {
+            diamond.out_arcs[u].push_back({u, v, len, 2.0, 1, ""});
+            diamond.out_arcs[v].push_back({v, u, len, 2.0, 1, ""});
+        };
+        link("A", "B", 5.0);
+        link("B", "D", 5.0);
+        link("A", "C", 5.0);
+        link("C", "D", 5.0);
+
+        PrioritySafeIntervalSearch strategy;
+        PlanningRequest req;
+        req.roadmap = diamond;
+        req.robot_specs = {{"a", 1.0}, {"z", 1.0}};  // ids must match the assignments below.
+        AssignmentEntry mover;
+        mover.robot = "a";
+        mover.start = "A";
+        mover.goal_locations = {"D"};
+        AssignmentEntry idle;
+        idle.robot = "z";
+        idle.start = "B";
+        idle.goal_locations = {};
+        req.assignments = {mover, idle};
+        req.affected_robots = {"a", "z"};
+
+        auto out = strategy.solve(req, req.affected_robots);
+        CHECK(out.ok());
+        if (out.ok())
+        {
+            const auto& plans_by_robot = out.value();
+            CHECK(plans_by_robot.at("a").plan.terminal == Terminal::kGoalReached);
+            CHECK(plans_by_robot.at("a").plan.steps.back().location == "D");
+            // Must have routed via C, not through z's permanent park at B.
+            bool visited_b = false;
+            for (const auto& s : plans_by_robot.at("a").plan.steps)
+            {
+                visited_b = visited_b || (s.location == "B");
+            }
+            CHECK(!visited_b);
+        }
+    }
+
     return mapf_test::summary();
 }
