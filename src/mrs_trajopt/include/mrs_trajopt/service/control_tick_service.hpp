@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "mrs_core/i_steady_clock.hpp"
 #include "mrs_trajopt/core/declaration_regulator.hpp"
 #include "mrs_trajopt/core/i_peer_channel.hpp"
 #include "mrs_trajopt/core/i_subgoal_candidates.hpp"
@@ -30,6 +31,11 @@
 /// (CN-23 Application layer, the tick use case): no ROS, no JSON, no boundary
 /// types (the adapter is called by the node layer, not here). It depends on
 /// `core/` (Domain) only.
+///
+/// 🔴 368_p3 — CT00/CT15 now read a real clock (`CN-18`: the one seam,
+/// `mrs_core::ISteadyClock`). This service NEVER constructs a clock itself
+/// (`w_.clock` is wiring, supplied by the node — CN-4/CN-18); see
+/// `ServiceWiring::clock` and `trajectory_buffer.hpp`'s `sample_at()`.
 
 namespace mrs_trajopt::service
 {
@@ -43,6 +49,13 @@ struct ServiceWiring
     core::IInstrSink* instr = nullptr;             ///< instrumentation sink (may be null).
     core::VelocityProfiler profiler;               ///< core class (§3-4).
     core::SafetyMonitor* safety = nullptr;         ///< braking-filter dynamic half.
+    /// 🆕 368_p3 — CT00's "시계 1" (CN-18 seam). NOT owned here; the node
+    /// wires a concrete `mrs_core::ISteadyClock` (e.g. rclcpp::Clock-backed,
+    /// use_sim_time-respecting) at composition time. If left null, CT00/CT15
+    /// degrade to `now_s = 0.0` (the pre-368_p3 always-chain.front()
+    /// behavior) rather than throw — a wiring gap is the caller's
+    /// responsibility, not a tick-path fatal (CN-16 keeps run_tick() total).
+    mrs_core::ISteadyClock* clock = nullptr;
 };
 
 /// @brief One control-tick input (CT-in).
@@ -119,8 +132,8 @@ public:
     }
 
 private:
-    void recompute_trajectory(const TickInput& in);             // TT00-TT19
-    void regenerate_subgoals_and_publish(const TickInput& in);  // ST00-ST34
+    void recompute_trajectory(const TickInput& in, double now_s);             // TT00-TT19
+    void regenerate_subgoals_and_publish(const TickInput& in, double now_s);  // ST00-ST34
 
     std::string self_;
     ServiceWiring w_;

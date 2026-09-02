@@ -16,6 +16,10 @@
   <depend>mrs_core</depend>
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
+  <!-- 48차 웨이브1-B(368): 제어틱 루프 배선 — /{robot}/cmd_vel(Twist)·/{robot}/odom
+       (Odometry). 표준 ROS 메시지 패키지, mrs_* 형제 아니다(CN-21 무관). -->
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
 

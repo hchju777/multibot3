@@ -83,14 +83,20 @@ add_trajopt_test(test_robot_specs_adapter    test/adapter/test_robot_specs_adapt
 find_package(rclcpp REQUIRED)
 find_package(mrs_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 add_executable(trajopt_node src/node/trajopt_node.cpp)
-ament_target_dependencies(trajopt_node rclcpp mrs_msgs pluginlib)
+ament_target_dependencies(trajopt_node rclcpp mrs_msgs pluginlib geometry_msgs nav_msgs)
 target_link_libraries(trajopt_node
-  mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_core::mrs_core_msgs)
-# 🔴 declarative only (D3/D4 debt closure) — trajopt_node does NOT use a real
-# pluginlib::ClassLoader this round (no *Factory exists; the control-tick loop
-# that would select these plugins is not wired, see file doc).
+  mrs_trajopt_core mrs_trajopt_plugins mrs_trajopt_adapter mrs_trajopt_service
+  mrs_core::mrs_core_msgs)
+# 🔴 declarative only (48차 웨이브1-B, 368) — trajopt_node still does NOT use a
+# real pluginlib::ClassLoader (no *Factory exists; plugins.xml's 8 classes are
+# not PLUGINLIB_EXPORT_CLASS-registered, grep-confirmed — see 361§8 debt for
+# mrta's identical situation). This round direct-instantiates two concrete
+# plugin classes as owned members (SearchFixedPathGating, SubgoalFreeSpaceDisk)
+# instead — see trajopt_node.cpp file doc D2/D3.
 pluginlib_export_plugin_description_file(mrs_trajopt plugins.xml)
 
 install(TARGETS trajopt_node DESTINATION lib/${PROJECT_NAME})

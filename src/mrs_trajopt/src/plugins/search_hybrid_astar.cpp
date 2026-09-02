@@ -71,13 +71,17 @@ bool SearchHybridAstar::solve(const core::SearchContext& ctx, core::SearchOutput
     }
 
     // Fill headings (each node points at the next; last keeps prior heading).
+    // 368_p4 FIX (same as SearchFixedPathGating — see that file's doc for the
+    // full diagnosis): node 0 keeps ctx.start.theta (real current heading)
+    // instead of being overwritten, so node 1's curvature can see the actual
+    // mismatch against the path direction and produce a real turn.
     out.chain.reserve(poses.size());
     for (std::size_t i = 0; i < poses.size(); ++i)
     {
         core::GeometricNode node;
         node.pose = poses[i];
         node.reverse = false;  // forward-only (INV-2-GEO(C) safe).
-        if (i + 1 < poses.size())
+        if (i > 0 && i + 1 < poses.size())
         {
             node.pose.theta = heading_to(poses[i], poses[i + 1]);
         }
@@ -85,7 +89,9 @@ bool SearchHybridAstar::solve(const core::SearchContext& ctx, core::SearchOutput
         {
             node.pose.theta = out.chain.back().pose.theta;
         }
-        node.anchor = (i == 0 || i + 1 == poses.size());  // start & goal are anchors.
+        // 368_p6 FIX (same rationale as SearchFixedPathGating — see that
+        // file's doc): only the goal is unconditionally an anchor now.
+        node.anchor = (i + 1 == poses.size());
         out.chain.push_back(node);
     }
     out.found = true;

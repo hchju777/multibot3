@@ -36,21 +36,6 @@ std::uint64_t hash_subgoals(const std::vector<core::PassWindow>& sgs)
     return h;
 }
 
-/// @brief Sample the committed chain at (index into) the current tick.
-core::StateSample sample_committed(const std::vector<core::StateSample>& chain,
-                                   const core::Pose2& fallback)
-{
-    if (!chain.empty())
-    {
-        return chain.front();
-    }
-    core::StateSample s;
-    s.x = fallback.x;
-    s.y = fallback.y;
-    s.theta = fallback.theta;
-    return s;
-}
-
 }  // namespace
 
 ControlTickService::ControlTickService(std::string self,
@@ -74,6 +59,11 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
     TickOutput out;
     try  // CN-16: no exception escapes the tick path.
     {
+        // CT00 t0 = clock_->now_steady() (322 §322-1 CT00, "시계 1"). 368_p3:
+        // w_.clock is wiring (CN-18/CN-4) — a null clock degrades to 0.0
+        // (ServiceWiring::clock doc), it never fabricates a clock here.
+        const double now_s = (w_.clock != nullptr) ? w_.clock->NowSeconds() : 0.0;
+
         // CT01 tick_seq += 1.
         tick_seq_ += 1;
 
@@ -84,8 +74,10 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
             subgoal_advance_req_ = true;  // CT09b.
         }
 
-        // CT15 sample the committed state chain (t,x,y,theta,v,omega).
-        core::StateSample s_now = sample_committed(buffer_.view(), in.pose);
+        // CT15 sample the committed state chain (t,x,y,theta,v,omega),
+        // advanced by elapsed time since adoption (368_p3 — see
+        // trajectory_buffer.hpp sample_at() doc for the narrow reading).
+        core::StateSample s_now = buffer_.sample_at(now_s, in.pose);
 
         // CT16-CT19 braking-filter dynamic half: truncate at last stoppable.
         if (w_.safety != nullptr && !buffer_.view().empty())
@@ -111,7 +103,7 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
         // CT22 gate: is this a trajectory tick? (n^traj)
         if (gate_.is_trajectory_tick(tick_seq_))
         {
-            recompute_trajectory(in);  // §322-2.
+            recompute_trajectory(in, now_s);  // §322-2.
         }
     }
     catch (const std::exception&)
@@ -123,7 +115,7 @@ TickOutput ControlTickService::run_tick(const TickInput& in)
     return out;
 }
 
-void ControlTickService::recompute_trajectory(const TickInput& in)
+void ControlTickService::recompute_trajectory(const TickInput& in, double now_s)
 {
     // TT00 tube = my last published promise (INV-2 fallback source).
     core::Tube tube;
@@ -195,17 +187,17 @@ void ControlTickService::recompute_trajectory(const TickInput& in)
     // TT14 subgoal tick OR puncture advance consumes the subgoal regeneration.
     if (gate_.is_subgoal_tick(tick_seq_) || subgoal_advance_req_)
     {
-        subgoal_advance_req_ = false;         // TT15 reset the advance flag.
-        regenerate_subgoals_and_publish(in);  // §322-3.
+        subgoal_advance_req_ = false;                // TT15 reset the advance flag.
+        regenerate_subgoals_and_publish(in, now_s);  // §322-3.
     }
     else if (!cand_traj_.empty())
     {
         // TT18 inside-tube recompute is adopted without re-check (induction).
-        buffer_.adopt(cand_traj_);
+        buffer_.adopt(cand_traj_, now_s);  // 368_p3: CT15's new reference point.
     }
 }
 
-void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
+void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in, double now_s)
 {
     // ST01 preliminary yield allocation is upstream-pure (roadmap/plan/iota
     // only); st.yaw is NOT read here (221-W1 defense). Simplified: no yield in
@@ -256,7 +248,7 @@ void ControlTickService::regenerate_subgoals_and_publish(const TickInput& in)
                 // ST27-ST29 commit gate (check-recheck): SIMPLIFIED to accept.
                 // The full gate re-reads publications arriving mid-computation
                 // (316b①) — a stub here, see 20d "알려진 한계".
-                buffer_.adopt(cand_traj_);  // ST29 promise <- pending.
+                buffer_.adopt(cand_traj_, now_s);  // ST29 promise <- pending (368_p3 ref point).
                 committed_subgoals_ = subgoals_;
                 fairness_.subgoal_sequence_hash = hash_subgoals(subgoals_);  // FC-1 observable.
                 fairness_.tube_radius_m = fleet_.min_separation_m;  // FC-2 observable (simplified).
